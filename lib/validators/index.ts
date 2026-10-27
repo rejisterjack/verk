@@ -54,6 +54,7 @@ export const createIssueSchema = z.object({
   priority: prioritySchema.optional(),
   assigneeId: z.string().cuid().nullable().optional(),
   cycleId: z.string().cuid().nullable().optional(),
+  clientMutationId: z.string().min(1).max(80).optional(),
 });
 
 export const updateIssueSchema = z.object({
@@ -64,12 +65,16 @@ export const updateIssueSchema = z.object({
   assigneeId: z.string().cuid().nullable().optional(),
   cycleId: z.string().cuid().nullable().optional(),
   order: z.number().optional(),
+  revision: z.number().int().optional(),
+  clientMutationId: z.string().min(1).max(80).optional(),
 });
 
 export const reorderIssueSchema = z.object({
-  issueId: z.string().cuid(),
+  issueId: z.string().min(1),
   status: issueStatusSchema,
   order: z.number(),
+  revision: z.number().int().optional(),
+  clientMutationId: z.string().min(1).max(80).optional(),
 });
 
 export const createCycleSchema = z
@@ -116,5 +121,5 @@ export const listIssuesQuerySchema = z.object({
   assigneeId: z.string().cuid().optional(),
   search: z.string().max(200).optional(),
   cursor: z.string().cuid().optional(),
-  take: z.coerce.number().int().min(1).max(100).optional().default(50),
+  take: z.coerce.number().int().min(1).max(200).optional().default(50),
 });

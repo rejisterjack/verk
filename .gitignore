@@ -44,6 +44,11 @@ next-env.d.ts
 # prisma generated client (created by postinstall / prisma generate)
 /lib/generated/prisma
 
+# Serwist
+public/sw.js
+public/sw.js.map
+public/swe-worker*
+
 pnpm-lock.yaml
 yarn.lock
 bun.lockb

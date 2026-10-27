@@ -75,7 +75,13 @@ export async function authenticateRequest(
 export function jsonError(error: unknown) {
   if (error instanceof AuthError) {
     return Response.json(
-      { error: error.message, code: error.code },
+      {
+        error: error.message,
+        code: error.code,
+        ...(error.details && typeof error.details === "object"
+          ? (error.details as Record<string, unknown>)
+          : {}),
+      },
       { status: error.status },
     );
   }

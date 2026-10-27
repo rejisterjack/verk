@@ -2,6 +2,7 @@ import { ArrowRightIcon, StarIcon } from "@heroicons/react/24/outline";
 import NextLink from "next/link";
 
 import { siteConfig } from "@/config/site";
+import { VerkIcon } from "@/components/verk-logo";
 import { HeroShowcase } from "@/components/landing/hero-showcase";
 import { ComparisonMatrix } from "@/components/landing/comparison-matrix";
 import { DeployWalkthrough } from "@/components/landing/deploy-walkthrough";
@@ -13,11 +14,11 @@ export default function HomePage() {
   return (
     <div className="relative overflow-hidden">
       {/* 1. HERO SECTION */}
-      <section className="relative overflow-hidden pt-12 pb-20 verk-grain verk-grid">
+      <section className="relative overflow-hidden pt-14 pb-20 verk-grain verk-grid">
         <div className="relative z-20 mx-auto max-w-6xl px-6 text-center">
           {/* Eyebrow Badge */}
-          <div className="animate-verk-rise inline-flex items-center gap-2 rounded-full border border-separator/80 bg-surface/90 px-3.5 py-1 text-xs font-medium text-foreground backdrop-blur-md shadow-xs">
-            <span className="flex h-2 w-2 rounded-full bg-accent animate-pulse" />
+          <div className="animate-verk-rise inline-flex items-center gap-2.5 rounded-full border border-separator/80 bg-surface/90 px-3.5 py-1 text-xs font-medium text-foreground backdrop-blur-md shadow-xs">
+            <VerkIcon glow={false} size={15} />
             <span>Next.js 16 + Neon Serverless Postgres</span>
             <span className="text-muted/60">|</span>
             <a
@@ -32,10 +33,10 @@ export default function HomePage() {
           </div>
 
           {/* Primary Headline */}
-          <h1 className="animate-verk-rise-delay-1 mx-auto mt-6 max-w-4xl font-display text-4xl font-extrabold tracking-tight text-foreground sm:text-6xl md:text-[4rem] md:leading-[1.1]">
+          <h1 className="animate-verk-rise-delay-1 mx-auto mt-6 max-w-4xl font-display text-4xl font-semibold tracking-[-0.035em] text-foreground sm:text-6xl md:text-[4.25rem] md:leading-[1.08]">
             Linear UX. Vercel deploy.
             <br />
-            <span className="bg-gradient-to-r from-foreground via-foreground to-accent bg-clip-text">
+            <span className="bg-gradient-to-r from-foreground via-foreground/90 to-accent bg-clip-text text-transparent">
               Neon database. Free forever.
             </span>
           </h1>
@@ -107,11 +108,16 @@ export default function HomePage() {
         />
 
         <div className="relative mx-auto max-w-4xl px-6 text-center">
+          <div className="mx-auto mb-5 inline-flex items-center justify-center">
+            <VerkIcon size={36} />
+          </div>
           <p className="font-mono text-xs uppercase tracking-widest text-accent font-semibold">
             Ready in 300 Seconds
           </p>
-          <h2 className="mt-4 font-display text-3xl font-extrabold tracking-tight text-foreground sm:text-5xl">
-            Ship your private tracker tonight
+          <h2 className="mt-4 font-display text-3xl font-semibold tracking-[-0.035em] text-foreground sm:text-5xl md:leading-[1.1]">
+            <span className="bg-gradient-to-b from-foreground via-foreground to-foreground/80 bg-clip-text text-transparent">
+              Ship your private tracker tonight
+            </span>
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-muted sm:text-lg">
             Open source under MIT. Runs free on Vercel Hobby and Neon serverless

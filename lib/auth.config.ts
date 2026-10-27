@@ -12,6 +12,7 @@ export const authConfig = {
     authorized({ auth, request }) {
       const { pathname } = request.nextUrl;
       const isProtected =
+        pathname === "/t" ||
         pathname.startsWith("/t/") ||
         pathname.startsWith("/onboarding") ||
         pathname.startsWith("/account");

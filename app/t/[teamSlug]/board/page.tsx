@@ -50,6 +50,7 @@ export default async function BoardPage({
           <CreateIssueForm
             cycles={cycles.map((c) => ({ id: c.id, name: c.name }))}
             members={members.map((m) => m.user)}
+            teamId={teamCtx.team.id}
             teamSlug={teamSlug}
           />
         }
@@ -91,7 +92,16 @@ export default async function BoardPage({
         </button>
       </form>
 
-      <BoardView initialIssues={issues} teamSlug={teamSlug} />
+      <BoardView
+        initialIssues={issues.map((i) => ({
+          ...i,
+          number: i.number,
+          revision: i.revision,
+        }))}
+        teamId={teamCtx.team.id}
+        teamName={teamCtx.team.name}
+        teamSlug={teamSlug}
+      />
     </div>
   );
 }

@@ -30,7 +30,7 @@ export function FeatureTabs() {
           <p className="font-mono text-xs uppercase tracking-widest text-accent font-semibold">
             Uncompromising Focus
           </p>
-          <h2 className="mt-3 font-display text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+          <h2 className="mt-3 font-display text-3xl font-semibold tracking-[-0.03em] text-foreground sm:text-4xl">
             The 80% of Linear you actually use
           </h2>
           <p className="mt-3 text-base leading-relaxed text-muted sm:text-lg">

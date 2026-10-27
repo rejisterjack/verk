@@ -1,13 +1,11 @@
 import type { IssueStatus, Priority } from "@/lib/generated/prisma/client";
 
-import NextLink from "next/link";
 import { notFound } from "next/navigation";
 
 import { CreateIssueForm } from "@/components/create-issue-form";
 import { EmptyState } from "@/components/empty-state";
+import { IssuesListClient } from "@/components/issues-list-client";
 import { PageHeader } from "@/components/page-header";
-import { PriorityChip, StatusChip } from "@/components/status-chip";
-import { issueKey } from "@/lib/utils";
 import { requireTeamBySlug } from "@/lib/rbac";
 import * as issuesService from "@/lib/services/issues";
 import * as cyclesService from "@/lib/services/cycles";
@@ -55,10 +53,11 @@ export default async function IssuesPage({
           <CreateIssueForm
             cycles={cycles.map((c) => ({ id: c.id, name: c.name }))}
             members={members.map((m) => m.user)}
+            teamId={team.id}
             teamSlug={teamSlug}
           />
         }
-        description="List view — press New issue or open the board for kanban."
+        description="List view — press New issue or open the board for kanban. Offline-capable when installed."
         title="Issues"
       />
 
@@ -120,6 +119,7 @@ export default async function IssuesPage({
             <CreateIssueForm
               cycles={cycles.map((c) => ({ id: c.id, name: c.name }))}
               members={members.map((m) => m.user)}
+              teamId={team.id}
               teamSlug={teamSlug}
             />
           }
@@ -127,57 +127,26 @@ export default async function IssuesPage({
           title="No issues yet"
         />
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-separator">
-          <table className="w-full text-sm">
-            <thead className="border-b border-separator bg-surface text-left text-muted">
-              <tr>
-                <th className="px-4 py-3 font-medium">ID</th>
-                <th className="px-4 py-3 font-medium">Title</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Priority</th>
-                <th className="px-4 py-3 font-medium">Assignee</th>
-                <th className="px-4 py-3 font-medium">Cycle</th>
-              </tr>
-            </thead>
-            <tbody>
-              {issues.map((issue) => (
-                <tr
-                  key={issue.id}
-                  className="border-b border-separator last:border-0 hover:bg-default/40"
-                >
-                  <td className="px-4 py-3 text-muted whitespace-nowrap">
-                    <NextLink
-                      className="hover:text-accent"
-                      href={`/t/${teamSlug}/issues/${issue.number}`}
-                    >
-                      {issueKey(team.slug, issue.number)}
-                    </NextLink>
-                  </td>
-                  <td className="px-4 py-3">
-                    <NextLink
-                      className="font-medium hover:text-accent"
-                      href={`/t/${teamSlug}/issues/${issue.number}`}
-                    >
-                      {issue.title}
-                    </NextLink>
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusChip status={issue.status} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <PriorityChip priority={issue.priority} />
-                  </td>
-                  <td className="px-4 py-3 text-muted">
-                    {issue.assignee?.name ?? issue.assignee?.email ?? "—"}
-                  </td>
-                  <td className="px-4 py-3 text-muted">
-                    {issue.cycle?.name ?? "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <IssuesListClient
+          filters={{
+            status: query.status,
+            priority: query.priority,
+            cycleId: query.cycleId,
+            search: query.search,
+          }}
+          initialIssues={issues.map((issue) => ({
+            id: issue.id,
+            number: issue.number,
+            title: issue.title,
+            status: issue.status,
+            priority: issue.priority,
+            assignee: issue.assignee,
+            cycle: issue.cycle,
+          }))}
+          teamId={team.id}
+          teamName={team.name}
+          teamSlug={teamSlug}
+        />
       )}
     </div>
   );

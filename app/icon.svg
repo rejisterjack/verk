@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <defs>
+    <linearGradient id="vk-bg" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#1E2430" />
+      <stop offset="100%" stopColor="#0B0E14" />
+    </linearGradient>
+    <linearGradient id="vk-teal" x1="14" y1="25" x2="26" y2="7" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#10B981" />
+      <stop offset="60%" stopColor="#14B8A6" />
+      <stop offset="100%" stopColor="#2DD4BF" />
+    </linearGradient>
+    <linearGradient id="vk-silver" x1="6" y1="7" x2="15" y2="25" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#FFFFFF" />
+      <stop offset="100%" stopColor="#94A3B8" />
+    </linearGradient>
+    <linearGradient id="vk-stroke" x1="0" y1="0" x2="0" y2="32" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="rgba(255,255,255,0.28)" />
+      <stop offset="100%" stopColor="rgba(255,255,255,0.06)" />
+    </linearGradient>
+  </defs>
+
+  <rect x="1" y="1" width="30" height="30" rx="7.5" fill="url(#vk-bg)" stroke="url(#vk-stroke)" stroke-width="1.2" />
+  <path d="M7 8.5H11.2L15 20.8L12.6 24.5L7 8.5Z" fill="url(#vk-silver)" />
+  <path d="M13.8 24.5L16.2 20.8L21 8.5H25.2L16.6 24.5H13.8Z" fill="url(#vk-teal)" />
+  <circle cx="15" cy="24.5" r="1.2" fill="#2DD4BF" />
+</svg>

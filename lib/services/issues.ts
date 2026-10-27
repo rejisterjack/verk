@@ -5,13 +5,38 @@ import {
   Role,
 } from "@/lib/generated/prisma/client";
 import { prisma } from "@/lib/db";
-import { AuthError, assertRole } from "@/lib/rbac";
+import { AuthError, ConflictError } from "@/lib/errors";
+import { assertRole } from "@/lib/rbac";
 import {
   createIssueSchema,
   listIssuesQuerySchema,
   reorderIssueSchema,
   updateIssueSchema,
 } from "@/lib/validators";
+
+const issueInclude = {
+  assignee: { select: { id: true, name: true, email: true, image: true } },
+  cycle: { select: { id: true, name: true, isActive: true } },
+  creator: { select: { id: true, name: true, email: true } },
+} as const;
+
+function parseRevision(
+  input: unknown,
+  header?: string | null,
+): number | undefined {
+  if (typeof input === "object" && input && "revision" in input) {
+    const rev = (input as { revision?: unknown }).revision;
+
+    if (typeof rev === "number" && Number.isFinite(rev)) return rev;
+  }
+  if (header) {
+    const m = header.match(/"?(\d+)"?/);
+
+    if (m) return Number(m[1]);
+  }
+
+  return undefined;
+}
 
 export async function listIssues(teamId: string, query: unknown) {
   const q = listIssuesQuerySchema.parse(query);
@@ -32,11 +57,7 @@ export async function listIssues(teamId: string, query: unknown) {
 
   const issues = await prisma.issue.findMany({
     where,
-    include: {
-      assignee: { select: { id: true, name: true, email: true, image: true } },
-      cycle: { select: { id: true, name: true, isActive: true } },
-      creator: { select: { id: true, name: true, email: true } },
-    },
+    include: issueInclude,
     orderBy: [{ order: "asc" }, { number: "desc" }],
     take: q.take + 1,
     ...(q.cursor ? { cursor: { id: q.cursor }, skip: 1 } : {}),
@@ -51,6 +72,34 @@ export async function listIssues(teamId: string, query: unknown) {
   }
 
   return { issues, nextCursor };
+}
+
+export async function syncIssues(teamId: string, sinceIso: string) {
+  const since = new Date(sinceIso);
+
+  if (Number.isNaN(since.getTime())) {
+    throw new AuthError("Invalid since timestamp", "BAD_REQUEST", 400);
+  }
+
+  const [issues, deletions] = await Promise.all([
+    prisma.issue.findMany({
+      where: { teamId, updatedAt: { gt: since } },
+      include: issueInclude,
+      orderBy: { updatedAt: "asc" },
+      take: 200,
+    }),
+    prisma.issueDeletion.findMany({
+      where: { teamId, deletedAt: { gt: since } },
+      select: { issueId: true },
+      take: 500,
+    }),
+  ]);
+
+  return {
+    issues,
+    deletedIds: deletions.map((d) => d.issueId),
+    serverTime: new Date().toISOString(),
+  };
 }
 
 export async function getIssueByNumber(teamId: string, number: number) {
@@ -80,9 +129,30 @@ export async function createIssue(
   userId: string,
   input: unknown,
 ) {
+  const raw =
+    typeof input === "object" && input
+      ? (input as Record<string, unknown>)
+      : {};
+  const clientMutationId =
+    typeof raw.clientMutationId === "string" ? raw.clientMutationId : undefined;
+
+  if (clientMutationId) {
+    const receipt = await prisma.mutationReceipt.findUnique({
+      where: {
+        teamId_clientMutationId: { teamId, clientMutationId },
+      },
+    });
+
+    if (receipt?.issueId) {
+      const existing = await getIssueById(teamId, receipt.issueId);
+
+      if (existing) return existing;
+    }
+  }
+
   const data = createIssueSchema.parse(input);
 
-  return prisma.$transaction(async (tx) => {
+  const issue = await prisma.$transaction(async (tx) => {
     const team = await tx.team.update({
       where: { id: teamId },
       data: { issueCounter: { increment: 1 } },
@@ -93,7 +163,7 @@ export async function createIssue(
       _max: { order: true },
     });
 
-    return tx.issue.create({
+    const created = await tx.issue.create({
       data: {
         teamId,
         number: team.issueCounter,
@@ -105,6 +175,7 @@ export async function createIssue(
         cycleId: data.cycleId ?? null,
         creatorId: userId,
         order: (maxOrder._max.order ?? 0) + 1,
+        revision: 0,
       },
       include: {
         assignee: {
@@ -113,7 +184,21 @@ export async function createIssue(
         cycle: true,
       },
     });
+
+    if (clientMutationId) {
+      await tx.mutationReceipt.create({
+        data: {
+          teamId,
+          clientMutationId,
+          issueId: created.id,
+        },
+      });
+    }
+
+    return created;
   });
+
+  return issue;
 }
 
 export async function updateIssue(
@@ -122,6 +207,7 @@ export async function updateIssue(
   input: unknown,
   role: Role,
   userId: string,
+  ifMatch?: string | null,
 ) {
   const existing = await prisma.issue.findFirst({
     where: { id: issueId, teamId },
@@ -130,27 +216,54 @@ export async function updateIssue(
   if (!existing) {
     throw new AuthError("Issue not found", "NOT_FOUND", 404);
   }
-  // Members can update any issue fields (Linear-like); delete restricted below
   assertRole(role, "MEMBER");
   void userId;
 
-  const data = updateIssueSchema.parse(input);
+  const expected = parseRevision(input, ifMatch);
+  const parsed = updateIssueSchema.parse(input);
+  const {
+    revision: ignoredRevision,
+    clientMutationId: ignoredMutationId,
+    ...data
+  } = parsed;
 
-  return prisma.issue.update({
-    where: { id: issueId },
+  void ignoredRevision;
+  void ignoredMutationId;
+
+  if (expected != null && existing.revision !== expected) {
+    const current = await getIssueById(teamId, issueId);
+
+    throw new ConflictError("Issue revision conflict", current);
+  }
+
+  const updated = await prisma.issue.updateMany({
+    where: {
+      id: issueId,
+      teamId,
+      ...(expected != null ? { revision: expected } : {}),
+    },
     data: {
       ...data,
       assigneeId: data.assigneeId === undefined ? undefined : data.assigneeId,
       cycleId: data.cycleId === undefined ? undefined : data.cycleId,
-    },
-    include: {
-      assignee: { select: { id: true, name: true, email: true, image: true } },
-      cycle: true,
+      revision: { increment: 1 },
     },
   });
+
+  if (updated.count === 0) {
+    const current = await getIssueById(teamId, issueId);
+
+    throw new ConflictError("Issue revision conflict", current);
+  }
+
+  return getIssueById(teamId, issueId);
 }
 
-export async function reorderIssue(teamId: string, input: unknown) {
+export async function reorderIssue(
+  teamId: string,
+  input: unknown,
+  ifMatch?: string | null,
+) {
   const data = reorderIssueSchema.parse(input);
   const existing = await prisma.issue.findFirst({
     where: { id: data.issueId, teamId },
@@ -160,10 +273,32 @@ export async function reorderIssue(teamId: string, input: unknown) {
     throw new AuthError("Issue not found", "NOT_FOUND", 404);
   }
 
-  return prisma.issue.update({
-    where: { id: data.issueId },
-    data: { status: data.status, order: data.order },
+  const expected = parseRevision(input, ifMatch);
+
+  if (expected != null && existing.revision !== expected) {
+    throw new ConflictError("Issue revision conflict", existing);
+  }
+
+  const updated = await prisma.issue.updateMany({
+    where: {
+      id: data.issueId,
+      teamId,
+      ...(expected != null ? { revision: expected } : {}),
+    },
+    data: {
+      status: data.status,
+      order: data.order,
+      revision: { increment: 1 },
+    },
   });
+
+  if (updated.count === 0) {
+    const current = await getIssueById(teamId, data.issueId);
+
+    throw new ConflictError("Issue revision conflict", current);
+  }
+
+  return getIssueById(teamId, data.issueId);
 }
 
 export async function deleteIssue(
@@ -171,6 +306,8 @@ export async function deleteIssue(
   issueId: string,
   role: Role,
   userId: string,
+  input?: unknown,
+  ifMatch?: string | null,
 ) {
   const existing = await prisma.issue.findFirst({
     where: { id: issueId, teamId },
@@ -186,7 +323,32 @@ export async function deleteIssue(
       403,
     );
   }
-  await prisma.issue.delete({ where: { id: issueId } });
+
+  const expected = parseRevision(input, ifMatch);
+
+  if (expected != null && existing.revision !== expected) {
+    throw new ConflictError("Issue revision conflict", existing);
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const deleted = await tx.issue.deleteMany({
+      where: {
+        id: issueId,
+        teamId,
+        ...(expected != null ? { revision: expected } : {}),
+      },
+    });
+
+    if (deleted.count === 0) {
+      throw new ConflictError("Issue revision conflict", existing);
+    }
+
+    await tx.issueDeletion.upsert({
+      where: { issueId },
+      create: { issueId, teamId },
+      update: { deletedAt: new Date(), teamId },
+    });
+  });
 }
 
 export const BOARD_STATUSES: IssueStatus[] = [
@@ -224,11 +386,15 @@ export async function getBoardIssues(
       id: true,
       number: true,
       title: true,
+      description: true,
       status: true,
       priority: true,
       order: true,
+      revision: true,
+      updatedAt: true,
       assigneeId: true,
       cycleId: true,
+      creatorId: true,
       assignee: { select: { id: true, name: true, email: true, image: true } },
     },
     orderBy: [{ order: "asc" }, { number: "asc" }],

@@ -9,6 +9,8 @@ import {
   PlusIcon,
 } from "@heroicons/react/24/outline";
 
+import { VerkIcon } from "@/components/verk-logo";
+
 interface Issue {
   id: string;
   title: string;
@@ -135,6 +137,7 @@ export function HeroShowcase() {
             </div>
 
             <div className="hidden sm:flex items-center gap-2 pl-3 border-l border-separator/60 text-xs text-muted">
+              <VerkIcon glow={false} size={16} />
               <span className="font-semibold text-foreground font-display">
                 Verk Workspace
               </span>

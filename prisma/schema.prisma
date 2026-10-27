@@ -92,10 +92,12 @@ model Team {
   updatedAt    DateTime @updatedAt
 
   memberships Membership[]
-  invites     Invite[]
-  issues      Issue[]
-  cycles      Cycle[]
-  apiKeys     ApiKey[]
+  invites           Invite[]
+  issues            Issue[]
+  cycles            Cycle[]
+  apiKeys           ApiKey[]
+  mutationReceipts  MutationReceipt[]
+  issueDeletions    IssueDeletion[]
 }
 
 model Membership {
@@ -157,6 +159,7 @@ model Issue {
   status      IssueStatus @default(BACKLOG)
   priority    Priority    @default(NONE)
   order       Float       @default(0)
+  revision    Int         @default(0)
   assigneeId  String?
   cycleId     String?
   creatorId   String
@@ -172,6 +175,30 @@ model Issue {
   @@index([teamId, status])
   @@index([teamId, cycleId])
   @@index([teamId, order])
+  @@index([teamId, updatedAt])
+}
+
+model MutationReceipt {
+  id               String   @id @default(cuid())
+  teamId           String
+  clientMutationId String
+  issueId          String?
+  createdAt        DateTime @default(now())
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, clientMutationId])
+  @@index([teamId])
+}
+
+model IssueDeletion {
+  issueId   String   @id
+  teamId    String
+  deletedAt DateTime @default(now())
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId, deletedAt])
 }
 
 model ApiKey {

@@ -82,7 +82,7 @@ export function McpShowcase() {
               <span>Native Model Context Protocol (MCP)</span>
             </div>
 
-            <h2 className="font-display text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            <h2 className="font-display text-3xl font-semibold tracking-[-0.03em] text-foreground sm:text-4xl">
               Built for AI agents.
               <br />
               <span className="text-muted">Not an afterthought.</span>

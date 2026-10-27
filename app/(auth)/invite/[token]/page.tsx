@@ -1,6 +1,6 @@
-import { Button } from "@heroui/react";
 import { redirect } from "next/navigation";
 
+import { SubmitButton as Button } from "@/components/submit-button";
 import { auth } from "@/lib/auth";
 import { acceptInviteAction } from "@/lib/actions/teams";
 

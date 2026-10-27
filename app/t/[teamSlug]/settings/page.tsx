@@ -1,7 +1,7 @@
-import { Button } from "@heroui/react";
 import NextLink from "next/link";
 import { notFound } from "next/navigation";
 
+import { SubmitButton as Button } from "@/components/submit-button";
 import { PageHeader } from "@/components/page-header";
 import { deleteTeamAction, updateTeamAction } from "@/lib/actions/teams";
 import { isDemoMode } from "@/lib/utils";

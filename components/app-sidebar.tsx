@@ -11,6 +11,7 @@ import clsx from "clsx";
 import NextLink from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
+import { VerkLogo } from "@/components/verk-logo";
 import { logoutAction } from "@/lib/actions/auth";
 
 type TeamOption = { slug: string; name: string };
@@ -36,11 +37,11 @@ export function AppSidebar({
 
   return (
     <aside className="flex w-60 shrink-0 flex-col border-r border-separator bg-surface p-4 gap-4">
-      <NextLink className="flex items-center gap-2 font-bold" href="/">
-        <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-accent text-accent-foreground text-sm">
-          V
-        </span>
-        Verk
+      <NextLink
+        className="flex items-center transition-transform hover:scale-[1.02]"
+        href="/"
+      >
+        <VerkLogo size={26} />
       </NextLink>
 
       <label className="flex flex-col gap-1 text-sm">

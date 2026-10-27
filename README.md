@@ -14,6 +14,7 @@ Demo (fake data): [verk.rejisterjack.com](https://verk.rejisterjack.com)
 - Cycles for sprint planning (start/end dates)
 - Teams, members, and role-based access (`OWNER` / `ADMIN` / `MEMBER`)
 - Board view (drag-and-drop) and list view
+- Installable PWA with offline issue create/update/reorder/delete (IndexedDB + outbox)
 - Built-in MCP server at `/api/mcp`
 - One-click Vercel + Neon deploy — **no Docker**
 
@@ -42,8 +43,15 @@ Seeded demo login: `demo@verk.dev` / `demo1234` · team slug `acme-engineering`
 | `RESEND_API_KEY` | No | Email invites (links always copyable in UI) |
 | `EMAIL_FROM` | No | Defaults to Resend onboarding sender |
 | `DEMO_MODE` | No | `true` disables team deletion on the public demo |
+| `NEXT_PUBLIC_PWA_OFFLINE` | No | Set to `false` to disable offline outbox writes |
 
 Prisma runs `migrate deploy` during `npm run build` / Vercel builds.
+
+### Offline / PWA
+
+See [Docs → Offline](/docs#offline). Production builds register a Serwist service worker (`public/sw.js`). Core issue workflows sync via REST with revision-based conflict handling.
+
+
 
 ## MCP
 

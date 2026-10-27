@@ -1,3 +1,5 @@
+"use client";
+
 import type { IssueStatus, Priority } from "@/lib/generated/prisma/client";
 
 import { Chip } from "@heroui/react";

@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { ThemeSwitch } from "@/components/theme-switch";
+import { VerkLogo } from "@/components/verk-logo";
 import { siteConfig } from "@/config/site";
 
 export function MarketingNavbar() {
@@ -17,10 +18,11 @@ export function MarketingNavbar() {
     <nav className="sticky top-0 z-50 w-full border-b border-separator/60 bg-background/75 backdrop-blur-xl">
       <header className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-6">
         <div className="flex items-center gap-8">
-          <NextLink className="group flex items-center gap-2.5" href="/">
-            <span className="font-display text-[1.35rem] font-bold tracking-tight leading-none">
-              Verk
-            </span>
+          <NextLink
+            className="group flex items-center transition-transform hover:scale-[1.02]"
+            href="/"
+          >
+            <VerkLogo size={28} />
           </NextLink>
           <ul className="hidden md:flex gap-6">
             {siteConfig.navItems.map((item) => (

@@ -1,7 +1,7 @@
 import NextLink from "next/link";
 import { notFound } from "next/navigation";
-import { Button } from "@heroui/react";
 
+import { SubmitButton as Button } from "@/components/submit-button";
 import { PageHeader } from "@/components/page-header";
 import { PriorityChip, StatusChip } from "@/components/status-chip";
 import { deleteCycleAction, updateCycleAction } from "@/lib/actions/cycles";

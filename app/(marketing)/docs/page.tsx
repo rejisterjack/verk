@@ -110,6 +110,45 @@ npm run dev`}</pre>
         </p>
       </section>
 
+      <section className="space-y-4" id="offline">
+        <h2 className="font-display text-2xl font-semibold tracking-tight">
+          Install &amp; offline
+        </h2>
+        <p className="text-muted leading-relaxed">
+          Verk is a Progressive Web App. After you sign in and open a board once
+          online, you can install it (browser install prompt, or iOS Share → Add
+          to Home Screen) and keep working on issues without a network.
+        </p>
+        <ul className="list-disc space-y-2 pl-5 text-muted leading-relaxed">
+          <li>
+            <strong className="text-foreground">Works offline:</strong> board
+            &amp; list reads, create / update / reorder / delete issues (queued
+            locally, synced when you reconnect).
+          </li>
+          <li>
+            <strong className="text-foreground">Online only:</strong> auth,
+            onboarding, team settings, members, API keys, cycles mutations, MCP.
+          </li>
+          <li>
+            Conflicts use server{" "}
+            <code className="font-mono text-foreground text-sm">revision</code>{" "}
+            — you choose keep mine or keep server; no silent last-write-wins on
+            title/description.
+          </li>
+          <li>
+            Set{" "}
+            <code className="font-mono text-foreground text-sm">
+              NEXT_PUBLIC_PWA_OFFLINE=false
+            </code>{" "}
+            to disable the outbox (e.g. public demo). Service worker still
+            builds for installability.
+          </li>
+          <li>
+            Neon cold starts still apply when the outbox flushes after idle.
+          </li>
+        </ul>
+      </section>
+
       <section className="space-y-4">
         <h2 className="font-display text-2xl font-semibold tracking-tight">
           Honest caveats

@@ -9,8 +9,13 @@ export function slugify(input: string): string {
     .slice(0, 48);
 }
 
-export function issueKey(teamSlug: string, number: number): string {
+export function issueKey(
+  teamSlug: string,
+  number: number | null | undefined,
+): string {
   const prefix = teamSlug.slice(0, 3).toUpperCase() || "VRK";
+
+  if (number == null) return `${prefix}-TMP`;
 
   return `${prefix}-${number}`;
 }

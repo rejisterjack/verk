@@ -9,20 +9,26 @@ import {
   TextArea,
   TextField,
 } from "@heroui/react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { createIssueAction } from "@/lib/actions/issues";
+import { isOfflineEnabled } from "@/lib/offline/feature";
+import { createIssueLocal } from "@/lib/offline/issue-repository";
 import { PRIORITY_LABELS, STATUS_LABELS } from "@/lib/labels";
 
 export function CreateIssueForm({
+  teamId,
   teamSlug,
   members,
   cycles,
 }: {
+  teamId: string;
   teamSlug: string;
   members: Array<{ id: string; name: string | null; email: string }>;
   cycles: Array<{ id: string; name: string }>;
 }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -47,6 +53,33 @@ export function CreateIssueForm({
             setPending(true);
             setError(null);
             const formData = new FormData(e.currentTarget);
+
+            if (isOfflineEnabled()) {
+              const local = await createIssueLocal(teamId, {
+                title: String(formData.get("title") ?? ""),
+                description: String(formData.get("description") ?? ""),
+                status: String(formData.get("status") ?? "BACKLOG"),
+                priority: String(formData.get("priority") ?? "NONE"),
+                assigneeId: formData.get("assigneeId")
+                  ? String(formData.get("assigneeId"))
+                  : null,
+                cycleId: formData.get("cycleId")
+                  ? String(formData.get("cycleId"))
+                  : null,
+              });
+
+              setOpen(false);
+              setPending(false);
+              if (local.number != null) {
+                router.push(`/t/${teamSlug}/issues/${local.number}`);
+              } else {
+                router.push(`/t/${teamSlug}/issues/tmp/${local.id}`);
+              }
+              router.refresh();
+
+              return;
+            }
+
             const result = await createIssueAction(teamSlug, formData);
 
             if (result?.error) {

@@ -19,6 +19,19 @@ jobs:
       - run: npm run lint
       - run: npx tsc --noEmit
       - run: npm test
+      - name: Production build (Serwist SW)
+        env:
+          # Build without DB migrate; generate client already ran
+          DATABASE_URL: postgresql://user:pass@localhost:5432/verk
+          DIRECT_URL: postgresql://user:pass@localhost:5432/verk
+          AUTH_SECRET: ci-build-secret-not-for-production
+          AUTH_URL: http://localhost:3000
+        run: npx next build --webpack
+      - name: PWA manifest + SW artifacts
+        run: |
+          test -f public/manifest.webmanifest
+          test -f public/sw.js
+          test -f public/icons/icon-192.png
       # E2E / migrate tests need DATABASE_URL — skip when secret absent (no Docker services)
       - name: Migrate + Playwright
         if: ${{ secrets.DATABASE_URL != '' }}

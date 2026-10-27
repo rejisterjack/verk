@@ -12,7 +12,7 @@ export function ComparisonMatrix() {
             The Third Path
           </p>
           <h2
-            className="mt-3 font-display text-3xl font-bold tracking-tight text-foreground sm:text-4xl"
+            className="mt-3 font-display text-3xl font-semibold tracking-[-0.03em] text-foreground sm:text-4xl"
             id="comparison-heading"
           >
             Why engineering teams choose Verk

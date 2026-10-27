@@ -1,4 +1,5 @@
 import { MarketingNavbar } from "@/components/marketing-navbar";
+import { VerkLogo } from "@/components/verk-logo";
 import { siteConfig } from "@/config/site";
 
 export default function MarketingLayout({
@@ -13,10 +14,8 @@ export default function MarketingLayout({
       <footer className="border-t border-separator">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-10 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="font-display text-xl font-semibold tracking-tight">
-              Verk
-            </p>
-            <p className="mt-1 max-w-sm text-sm text-muted">
+            <VerkLogo size={24} />
+            <p className="mt-2 max-w-sm text-sm text-muted">
               Linear UX. Vercel deploy. Neon database. Free forever.
             </p>
           </div>

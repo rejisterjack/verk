@@ -4,7 +4,12 @@
     "lib": [
       "dom",
       "dom.iterable",
-      "esnext"
+      "esnext",
+      "webworker"
+    ],
+    "types": [
+      "node",
+      "@serwist/next/typings"
     ],
     "allowJs": true,
     "skipLibCheck": true,
@@ -41,6 +46,8 @@
     "scripts",
     "tests",
     "vitest.config.ts",
-    "playwright.config.ts"
+    "playwright.config.ts",
+    "public/sw.js",
+    "public/swe-worker*"
   ]
 }

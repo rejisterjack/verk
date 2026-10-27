@@ -34,17 +34,25 @@ export async function PATCH(
     const { teamId, issueId } = await context.params;
     const authResult = await authenticateRequest(request, teamId);
     const body = await request.json();
+    const ifMatch = request.headers.get("if-match");
 
     if (
       body.status &&
       body.order !== undefined &&
-      Object.keys(body).length <= 3
+      Object.keys(body).filter(
+        (k) => !["revision", "clientMutationId", "issueId"].includes(k),
+      ).length <= 2
     ) {
-      const issue = await issuesService.reorderIssue(teamId, {
-        issueId,
-        status: body.status,
-        order: body.order,
-      });
+      const issue = await issuesService.reorderIssue(
+        teamId,
+        {
+          issueId,
+          status: body.status,
+          order: body.order,
+          revision: body.revision,
+        },
+        ifMatch,
+      );
 
       return Response.json(issue);
     }
@@ -54,6 +62,7 @@ export async function PATCH(
       body,
       authResult.role,
       authResult.user.id!,
+      ifMatch,
     );
 
     return Response.json(issue);
@@ -69,12 +78,22 @@ export async function DELETE(
   try {
     const { teamId, issueId } = await context.params;
     const authResult = await authenticateRequest(request, teamId);
+    const ifMatch = request.headers.get("if-match");
+    let body: unknown;
+
+    try {
+      body = await request.json();
+    } catch {
+      body = undefined;
+    }
 
     await issuesService.deleteIssue(
       teamId,
       issueId,
       authResult.role,
       authResult.user.id!,
+      body,
+      ifMatch,
     );
 
     return new Response(null, { status: 204 });

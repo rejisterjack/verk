@@ -6,6 +6,7 @@ export default NextAuth(authConfig).auth;
 
 export const config = {
   matcher: [
+    "/t",
     "/t/:path*",
     "/onboarding",
     "/account",

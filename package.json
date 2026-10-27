@@ -4,9 +4,9 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "prisma migrate deploy && next build",
-    "vercel-build": "prisma migrate deploy && next build",
+    "dev": "next dev --turbopack",
+    "build": "prisma migrate deploy && next build --webpack",
+    "vercel-build": "prisma migrate deploy && next build --webpack",
     "start": "next start",
     "lint": "eslint --fix",
     "postinstall": "prisma generate",
@@ -19,7 +19,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "mcp:smoke": "tsx scripts/mcp-smoke.ts"
+    "mcp:smoke": "tsx scripts/mcp-smoke.ts",
+    "pwa:lighthouse": "npx --yes lighthouse http://localhost:3000 --only-categories=pwa --chrome-flags='--headless' --quiet"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",
@@ -36,8 +37,10 @@
     "@prisma/client": "^7.10.1",
     "@react-aria/ssr": "^3.10.1",
     "@react-aria/utils": "^3.34.1",
+    "@serwist/next": "^9.5.13",
     "bcryptjs": "^3.0.3",
     "clsx": "2.1.1",
+    "dexie": "^4.4.7",
     "dotenv": "^18.0.9",
     "intl-messageformat": "12.1.4",
     "next": "16.4.3",
@@ -49,6 +52,7 @@
     "react-aria-components": "^1.22.1",
     "react-dom": "19.3.1",
     "resend": "^6.35.0",
+    "serwist": "^9.5.13",
     "zod": "^4.6.7"
   },
   "devDependencies": {
@@ -61,6 +65,7 @@
     "@types/node": "22.20.5",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
+    "@types/serviceworker": "^0.0.203",
     "@typescript-eslint/eslint-plugin": "8.72.1",
     "@typescript-eslint/parser": "8.72.1",
     "@vitejs/plugin-react": "^5.2.0",
