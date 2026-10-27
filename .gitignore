@@ -41,6 +41,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# prisma generated client (created by postinstall / prisma generate)
+/lib/generated/prisma
+
 pnpm-lock.yaml
 yarn.lock
 bun.lockb

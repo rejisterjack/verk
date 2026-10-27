@@ -3,7 +3,199 @@
 
 @custom-variant dark (&:is(.dark *));
 
-@theme {
-	--font-sans: "font", sans-serif;
-	--font-mono: "monospace", monospace;
+@theme inline {
+  --font-sans: var(--font-figtree), "Figtree", ui-sans-serif, sans-serif;
+  --font-mono: var(--font-jetbrains), "JetBrains Mono", ui-monospace, monospace;
+  --font-display: var(--font-syne), "Syne", ui-sans-serif, sans-serif;
+}
+
+/* Verk identity: ink on warm paper, teal deploy accent — not purple, not cream-terracotta */
+:root,
+[data-theme="light"] {
+  --background: oklch(0.985 0.008 95);
+  --foreground: oklch(0.2 0.02 250);
+  --surface: oklch(0.97 0.01 95);
+  --overlay: oklch(1 0 0);
+  --muted: oklch(0.48 0.02 250);
+  --separator: oklch(0.88 0.015 95);
+  --accent: oklch(0.52 0.12 175);
+  --accent-foreground: oklch(0.99 0.01 175);
+  --default: oklch(0.94 0.012 95);
+  --field-background: oklch(0.995 0.005 95);
+  --danger: oklch(0.55 0.18 25);
+  --warning: oklch(0.7 0.14 75);
+  --success: oklch(0.55 0.12 155);
+  --canvas-card: oklch(1 0 0 / 0.85);
+  --canvas-border: oklch(0.88 0.015 95);
+  --canvas-glow: oklch(0.52 0.12 175 / 0.12);
+}
+
+.dark,
+[data-theme="dark"] {
+  --background: oklch(0.14 0.015 250);
+  --foreground: oklch(0.96 0.01 95);
+  --surface: oklch(0.18 0.018 250);
+  --overlay: oklch(0.2 0.02 250);
+  --muted: oklch(0.68 0.02 250);
+  --separator: oklch(0.28 0.02 250);
+  --accent: oklch(0.74 0.14 175);
+  --accent-foreground: oklch(0.14 0.02 175);
+  --default: oklch(0.24 0.02 250);
+  --field-background: oklch(0.16 0.015 250);
+  --canvas-card: oklch(0.17 0.018 250 / 0.7);
+  --canvas-border: oklch(0.28 0.02 250 / 0.8);
+  --canvas-glow: oklch(0.74 0.14 175 / 0.18);
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-syne), "Syne", var(--font-figtree), sans-serif;
+  }
+
+  .verk-grain {
+    background-image:
+      radial-gradient(ellipse 80% 50% at 20% -10%, oklch(0.72 0.08 175 / 0.18), transparent 55%),
+      radial-gradient(ellipse 60% 40% at 90% 10%, oklch(0.75 0.04 95 / 0.35), transparent 50%),
+      linear-gradient(180deg, oklch(0.99 0.01 95), oklch(0.96 0.012 95) 45%, oklch(0.985 0.008 95));
+  }
+
+  .dark .verk-grain {
+    background-image:
+      radial-gradient(ellipse 80% 50% at 20% -10%, oklch(0.48 0.12 175 / 0.22), transparent 55%),
+      radial-gradient(ellipse 60% 40% at 90% 10%, oklch(0.28 0.03 250 / 0.5), transparent 50%),
+      linear-gradient(180deg, oklch(0.15 0.018 250), oklch(0.13 0.015 250) 50%, oklch(0.14 0.015 250));
+  }
+
+  .verk-grid {
+    background-size: 48px 48px;
+    background-image:
+      linear-gradient(to right, oklch(0.2 0.02 250 / 0.04) 1px, transparent 1px),
+      linear-gradient(to bottom, oklch(0.2 0.02 250 / 0.04) 1px, transparent 1px);
+  }
+
+  .dark .verk-grid {
+    background-image:
+      linear-gradient(to right, oklch(0.95 0.01 95 / 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, oklch(0.95 0.01 95 / 0.05) 1px, transparent 1px);
+  }
+
+  @keyframes verk-rise {
+    from {
+      transform: translateY(14px);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes verk-drift {
+    from {
+      transform: translateY(0);
+    }
+    to {
+      transform: translateY(-6px);
+    }
+  }
+
+  @keyframes verk-line {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+
+  .animate-verk-rise {
+    animation: verk-rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .animate-verk-rise-delay-1 {
+    animation: verk-rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
+  }
+
+  .animate-verk-rise-delay-2 {
+    animation: verk-rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.24s both;
+  }
+
+  .animate-verk-rise-delay-3 {
+    animation: verk-rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.36s both;
+  }
+
+  .animate-verk-drift {
+    animation: verk-drift 4s ease-in-out infinite alternate;
+  }
+
+  .animate-verk-line {
+    transform-origin: left;
+    animation: verk-line 1s cubic-bezier(0.22, 1, 0.36, 1) 0.5s both;
+  }
+
+  /* Responsive comparison table container styles following modern-web-guidance */
+  .table-responsive-wrapper {
+    overflow-x: auto;
+    max-inline-size: 100%;
+    container-type: inline-size;
+  }
+
+  .comparison-table {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .comparison-table thead {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 2;
+  }
+
+  @container (width < 640px) {
+    .comparison-table,
+    .comparison-table thead,
+    .comparison-table tbody,
+    .comparison-table tr,
+    .comparison-table th,
+    .comparison-table td {
+      display: block;
+    }
+
+    .comparison-table thead {
+      display: none;
+    }
+
+    .comparison-table tbody tr {
+      margin-block-end: 1rem;
+      border-radius: 0.75rem;
+      border: 1px solid var(--separator);
+      background: var(--surface);
+      padding: 1rem;
+    }
+
+    .comparison-table tbody th {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--foreground);
+      padding-bottom: 0.5rem;
+      border-bottom: 1px dashed var(--separator);
+      margin-bottom: 0.5rem;
+    }
+
+    .comparison-table tbody td {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.35rem 0;
+      font-size: 0.85rem;
+    }
+
+    .comparison-table tbody td::before {
+      content: attr(data-label);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin-right: 1rem;
+    }
+  }
 }

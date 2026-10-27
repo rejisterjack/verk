@@ -1,11 +1,21 @@
-import { Fira_Code as FontMono, Inter as FontSans } from "next/font/google";
+import {
+  Figtree as FontSans,
+  JetBrains_Mono as FontMono,
+  Syne as FontDisplay,
+} from "next/font/google";
 
 export const fontSans = FontSans({
   subsets: ["latin"],
-  variable: "--font-sans",
+  variable: "--font-figtree",
+});
+
+export const fontDisplay = FontDisplay({
+  subsets: ["latin"],
+  variable: "--font-syne",
+  weight: ["500", "600", "700", "800"],
 });
 
 export const fontMono = FontMono({
   subsets: ["latin"],
-  variable: "--font-mono",
+  variable: "--font-jetbrains",
 });
