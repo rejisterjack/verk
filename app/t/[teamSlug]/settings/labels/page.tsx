@@ -22,11 +22,26 @@ export default async function LabelsSettingsPage({
   const teamId = teamCtx.team.id;
   const labels = await labelsService.listLabels(teamId);
 
+  async function rename(formData: FormData) {
+    "use server";
+    await labelsService.updateLabel(teamId, String(formData.get("id")), {
+      name: String(formData.get("name") ?? ""),
+    });
+    redirect(`/t/${teamSlug}/settings/labels`);
+  }
+
+  async function remove(formData: FormData) {
+    "use server";
+    await labelsService.deleteLabel(teamId, String(formData.get("id")));
+    redirect(`/t/${teamSlug}/settings/labels`);
+  }
+
   async function create(formData: FormData) {
     "use server";
     await labelsService.createLabel(teamId, {
       name: String(formData.get("name") ?? ""),
       color: String(formData.get("color") ?? "#0f766e"),
+      group: String(formData.get("group") ?? "") || undefined,
     });
     redirect(`/t/${teamSlug}/settings/labels`);
   }
@@ -45,6 +60,11 @@ export default async function LabelsSettingsPage({
           placeholder="bug"
         />
         <input
+          className="w-28 rounded-lg border border-separator bg-background px-2 py-2 text-sm"
+          name="group"
+          placeholder="group"
+        />
+        <input
           className="w-24 rounded-lg border border-separator bg-background px-2 py-2 text-sm"
           defaultValue="#0f766e"
           name="color"
@@ -59,7 +79,23 @@ export default async function LabelsSettingsPage({
               className="size-3 rounded-full"
               style={{ background: l.color }}
             />
-            {l.name}
+            <form action={rename} className="flex flex-1 items-center gap-2">
+              <input name="id" type="hidden" value={l.id} />
+              <input
+                className="flex-1 rounded-lg border border-separator bg-background px-2 py-1"
+                defaultValue={l.name}
+                name="name"
+              />
+              <Button size="sm" type="submit" variant="ghost">
+                Rename
+              </Button>
+            </form>
+            <form action={remove}>
+              <input name="id" type="hidden" value={l.id} />
+              <Button size="sm" type="submit" variant="danger">
+                Delete
+              </Button>
+            </form>
           </li>
         ))}
       </ul>

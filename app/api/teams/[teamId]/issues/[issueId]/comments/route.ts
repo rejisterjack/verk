@@ -10,7 +10,7 @@ export async function GET(
   try {
     const { teamId, issueId } = await context.params;
 
-    await authenticateRequest(request, teamId);
+    await authenticateRequest(request, teamId, "GUEST");
     const comments = await commentsService.listComments(teamId, issueId);
 
     return Response.json({ comments });
@@ -25,7 +25,7 @@ export async function POST(
 ) {
   try {
     const { teamId, issueId } = await context.params;
-    const authResult = await authenticateRequest(request, teamId);
+    const authResult = await authenticateRequest(request, teamId, "GUEST");
     const body = await request.json();
     const comment = await commentsService.addComment(
       teamId,
@@ -35,6 +35,31 @@ export async function POST(
     );
 
     return Response.json(comment, { status: 201 });
+  } catch (error) {
+    return jsonError(error);
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ teamId: string; issueId: string }> },
+) {
+  try {
+    const { teamId } = await context.params;
+    const authResult = await authenticateRequest(request, teamId, "GUEST");
+    const body = (await request.json()) as { commentId?: string };
+
+    if (!body.commentId) {
+      return Response.json({ error: "commentId required" }, { status: 400 });
+    }
+    await commentsService.deleteComment(
+      teamId,
+      body.commentId,
+      authResult.user.id!,
+      authResult.role,
+    );
+
+    return Response.json({ ok: true });
   } catch (error) {
     return jsonError(error);
   }

@@ -17,6 +17,7 @@ import {
   upsertTeam,
   type ServerIssue,
 } from "@/lib/offline/issue-repository";
+import { slaBreached } from "@/lib/sla";
 import { issueKey } from "@/lib/utils";
 
 type ListIssue = {
@@ -28,6 +29,7 @@ type ListIssue = {
   priority: Priority;
   assignee?: { name: string | null; email: string } | null;
   cycle?: { name: string } | null;
+  createdAt?: string;
   syncStatus?: string;
 };
 
@@ -49,11 +51,17 @@ export function IssuesListClient({
   teamName,
   initialIssues,
   filters,
+  initialCursor,
+  slaHours,
+  workflows = [],
 }: {
   teamId: string;
   teamSlug: string;
   teamName: string;
   initialIssues: ListIssue[];
+  initialCursor?: string;
+  slaHours?: unknown;
+  workflows?: { id: string; name: string }[];
   filters?: {
     status?: string;
     priority?: string;
@@ -63,6 +71,8 @@ export function IssuesListClient({
 }) {
   const router = useRouter();
   const [issues, setIssues] = useState(initialIssues);
+  const [cursor, setCursor] = useState(initialCursor);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [focusIndex, setFocusIndex] = useState(0);
   const [peekOpen, setPeekOpen] = useState(false);
 
@@ -224,6 +234,15 @@ export function IssuesListClient({
                   </td>
                   <td className="px-4 py-3 text-muted">
                     {issue.cycle?.name || "—"}
+                    {issue.createdAt &&
+                    slaBreached(
+                      issue.priority,
+                      issue.status,
+                      new Date(issue.createdAt),
+                      slaHours,
+                    ) ? (
+                      <span className="ml-2 text-xs text-danger">SLA</span>
+                    ) : null}
                   </td>
                 </tr>
               );
@@ -231,10 +250,43 @@ export function IssuesListClient({
           </tbody>
         </table>
       </div>
+      {cursor ? (
+        <button
+          className="mt-3 rounded-lg border border-separator px-3 py-2 text-sm"
+          disabled={loadingMore}
+          type="button"
+          onClick={() => {
+            setLoadingMore(true);
+            const params = new URLSearchParams();
+
+            if (filters?.status) params.set("status", filters.status);
+            if (filters?.priority) params.set("priority", filters.priority);
+            if (filters?.cycleId) params.set("cycleId", filters.cycleId);
+            if (filters?.search) params.set("search", filters.search);
+            params.set("cursor", cursor);
+            params.set("take", "100");
+            void fetch(`/api/teams/${teamId}/issues?${params}`, {
+              credentials: "same-origin",
+            })
+              .then((res) => res.json())
+              .then((data) => {
+                const next = (data.issues ?? []) as ListIssue[];
+
+                setIssues((curr) => [...curr, ...next]);
+                setCursor(data.nextCursor);
+              })
+              .finally(() => setLoadingMore(false));
+          }}
+        >
+          {loadingMore ? "Loading…" : "Load more"}
+        </button>
+      ) : null}
       {peekOpen ? (
         <IssuePeek
           issue={focused}
+          teamId={teamId}
           teamSlug={teamSlug}
+          workflows={workflows}
           onClose={() => setPeekOpen(false)}
         />
       ) : null}

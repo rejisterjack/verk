@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { AppSidebar } from "@/components/app-sidebar";
+import { InstallPrompt } from "@/components/pwa/install-prompt";
 import { KeyboardShell } from "@/components/app/keyboard-shell";
 import { auth } from "@/lib/auth";
 import { listUserTeams } from "@/lib/rbac";
@@ -36,12 +37,12 @@ export default async function TeamLayout({
 
   const memberships = await listUserTeams(session.user.id);
 
-  await ensureWorkspaceForTeam(
+  const workspace = await ensureWorkspaceForTeam(
     team.id,
     session.user.id,
     team.name,
     team.slug,
-  ).catch(() => undefined);
+  ).catch(() => null);
   await seedDefaultWorkflowStatuses(team.id).catch(() => undefined);
 
   const [views, inboxCount] = await Promise.all([
@@ -51,6 +52,7 @@ export default async function TeamLayout({
         userId: session.user.id,
         teamId: team.id,
         readAt: null,
+        OR: [{ snoozedUntil: null }, { snoozedUntil: { lte: new Date() } }],
       },
     }),
   ]);
@@ -62,6 +64,7 @@ export default async function TeamLayout({
           inboxCount={inboxCount}
           role={membership.role}
           teamSlug={teamSlug}
+          workspaceSlug={workspace?.slug}
           teams={memberships.map((m) => ({
             slug: m.team.slug,
             name: m.team.name,

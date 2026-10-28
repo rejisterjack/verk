@@ -7,12 +7,15 @@ import { requireTeamBySlug, requireUser } from "@/lib/rbac";
 import * as teamsService from "@/lib/services/teams";
 import { listUserTeams } from "@/lib/rbac";
 import { acceptInvite } from "@/lib/services/members";
+import { ensureWorkspaceForTeam } from "@/lib/services/workspaces";
 
 export async function createTeamAction(formData: FormData): Promise<void> {
   const name = String(formData.get("name") ?? "");
   const slug = String(formData.get("slug") ?? "") || undefined;
+  const user = await requireUser();
   const team = await teamsService.createTeam({ name, slug });
 
+  await ensureWorkspaceForTeam(team.id, user.id, team.name, team.slug);
   redirect(`/t/${team.slug}/issues`);
 }
 
@@ -24,6 +27,24 @@ export async function updateTeamAction(teamSlug: string, formData: FormData) {
   const cycleDurationWeeks = weeksRaw
     ? Number.parseInt(weeksRaw, 10)
     : undefined;
+  const githubRepoRaw = formData.has("githubRepo")
+    ? String(formData.get("githubRepo") ?? "").trim()
+    : undefined;
+  const slaKeys = ["NONE", "URGENT", "HIGH", "MEDIUM", "LOW"] as const;
+  const slaHours: Record<string, number> = {};
+  let hasSla = false;
+
+  for (const key of slaKeys) {
+    const raw = String(formData.get(`sla_${key}`) ?? "");
+
+    if (!raw) continue;
+    const hours = Number(raw);
+
+    if (Number.isFinite(hours)) {
+      slaHours[key] = hours;
+      hasSla = true;
+    }
+  }
 
   try {
     const updated = await teamsService.updateTeam(
@@ -34,6 +55,22 @@ export async function updateTeamAction(teamSlug: string, formData: FormData) {
         ...(cycleDurationWeeks != null && Number.isFinite(cycleDurationWeeks)
           ? { cycleDurationWeeks }
           : {}),
+        ...(githubRepoRaw !== undefined
+          ? { githubRepo: githubRepoRaw || null }
+          : {}),
+        ...(hasSla ? { slaHours } : {}),
+        ...(formData.has("cycleCooldownDays")
+          ? {
+              cycleCooldownDays: Number(formData.get("cycleCooldownDays") || 0),
+            }
+          : {}),
+        ...(formData.has("slackWebhookUrl")
+          ? {
+              slackWebhookUrl:
+                String(formData.get("slackWebhookUrl") ?? "").trim() || null,
+            }
+          : {}),
+        githubMergeCompletes: formData.get("githubMergeCompletes") === "true",
       },
       membership.role,
     );

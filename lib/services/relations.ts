@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { prisma } from "@/lib/db";
 import { AuthError } from "@/lib/errors";
+import { inverseRelation } from "@/lib/relation-pairs";
 
 const relationSchema = z.object({
   toIssueId: z.string().cuid(),
@@ -39,12 +40,29 @@ export async function addRelation(
 
   if (!from || !to) throw new AuthError("Issue not found", "NOT_FOUND", 404);
 
-  return prisma.issueRelation.create({
-    data: {
-      fromIssueId,
-      toIssueId: data.toIssueId,
-      type: data.type as RelationType,
-    },
+  const type = data.type as RelationType;
+  const inverse = inverseRelation(type);
+
+  return prisma.$transaction(async (tx) => {
+    const created = await tx.issueRelation.create({
+      data: {
+        fromIssueId,
+        toIssueId: data.toIssueId,
+        type,
+      },
+    });
+
+    if (inverse) {
+      await tx.issueRelation.create({
+        data: {
+          fromIssueId: data.toIssueId,
+          toIssueId: fromIssueId,
+          type: inverse,
+        },
+      });
+    }
+
+    return created;
   });
 }
 
@@ -57,5 +75,22 @@ export async function removeRelation(teamId: string, relationId: string) {
   if (!rel || rel.fromIssue.teamId !== teamId) {
     throw new AuthError("Relation not found", "NOT_FOUND", 404);
   }
-  await prisma.issueRelation.delete({ where: { id: relationId } });
+  const inverse = inverseRelation(rel.type);
+
+  await prisma.issueRelation.deleteMany({
+    where: {
+      OR: [
+        { id: relationId },
+        ...(inverse
+          ? [
+              {
+                fromIssueId: rel.toIssueId,
+                toIssueId: rel.fromIssueId,
+                type: inverse,
+              },
+            ]
+          : []),
+      ],
+    },
+  });
 }

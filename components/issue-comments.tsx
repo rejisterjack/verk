@@ -88,6 +88,47 @@ export function IssueComments({
               {new Date(c.createdAt).toLocaleString()}
             </p>
             <p className="mt-1 whitespace-pre-wrap">{c.body}</p>
+            <div className="mt-2 flex gap-1">
+              {["👍", "👀", "🎉"].map((emoji) => (
+                <button
+                  key={emoji}
+                  className="rounded border border-separator px-1 text-xs"
+                  type="button"
+                  onClick={() => {
+                    void fetch(
+                      `/api/teams/${teamId}/issues/${issueId}/reactions`,
+                      {
+                        method: "POST",
+                        credentials: "same-origin",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ commentId: c.id, emoji }),
+                      },
+                    );
+                  }}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+            {!c.id.startsWith("tmp-") ? (
+              <button
+                className="mt-2 text-xs text-danger"
+                type="button"
+                onClick={() => {
+                  void fetch(
+                    `/api/teams/${teamId}/issues/${issueId}/comments`,
+                    {
+                      method: "DELETE",
+                      credentials: "same-origin",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ commentId: c.id }),
+                    },
+                  ).then(() => load());
+                }}
+              >
+                Delete
+              </button>
+            ) : null}
           </li>
         ))}
         {comments.length === 0 ? (

@@ -1,4 +1,4 @@
-import { Role } from "@/lib/generated/prisma/client";
+import { Prisma, Role } from "@/lib/generated/prisma/client";
 import { prisma } from "@/lib/db";
 import { AuthError, assertRole, requireUser } from "@/lib/rbac";
 import { isDemoMode, slugify } from "@/lib/utils";
@@ -43,9 +43,18 @@ export async function updateTeam(teamId: string, input: unknown, role: Role) {
     }
   }
 
+  const { slaHours, ...rest } = data;
+
   return prisma.team.update({
     where: { id: teamId },
-    data,
+    data: {
+      ...rest,
+      ...(slaHours === null
+        ? { slaHours: Prisma.JsonNull }
+        : slaHours !== undefined
+          ? { slaHours }
+          : {}),
+    },
   });
 }
 

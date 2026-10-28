@@ -81,6 +81,32 @@ export function IssueAttachments({
             <span className="text-xs text-muted">
               ({Math.round(a.size / 1024)} KB)
             </span>
+            <button
+              className="ml-2 text-xs text-danger"
+              type="button"
+              onClick={() => {
+                void fetch(
+                  `/api/teams/${teamId}/issues/${issueId}/attachments`,
+                  {
+                    method: "DELETE",
+                    credentials: "same-origin",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ attachmentId: a.id }),
+                  },
+                ).then(async (res) => {
+                  if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+
+                    setError(err.error ?? "Could not delete attachment");
+
+                    return;
+                  }
+                  await load();
+                });
+              }}
+            >
+              Delete
+            </button>
           </li>
         ))}
         {items.length === 0 ? (

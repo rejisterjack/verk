@@ -101,12 +101,10 @@ npm run dev`}</pre>
   }
 }`}</pre>
         <p className="text-sm text-muted">
-          Tools: <code className="font-mono text-foreground">list_issues</code>,{" "}
-          <code className="font-mono text-foreground">get_issue</code>,{" "}
-          <code className="font-mono text-foreground">create_issue</code>,{" "}
-          <code className="font-mono text-foreground">update_issue</code>,{" "}
-          <code className="font-mono text-foreground">list_cycles</code>,{" "}
-          <code className="font-mono text-foreground">list_members</code>.
+          Tools: list_issues, get_issue, create_issue, update_issue,
+          list_cycles, list_members, list_projects, create_project,
+          update_project, list_labels, add_comment, list_comments,
+          delete_comment, add_relation. REST lives under /api/teams.
         </p>
       </section>
 
@@ -133,8 +131,8 @@ npm run dev`}</pre>
           </li>
         </ol>
         <p className="text-sm text-muted">
-          CSV import surfaces created/total/errors. Linear API import pulls the
-          first 100 issues only (pagination is post-launch). Verk is
+          CSV import surfaces created/total/errors. Linear API import pages
+          through results and stops at 2,000 issues. Verk is
           Linear-familiar, not Linear-complete — Initiatives, git automations,
           and SLAs are out of scope for now.
         </p>
@@ -195,12 +193,9 @@ npm run dev`}</pre>
             customers.
           </li>
           <li>
-            Five fixed status keys map 1:1 to{" "}
-            <code className="font-mono text-foreground text-sm">
-              Issue.status
-            </code>
-            ; rename/reorder in Settings → Workflow. New status types are
-            post-launch.
+            Settings → Workflow can rename, reorder, and add statuses. The
+            five built-in keys still map onto Issue.status; extra keys keep
+            their own workflow row.
           </li>
           <li>
             Issue attachments require{" "}

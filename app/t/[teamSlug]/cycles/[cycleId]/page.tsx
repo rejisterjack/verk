@@ -36,6 +36,49 @@ export default async function CycleDetailPage({
         description={`${cycle.startDate.toISOString().slice(0, 10)} → ${cycle.endDate.toISOString().slice(0, 10)} · ${done}/${total} done`}
         title={cycle.name}
       />
+      <div className="h-2 overflow-hidden rounded-full bg-default">
+        <svg className="h-16 w-full" viewBox="0 0 80 40" role="img">
+          <title>Issues completed by day</title>
+          {Array.from({ length: 8 }).map((_, index) => {
+            const day = new Date(cycle.endDate);
+
+            day.setDate(day.getDate() - (7 - index));
+            const count = cycle.issues.filter((issue) => {
+              if (issue.status !== "DONE") return false;
+              const updated = issue.updatedAt;
+
+              return (
+                updated.getUTCFullYear() === day.getUTCFullYear() &&
+                updated.getUTCMonth() === day.getUTCMonth() &&
+                updated.getUTCDate() === day.getUTCDate()
+              );
+            }).length;
+            const height = Math.min(36, count * 8);
+
+            return (
+              <rect
+                key={index}
+                fill="currentColor"
+                height={height}
+                width="6"
+                x={index * 10}
+                y={38 - height}
+              />
+            );
+          })}
+        </svg>
+      </div>
+      <p className="text-xs text-muted">
+        {Object.entries(
+          cycle.issues.reduce<Record<string, number>>((acc, issue) => {
+            acc[issue.status] = (acc[issue.status] ?? 0) + 1;
+
+            return acc;
+          }, {}),
+        )
+          .map(([status, count]) => `${status} ${count}`)
+          .join(" · ") || "No issues"}
+      </p>
 
       <form
         action={async (formData) => {

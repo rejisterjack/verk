@@ -93,6 +93,58 @@ export async function updateProject(
   });
 }
 
+export async function deleteProject(teamId: string, projectId: string) {
+  const existing = await prisma.project.findFirst({
+    where: { id: projectId, teamId },
+  });
+
+  if (!existing) throw new AuthError("Project not found", "NOT_FOUND", 404);
+
+  await prisma.$transaction([
+    prisma.issue.updateMany({
+      where: { projectId },
+      data: { projectId: null, milestoneId: null },
+    }),
+    prisma.project.delete({ where: { id: projectId } }),
+  ]);
+}
+
+export async function listInitiatives(teamId: string) {
+  return prisma.initiative.findMany({
+    where: { teamId },
+    include: { _count: { select: { projects: true } } },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export async function createInitiative(teamId: string, input: unknown) {
+  const data = z
+    .object({
+      name: z.string().min(1).max(120),
+      targetDate: z.coerce.date().nullable().optional(),
+    })
+    .parse(input);
+
+  return prisma.initiative.create({
+    data: {
+      teamId,
+      name: data.name,
+      targetDate: data.targetDate ?? null,
+    },
+  });
+}
+
+export async function setInitiativeHealth(
+  teamId: string,
+  initiativeId: string,
+  health: "ON_TRACK" | "AT_RISK" | "OFF_TRACK",
+) {
+  return prisma.initiative.updateMany({
+    where: { id: initiativeId, teamId },
+    data: { health },
+  });
+}
+
 export async function createMilestone(
   teamId: string,
   projectId: string,

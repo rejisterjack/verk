@@ -98,3 +98,15 @@ export async function githubSignInAction(formData?: FormData) {
 
   await signIn("github", { redirectTo: callbackUrl });
 }
+
+export async function googleSignInAction(formData?: FormData) {
+  const callbackUrl = String(formData?.get("callbackUrl") ?? "/onboarding");
+
+  await signIn("google", { redirectTo: callbackUrl });
+}
+
+export async function oidcSignInAction(formData?: FormData) {
+  const callbackUrl = String(formData?.get("callbackUrl") ?? "/onboarding");
+
+  await signIn("oidc", { redirectTo: callbackUrl });
+}

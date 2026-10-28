@@ -82,3 +82,15 @@ export async function snoozeNotification(
 export async function deleteNotification(userId: string, id: string) {
   return prisma.notification.deleteMany({ where: { id, userId } });
 }
+
+export async function isSubscribed(issueId: string, userId: string) {
+  const row = await prisma.issueSubscription.findUnique({
+    where: { issueId_userId: { issueId, userId } },
+  });
+
+  return Boolean(row);
+}
+
+export async function unsubscribe(issueId: string, userId: string) {
+  await prisma.issueSubscription.deleteMany({ where: { issueId, userId } });
+}

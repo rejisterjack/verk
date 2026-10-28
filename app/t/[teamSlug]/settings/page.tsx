@@ -103,6 +103,34 @@ export default async function SettingsPage({
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
+            <span className="text-muted">Cycle cooldown (days)</span>
+            <input
+              className="rounded-lg border border-separator bg-background px-3 py-2"
+              defaultValue={team.cycleCooldownDays}
+              min={0}
+              name="cycleCooldownDays"
+              type="number"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="text-muted">Slack incoming webhook</span>
+            <input
+              className="rounded-lg border border-separator bg-background px-3 py-2"
+              defaultValue={team.slackWebhookUrl ?? ""}
+              name="slackWebhookUrl"
+              placeholder="https://hooks.slack.com/..."
+            />
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              defaultChecked={team.githubMergeCompletes}
+              name="githubMergeCompletes"
+              type="checkbox"
+              value="true"
+            />
+            Move issue to Done when a linked PR merges
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
             <span className="text-muted">Cycle duration (weeks)</span>
             <input
               className="rounded-lg border border-separator bg-background px-3 py-2"
@@ -113,6 +141,37 @@ export default async function SettingsPage({
               type="number"
             />
           </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="text-muted">GitHub repo (owner/name)</span>
+            <input
+              className="rounded-lg border border-separator bg-background px-3 py-2"
+              defaultValue={team.githubRepo ?? ""}
+              name="githubRepo"
+              placeholder="rejisterjack/verk"
+            />
+          </label>
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            {(["URGENT", "HIGH", "MEDIUM", "LOW"] as const).map((key) => (
+              <label key={key} className="flex flex-col gap-1">
+                <span className="text-muted">{key} SLA hours</span>
+                <input
+                  className="rounded-lg border border-separator bg-background px-3 py-2"
+                  defaultValue={
+                    team.slaHours &&
+                    typeof team.slaHours === "object" &&
+                    !Array.isArray(team.slaHours)
+                      ? String(
+                          (team.slaHours as Record<string, number>)[key] ?? "",
+                        )
+                      : ""
+                  }
+                  min={0}
+                  name={`sla_${key}`}
+                  type="number"
+                />
+              </label>
+            ))}
+          </div>
           <Button type="submit">Save</Button>
         </form>
       ) : (

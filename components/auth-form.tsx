@@ -13,16 +13,22 @@ import { useState } from "react";
 
 import {
   githubSignInAction,
+  googleSignInAction,
   loginAction,
+  oidcSignInAction,
   registerAction,
 } from "@/lib/actions/auth";
 
 export function LoginForm({
   callbackUrl = "/onboarding",
   githubEnabled,
+  googleEnabled,
+  oidcEnabled,
 }: {
   callbackUrl?: string;
   githubEnabled: boolean;
+  googleEnabled?: boolean;
+  oidcEnabled?: boolean;
 }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -44,6 +50,22 @@ export function LoginForm({
           <input name="callbackUrl" type="hidden" value={callbackUrl} />
           <Button className="w-full" type="submit" variant="secondary">
             Continue with GitHub
+          </Button>
+        </form>
+      ) : null}
+      {googleEnabled ? (
+        <form action={googleSignInAction}>
+          <input name="callbackUrl" type="hidden" value={callbackUrl} />
+          <Button className="w-full" type="submit" variant="secondary">
+            Continue with Google
+          </Button>
+        </form>
+      ) : null}
+      {oidcEnabled ? (
+        <form action={oidcSignInAction}>
+          <input name="callbackUrl" type="hidden" value={callbackUrl} />
+          <Button className="w-full" type="submit" variant="secondary">
+            Continue with SSO
           </Button>
         </form>
       ) : null}

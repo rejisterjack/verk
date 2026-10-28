@@ -1,6 +1,7 @@
 import type { Role } from "@/lib/generated/prisma/client";
 
 const ROLE_RANK: Record<Role, number> = {
+  GUEST: 0,
   MEMBER: 1,
   ADMIN: 2,
   OWNER: 3,

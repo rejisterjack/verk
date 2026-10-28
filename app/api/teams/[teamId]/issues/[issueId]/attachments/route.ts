@@ -48,3 +48,24 @@ export async function POST(
     return jsonError(error);
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ teamId: string; issueId: string }> },
+) {
+  try {
+    const { teamId } = await context.params;
+
+    await authenticateRequest(request, teamId);
+    const body = (await request.json()) as { attachmentId?: string };
+
+    if (!body.attachmentId) {
+      return Response.json({ error: "attachmentId required" }, { status: 400 });
+    }
+    await attachmentsService.deleteAttachment(teamId, body.attachmentId);
+
+    return Response.json({ ok: true });
+  } catch (error) {
+    return jsonError(error);
+  }
+}

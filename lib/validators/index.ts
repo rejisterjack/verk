@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const roleSchema = z.enum(["OWNER", "ADMIN", "MEMBER"]);
+export const roleSchema = z.enum(["OWNER", "ADMIN", "MEMBER", "GUEST"]);
 export const issueStatusSchema = z.enum([
   "BACKLOG",
   "TODO",
@@ -46,6 +46,20 @@ export const updateTeamSchema = z.object({
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
     .optional(),
   cycleDurationWeeks: z.number().int().min(1).max(8).optional(),
+  githubRepo: z
+    .string()
+    .regex(/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/)
+    .nullable()
+    .optional(),
+  slaHours: z.record(z.string(), z.number().nonnegative()).nullable().optional(),
+  cycleCooldownDays: z.number().int().min(0).max(30).optional(),
+  triageOwnerId: z.string().cuid().nullable().optional(),
+  slackWebhookUrl: z.string().url().nullable().optional(),
+  githubMergeCompletes: z.boolean().optional(),
+  timezone: z.string().min(1).max(64).optional(),
+  slaStartHour: z.number().int().min(0).max(23).optional(),
+  slaEndHour: z.number().int().min(1).max(24).optional(),
+  slaWeekdays: z.string().max(20).optional(),
 });
 
 export const estimateSchema = z.enum([
@@ -75,6 +89,7 @@ export const createIssueSchema = z.object({
   cycleId: z.string().cuid().nullable().optional(),
   projectId: z.string().cuid().nullable().optional(),
   milestoneId: z.string().cuid().nullable().optional(),
+  workflowStatusId: z.string().cuid().nullable().optional(),
   labelIds: z.array(z.string().cuid()).optional(),
   clientMutationId: z.string().min(1).max(80).optional(),
 });
@@ -90,6 +105,7 @@ export const updateIssueSchema = z.object({
   cycleId: z.string().cuid().nullable().optional(),
   projectId: z.string().cuid().nullable().optional(),
   milestoneId: z.string().cuid().nullable().optional(),
+  workflowStatusId: z.string().cuid().nullable().optional(),
   order: z.number().optional(),
   triageAt: z.coerce.date().nullable().optional(),
   revision: z.number().int().optional(),
@@ -102,6 +118,7 @@ export const reorderIssueSchema = z.object({
   order: z.number(),
   revision: z.number().int().optional(),
   clientMutationId: z.string().min(1).max(80).optional(),
+  workflowStatusId: z.string().cuid().nullable().optional(),
 });
 
 export const createCycleSchema = z
@@ -130,7 +147,7 @@ export const updateCycleSchema = z
 
 export const inviteSchema = z.object({
   email: z.string().email(),
-  role: z.enum(["ADMIN", "MEMBER"]).default("MEMBER"),
+  role: z.enum(["ADMIN", "MEMBER", "GUEST"]).default("MEMBER"),
 });
 
 export const updateMemberRoleSchema = z.object({
@@ -147,6 +164,7 @@ export const listIssuesQuerySchema = z.object({
   cycleId: z.string().cuid().optional(),
   assigneeId: z.string().cuid().optional(),
   projectId: z.string().cuid().optional(),
+  workflowStatusId: z.string().cuid().optional(),
   number: z.coerce.number().int().positive().optional(),
   triage: z.coerce.boolean().optional(),
   search: z.string().max(200).optional(),

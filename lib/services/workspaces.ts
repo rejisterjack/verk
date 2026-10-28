@@ -114,6 +114,40 @@ export async function listWorkflowStatuses(teamId: string) {
   return statuses;
 }
 
+export async function createWorkflowStatus(teamId: string, input: unknown) {
+  const data = z
+    .object({
+      name: z.string().min(1).max(40),
+      key: z
+        .string()
+        .min(1)
+        .max(40)
+        .regex(/^[a-z0-9_]+$/),
+      type: z.enum([
+        "backlog",
+        "unstarted",
+        "started",
+        "completed",
+        "canceled",
+      ]),
+    })
+    .parse(input);
+  const max = await prisma.workflowStatus.aggregate({
+    where: { teamId },
+    _max: { position: true },
+  });
+
+  return prisma.workflowStatus.create({
+    data: {
+      teamId,
+      name: data.name,
+      key: data.key,
+      type: data.type,
+      position: (max._max.position ?? -1) + 1,
+    },
+  });
+}
+
 export async function renameWorkflowStatus(
   teamId: string,
   statusId: string,

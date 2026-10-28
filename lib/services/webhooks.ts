@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { prisma } from "@/lib/db";
+import { signWebhookBody } from "@/lib/webhook-sign";
 import { AuthError } from "@/lib/errors";
 import { randomToken } from "@/lib/utils";
 
@@ -71,6 +72,8 @@ export async function setWebhookDisabled(
   });
 }
 
+export { signWebhookBody } from "@/lib/webhook-sign";
+
 export async function dispatchWebhooks(
   teamId: string,
   event: string,
@@ -82,14 +85,16 @@ export async function dispatchWebhooks(
 
   await Promise.allSettled(
     hooks.map(async (hook) => {
+      const body = JSON.stringify({ event, payload, teamId });
+
       await fetch(hook.url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "X-Verk-Event": event,
-          "X-Verk-Signature": hook.secret,
+          "X-Verk-Signature": signWebhookBody(hook.secret, body),
         },
-        body: JSON.stringify({ event, payload, teamId }),
+        body,
       });
     }),
   );

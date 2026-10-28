@@ -41,6 +41,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   OWNER: "Owner",
   ADMIN: "Admin",
   MEMBER: "Member",
+  GUEST: "Guest",
 };
 
 export const BOARD_COLUMNS: IssueStatus[] = [
@@ -58,6 +59,14 @@ export const WORKFLOW_KEY_TO_STATUS: Record<string, IssueStatus> = {
   done: "DONE",
   canceled: "CANCELLED",
   cancelled: "CANCELLED",
+};
+
+export const WORKFLOW_TYPE_TO_STATUS: Record<string, IssueStatus> = {
+  backlog: "BACKLOG",
+  unstarted: "TODO",
+  started: "IN_PROGRESS",
+  completed: "DONE",
+  canceled: "CANCELLED",
 };
 
 export function statusToWorkflowKey(status: IssueStatus): string {

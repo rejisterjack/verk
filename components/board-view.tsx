@@ -25,6 +25,7 @@ import {
   ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline";
 import NextLink from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { IssuePeek } from "@/components/app/issue-peek";
@@ -49,6 +50,7 @@ type BoardIssue = {
   number: number | null;
   title: string;
   status: IssueStatus;
+  columnKey?: string;
   priority: Priority;
   order: number;
   revision?: number;
@@ -142,7 +144,7 @@ function Column({
   teamSlug,
   onConflict,
 }: {
-  status: IssueStatus;
+  status: string;
   label: string;
   issues: BoardIssue[];
   teamSlug: string;
@@ -187,14 +189,23 @@ export function BoardView({
   initialIssues,
   columns = BOARD_COLUMNS,
   columnLabels,
+  columnStatus,
+  columnWorkflowIds,
+  groupBy = "status",
+  workflows = [],
 }: {
   teamId: string;
   teamSlug: string;
   teamName: string;
   initialIssues: BoardIssue[];
-  columns?: IssueStatus[];
-  columnLabels?: Partial<Record<IssueStatus, string>>;
+  columns?: string[];
+  columnLabels?: Record<string, string>;
+  columnStatus?: Record<string, IssueStatus>;
+  columnWorkflowIds?: Record<string, string>;
+  groupBy?: "status" | "priority" | "assignee" | "project";
+  workflows?: { id: string; name: string }[];
 }) {
+  const router = useRouter();
   const [issues, setIssues] = useState(initialIssues);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [conflictIssue, setConflictIssue] = useState<LocalIssue | null>(null);
@@ -261,10 +272,12 @@ export function BoardView({
   const byStatus = useMemo(() => {
     const map = Object.fromEntries(
       columnIds.map((s) => [s, [] as BoardIssue[]]),
-    ) as Record<IssueStatus, BoardIssue[]>;
+    ) as Record<string, BoardIssue[]>;
 
     for (const issue of issues) {
-      if (map[issue.status]) map[issue.status].push(issue);
+      const key = issue.columnKey ?? issue.status;
+
+      if (map[key]) map[key].push(issue);
     }
     for (const status of columnIds) {
       map[status].sort((a, b) => a.order - b.order);
@@ -301,13 +314,18 @@ export function BoardView({
         setPeekOpen((o) => !o);
       } else if (e.key === "Escape") {
         setPeekOpen(false);
+      } else if (e.key === "Enter" && flatIssues[focusIndex]?.number != null) {
+        e.preventDefault();
+        router.push(
+          `/t/${teamSlug}/issues/${flatIssues[focusIndex]!.number}`,
+        );
       }
     }
 
     window.addEventListener("keydown", onKey);
 
     return () => window.removeEventListener("keydown", onKey);
-  }, [flatIssues]);
+  }, [flatIssues, focusIndex, router, teamSlug]);
 
   const activeIssue = issues.find((i) => i.id === activeId) ?? null;
   const peekIssue = flatIssues[Math.min(focusIndex, flatIssues.length - 1)];
@@ -333,24 +351,55 @@ export function BoardView({
 
     if (!issue) return;
 
-    let nextStatus = issue.status;
+    if (groupBy !== "status") {
+      const overId = String(over.id);
+      const nextKey = columnIds.includes(overId)
+        ? overId
+        : (issues.find((item) => item.id === overId)?.columnKey ?? issue.columnKey);
+      const field =
+        groupBy === "assignee"
+          ? "assigneeId"
+          : groupBy === "project"
+            ? "projectId"
+            : "priority";
+      const value = nextKey === "none" ? null : nextKey;
+
+      setIssues((curr) =>
+        curr.map((item) =>
+          item.id === issueId ? { ...item, columnKey: nextKey ?? item.columnKey } : item,
+        ),
+      );
+      await fetch(`/api/teams/${teamId}/issues/${issueId}`, {
+        method: "PATCH",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [field]: value }),
+      });
+
+      return;
+    }
+
+    let nextKey = issue.columnKey ?? issue.status;
     const overId = String(over.id);
 
-    if (columnIds.includes(overId as IssueStatus)) {
-      nextStatus = overId as IssueStatus;
+    if (columnIds.includes(overId)) {
+      nextKey = overId;
     } else {
       const overIssue = issues.find((i) => i.id === overId);
 
-      if (overIssue) nextStatus = overIssue.status;
+      if (overIssue) nextKey = overIssue.columnKey ?? overIssue.status;
     }
 
+    const nextStatus = columnStatus?.[nextKey] ?? (nextKey as IssueStatus);
     const columnIssues = issues
-      .filter((i) => i.status === nextStatus && i.id !== issueId)
+      .filter(
+        (i) => (i.columnKey ?? i.status) === nextKey && i.id !== issueId,
+      )
       .sort((a, b) => a.order - b.order);
 
     let insertAt = columnIssues.length;
 
-    if (!columnIds.includes(overId as IssueStatus)) {
+    if (!columnIds.includes(overId)) {
       const idx = columnIssues.findIndex((i) => i.id === overId);
 
       if (idx >= 0) insertAt = idx;
@@ -368,7 +417,13 @@ export function BoardView({
     setIssues((curr) =>
       curr.map((i) =>
         i.id === issueId
-          ? { ...i, status: nextStatus, order, syncStatus: "pending" }
+          ? {
+              ...i,
+              status: nextStatus,
+              columnKey: nextKey,
+              order,
+              syncStatus: "pending",
+            }
           : i,
       ),
     );
@@ -382,6 +437,7 @@ export function BoardView({
         issueId,
         nextStatus,
         order,
+        columnWorkflowIds?.[nextKey],
       );
 
       if (result?.error) {
@@ -403,7 +459,11 @@ export function BoardView({
             <Column
               key={status}
               issues={byStatus[status] ?? []}
-              label={columnLabels?.[status] ?? STATUS_LABELS[status]}
+              label={
+                columnLabels?.[status] ??
+                STATUS_LABELS[status as IssueStatus] ??
+                status
+              }
               status={status}
               teamSlug={teamSlug}
               onConflict={(id) => void openConflict(id)}
@@ -421,7 +481,9 @@ export function BoardView({
       {peekOpen && peekIssue ? (
         <IssuePeek
           issue={peekIssue}
+          teamId={teamId}
           teamSlug={teamSlug}
+          workflows={workflows}
           onClose={() => setPeekOpen(false)}
         />
       ) : null}

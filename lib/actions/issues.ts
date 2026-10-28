@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { ConflictError } from "@/lib/errors";
 import { requireTeamBySlug } from "@/lib/rbac";
 import * as issuesService from "@/lib/services/issues";
 import * as labelsService from "@/lib/services/labels";
@@ -31,6 +32,8 @@ export async function createIssueAction(teamSlug: string, formData: FormData) {
   const assigneeId = formNullId(formData, "assigneeId");
   const cycleId = formNullId(formData, "cycleId");
   const projectId = formNullId(formData, "projectId");
+  const milestoneId = formNullId(formData, "milestoneId");
+  const workflowStatusId = formNullId(formData, "workflowStatusId");
   const labelIds = formLabelIds(formData);
 
   try {
@@ -44,6 +47,8 @@ export async function createIssueAction(teamSlug: string, formData: FormData) {
       assigneeId,
       cycleId,
       projectId,
+      milestoneId,
+      workflowStatusId,
       labelIds,
     });
 
@@ -88,6 +93,17 @@ export async function updateIssueAction(
 
     payload.dueDate = dueRaw ? new Date(dueRaw) : null;
   }
+  if (formData.has("milestoneId")) {
+    payload.milestoneId = formNullId(formData, "milestoneId");
+  }
+  if (formData.has("workflowStatusId")) {
+    payload.workflowStatusId = formNullId(formData, "workflowStatusId");
+  }
+  if (formData.has("revision")) {
+    const revision = Number(formData.get("revision"));
+
+    if (Number.isFinite(revision)) payload.revision = revision;
+  }
 
   try {
     await issuesService.updateIssue(
@@ -110,8 +126,14 @@ export async function updateIssueAction(
     revalidatePath(`/t/${teamSlug}/board`);
     revalidatePath(`/t/${teamSlug}/issues/${issueNumber}`);
 
-    return { ok: true };
+    return { ok: true as const };
   } catch (error) {
+    if (error instanceof ConflictError) {
+      const details = error.details as { issue?: unknown } | undefined;
+
+      return { conflict: true as const, issue: details?.issue ?? null };
+    }
+
     return {
       error: error instanceof Error ? error.message : "Failed to update issue",
     };
@@ -147,11 +169,17 @@ export async function reorderIssueAction(
   issueId: string,
   status: string,
   order: number,
+  workflowStatusId?: string | null,
 ) {
   const { team } = await requireTeamBySlug(teamSlug);
 
   try {
-    await issuesService.reorderIssue(team.id, { issueId, status, order });
+    await issuesService.reorderIssue(team.id, {
+      issueId,
+      status,
+      order,
+      ...(workflowStatusId ? { workflowStatusId } : {}),
+    });
     revalidatePath(`/t/${teamSlug}/board`);
     revalidatePath(`/t/${teamSlug}/issues`);
 

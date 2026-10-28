@@ -93,7 +93,7 @@ Example Cursor / Claude config:
 }
 ```
 
-Tools: `list_issues`, `get_issue`, `create_issue`, `update_issue`, `list_cycles`, `list_members`.
+Tools: `list_issues`, `get_issue`, `create_issue`, `update_issue`, `list_cycles`, `list_members`, `list_projects`, `create_project`, `update_project`, `list_labels`, `add_comment`.
 
 Smoke test: `npm run mcp:smoke` (requires `VERK_API_KEY` and `VERK_BASE_URL`).
 
@@ -114,10 +114,10 @@ On seeded `acme-engineering` after migrate + seed:
 
 - Neon free tier sleeps after inactivity — the first load after a quiet period is slow.
 - Vercel Hobby does not allow commercial use; upgrade if you charge customers.
-- Statuses are the fixed five keys (`backlog` → `canceled`); rename/reorder in Settings → Workflow. Arbitrary new status types are post-launch.
-- Linear API import pulls the first 100 issues only.
+- Workflow settings can add statuses beyond the five defaults. Extra keys map onto the nearest built-in status type.
+- Linear API import pages results and stops at 2,000 issues.
 - Offline outbox covers issue CRUD plus comments, labels, estimate, due date, and project.
-- Verk covers the core 80% of Linear — not Initiatives, git sync, SLAs, or native mobile.
+- Initiatives, SLA hour targets, and a GitHub pull-request mention webhook are included. Full two-way git status sync and native store apps are not. Install Verk from the browser when the install prompt appears.
 
 ## Stack
 

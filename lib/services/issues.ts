@@ -5,6 +5,8 @@ import {
   Role,
 } from "@/lib/generated/prisma/client";
 import { prisma } from "@/lib/db";
+import { nextTriageAt } from "@/lib/triage";
+import { WORKFLOW_TYPE_TO_STATUS } from "@/lib/labels";
 import { AuthError, ConflictError } from "@/lib/errors";
 import { assertRole } from "@/lib/rbac";
 import {
@@ -51,6 +53,7 @@ export async function listIssues(teamId: string, query: unknown) {
   if (q.cycleId) where.cycleId = q.cycleId;
   if (q.assigneeId) where.assigneeId = q.assigneeId;
   if (q.projectId) where.projectId = q.projectId;
+  if (q.workflowStatusId) where.workflowStatusId = q.workflowStatusId;
   if (q.number) where.number = q.number;
   if (q.triage) {
     where.OR = [
@@ -167,6 +170,16 @@ export async function createIssue(
 
   void _cm;
 
+  if (issueData.workflowStatusId) {
+    const workflow = await prisma.workflowStatus.findFirst({
+      where: { id: issueData.workflowStatusId, teamId },
+    });
+
+    if (workflow) {
+      issueData.status = WORKFLOW_TYPE_TO_STATUS[workflow.type] ?? "TODO";
+    }
+  }
+
   const issue = await prisma.$transaction(async (tx) => {
     const team = await tx.team.update({
       where: { id: teamId },
@@ -192,6 +205,7 @@ export async function createIssue(
         cycleId: issueData.cycleId ?? null,
         projectId: issueData.projectId ?? null,
         milestoneId: issueData.milestoneId ?? null,
+        workflowStatusId: issueData.workflowStatusId ?? null,
         creatorId: userId,
         triageAt: issueData.status === "BACKLOG" ? new Date() : null,
         order: (maxOrder._max.order ?? 0) + 1,
@@ -244,8 +258,23 @@ export async function createIssue(
 
   try {
     const { dispatchWebhooks } = await import("@/lib/services/webhooks");
+    const { notifySlack } = await import("@/lib/services/surface");
 
     await dispatchWebhooks(teamId, "issue.created", issue);
+    const team = await prisma.team.findUnique({ where: { id: teamId } });
+
+    if (!issue.assigneeId && team?.triageOwnerId && team.triageOwnerId !== userId) {
+      await prisma.notification.create({
+        data: {
+          userId: team.triageOwnerId,
+          teamId,
+          issueId: issue.id,
+          type: "ASSIGNED",
+          title: `Triage: ${issue.title}`,
+        },
+      });
+    }
+    await notifySlack(team?.slackWebhookUrl, `Created: ${issue.title}`);
   } catch {
     // non-blocking
   }
@@ -296,6 +325,21 @@ export async function updateIssue(
     });
   }
 
+  const triageAt = nextTriageAt(existing, {
+    status: data.status,
+    assigneeId: data.assigneeId,
+  });
+
+  if (data.workflowStatusId) {
+    const workflow = await prisma.workflowStatus.findFirst({
+      where: { id: data.workflowStatusId, teamId },
+    });
+
+    if (workflow) {
+      data.status = WORKFLOW_TYPE_TO_STATUS[workflow.type] ?? data.status;
+    }
+  }
+
   if (expected != null && existing.revision !== expected) {
     const current = await getIssueById(teamId, issueId);
 
@@ -312,6 +356,7 @@ export async function updateIssue(
       ...data,
       assigneeId: data.assigneeId === undefined ? undefined : data.assigneeId,
       cycleId: data.cycleId === undefined ? undefined : data.cycleId,
+      ...(triageAt !== undefined ? { triageAt } : {}),
       revision: { increment: 1 },
     },
   });
@@ -322,7 +367,48 @@ export async function updateIssue(
     throw new ConflictError("Issue revision conflict", current);
   }
 
-  return getIssueById(teamId, issueId);
+  const saved = await getIssueById(teamId, issueId);
+
+  if (data.status && data.status !== existing.status && saved) {
+    const { notifyIssueSubscribers } = await import(
+      "@/lib/services/notifications"
+    );
+
+    await notifyIssueSubscribers({
+      teamId,
+      issueId,
+      actorId: userId,
+      type: "STATUS_CHANGED",
+      title: `Status changed: ${saved.title}`,
+    });
+  }
+
+  if (saved) {
+    const { recordActivity, notifySlack } = await import("@/lib/services/surface");
+    const fields = ["title", "status", "priority", "assigneeId", "cycleId", "projectId"] as const;
+
+    for (const field of fields) {
+      if (data[field] !== undefined && String(data[field] ?? "") !== String(existing[field] ?? "")) {
+        await recordActivity(
+          issueId,
+          userId,
+          field,
+          String(existing[field] ?? ""),
+          String(data[field] ?? ""),
+        );
+      }
+    }
+    if (data.assigneeId && data.assigneeId !== existing.assigneeId) {
+      const team = await prisma.team.findUnique({ where: { id: teamId } });
+
+      await notifySlack(team?.slackWebhookUrl, `Assigned: ${saved.title}`);
+    }
+    const { dispatchWebhooks } = await import("@/lib/services/webhooks");
+
+    await dispatchWebhooks(teamId, "issue.updated", saved);
+  }
+
+  return saved;
 }
 
 export async function reorderIssue(
@@ -354,6 +440,9 @@ export async function reorderIssue(
     data: {
       status: data.status,
       order: data.order,
+      ...(data.workflowStatusId
+        ? { workflowStatusId: data.workflowStatusId }
+        : {}),
       revision: { increment: 1 },
     },
   });
@@ -415,6 +504,10 @@ export async function deleteIssue(
       update: { deletedAt: new Date(), teamId },
     });
   });
+
+  const { dispatchWebhooks } = await import("@/lib/services/webhooks");
+
+  await dispatchWebhooks(teamId, "issue.deleted", { id: issueId });
 }
 
 export const BOARD_STATUSES: IssueStatus[] = [
@@ -460,6 +553,8 @@ export async function getBoardIssues(
       updatedAt: true,
       assigneeId: true,
       cycleId: true,
+      projectId: true,
+      workflowStatusId: true,
       creatorId: true,
       assignee: { select: { id: true, name: true, email: true, image: true } },
     },

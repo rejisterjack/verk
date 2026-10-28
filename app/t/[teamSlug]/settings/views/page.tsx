@@ -26,12 +26,23 @@ export default async function ViewsSettingsPage({
     "use server";
     const name = String(formData.get("name") ?? "");
     const status = String(formData.get("status") ?? "");
+    const priority = String(formData.get("priority") ?? "");
+    const cycleId = String(formData.get("cycleId") ?? "");
+    const assigneeId = String(formData.get("assigneeId") ?? "");
+    const projectId = String(formData.get("projectId") ?? "");
     const layout = String(formData.get("layout") ?? "LIST") as "LIST" | "BOARD";
+    const filterJson: Record<string, string> = {};
+
+    if (status) filterJson.status = status;
+    if (priority) filterJson.priority = priority;
+    if (cycleId) filterJson.cycleId = cycleId;
+    if (assigneeId) filterJson.assigneeId = assigneeId;
+    if (projectId) filterJson.projectId = projectId;
 
     await viewsService.createView(teamId, {
       name,
       layout,
-      filterJson: status ? { status } : {},
+      filterJson,
       pinned: true,
     });
     redirect(`/t/${teamSlug}/settings/views`);
@@ -63,6 +74,16 @@ export default async function ViewsSettingsPage({
           <option value="IN_PROGRESS">In Progress</option>
           <option value="DONE">Done</option>
         </select>
+        <select className="w-full rounded-lg border border-separator bg-background px-3 py-2 text-sm" name="priority">
+          <option value="">Any priority</option>
+          <option value="URGENT">Urgent</option>
+          <option value="HIGH">High</option>
+          <option value="MEDIUM">Medium</option>
+          <option value="LOW">Low</option>
+        </select>
+        <input className="w-full rounded-lg border border-separator bg-background px-3 py-2 text-sm" name="cycleId" placeholder="Cycle id (optional)" />
+        <input className="w-full rounded-lg border border-separator bg-background px-3 py-2 text-sm" name="assigneeId" placeholder="Assignee id (optional)" />
+        <input className="w-full rounded-lg border border-separator bg-background px-3 py-2 text-sm" name="projectId" placeholder="Project id (optional)" />
         <select
           className="w-full rounded-lg border border-separator bg-background px-3 py-2 text-sm"
           name="layout"

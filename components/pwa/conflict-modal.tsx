@@ -13,21 +13,32 @@ export function ConflictModal({
   issue,
   teamId,
   onClose,
+  onKeepMine,
+  onKeepServer,
 }: {
   issue: LocalIssue;
   teamId: string;
   onClose: () => void;
+  onKeepMine?: () => Promise<void>;
+  onKeepServer?: () => Promise<void>;
 }) {
   const local = issue.conflictLocal;
 
   if (!local) return null;
 
   async function keepServer() {
-    await resolveConflictKeepServer(issue.id);
+    if (onKeepServer) await onKeepServer();
+    else await resolveConflictKeepServer(issue.id);
     onClose();
   }
 
   async function keepMine() {
+    if (onKeepMine) {
+      await onKeepMine();
+      onClose();
+
+      return;
+    }
     await resolveConflictKeepMine(teamId, issue.id, {
       title: local?.title as string | undefined,
       description: local?.description as string | undefined,

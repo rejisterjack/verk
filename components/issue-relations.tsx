@@ -96,7 +96,21 @@ export function IssueRelations({
 
   return (
     <section className="mt-10 border-t border-separator pt-6">
-      <h2 className="text-sm font-semibold">Relations</h2>
+      <h2 className="text-sm font-semibold">Sub-issues</h2>
+      <ul className="mt-2 space-y-1 text-sm">
+        {relations
+          .filter((relation) => relation.type === "CHILD" || relation.type === "PARENT")
+          .map((relation) => {
+            const other = relation.fromIssue.id === issueId ? relation.toIssue : relation.fromIssue;
+
+            return (
+              <li key={relation.id}>
+                {relation.type}: {other.title}
+              </li>
+            );
+          })}
+      </ul>
+      <h2 className="mt-6 text-sm font-semibold">Relations</h2>
       <ul className="mt-3 space-y-2 text-sm">
         {relations.map((r) => {
           const other =

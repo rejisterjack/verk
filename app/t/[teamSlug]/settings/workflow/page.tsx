@@ -22,6 +22,16 @@ export default async function WorkflowSettingsPage({
   const teamId = teamCtx.team.id;
   const statuses = await workspaces.listWorkflowStatuses(teamId);
 
+  async function addStatus(formData: FormData) {
+    "use server";
+    await workspaces.createWorkflowStatus(teamId, {
+      name: String(formData.get("name") ?? ""),
+      key: String(formData.get("key") ?? ""),
+      type: String(formData.get("type") ?? "unstarted"),
+    });
+    redirect(`/t/${teamSlug}/settings/workflow`);
+  }
+
   async function rename(formData: FormData) {
     "use server";
     const id = String(formData.get("id") ?? "");
@@ -54,9 +64,38 @@ export default async function WorkflowSettingsPage({
   return (
     <div className="max-w-lg">
       <PageHeader
-        description="Rename and reorder the five fixed statuses. Adding new status types is post-launch."
+        description="Rename, reorder, or add a status. New statuses use a workflow key and map onto the nearest built-in column type."
         title="Workflow"
       />
+      <form action={addStatus} className="mb-6 flex flex-wrap items-end gap-2">
+        <input
+          required
+          className="rounded-lg border border-separator bg-background px-3 py-2 text-sm"
+          name="name"
+          placeholder="Name"
+        />
+        <input
+          required
+          className="rounded-lg border border-separator bg-background px-3 py-2 text-sm"
+          name="key"
+          pattern="[a-z0-9_]+"
+          placeholder="key"
+        />
+        <select
+          className="rounded-lg border border-separator bg-background px-3 py-2 text-sm"
+          defaultValue="unstarted"
+          name="type"
+        >
+          <option value="backlog">backlog</option>
+          <option value="unstarted">unstarted</option>
+          <option value="started">started</option>
+          <option value="completed">completed</option>
+          <option value="canceled">canceled</option>
+        </select>
+        <Button size="sm" type="submit">
+          Add status
+        </Button>
+      </form>
       <ul className="space-y-3">
         {statuses.map((s, i) => (
           <li

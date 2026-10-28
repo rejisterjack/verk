@@ -86,14 +86,19 @@ export function createVerkMcpServer(ctx: { teamId: string; userId: string }) {
           .enum(["NONE", "URGENT", "HIGH", "MEDIUM", "LOW"])
           .optional(),
         cycleId: z.string().nullable().optional(),
+        estimate: z.string().optional(),
+        dueDate: z.string().nullable().optional(),
+        projectId: z.string().nullable().optional(),
+        labelIds: z.array(z.string()).optional(),
+        clientMutationId: z.string().optional(),
       },
     },
     async (args) => {
-      const issue = await issuesService.createIssue(
-        ctx.teamId,
-        ctx.userId,
-        args,
-      );
+      const { labelIds, ...rest } = args;
+      const issue = await issuesService.createIssue(ctx.teamId, ctx.userId, {
+        ...rest,
+        labelIds,
+      });
 
       return {
         content: [{ type: "text", text: JSON.stringify(issue, null, 2) }],
@@ -118,10 +123,19 @@ export function createVerkMcpServer(ctx: { teamId: string; userId: string }) {
           .optional(),
         assigneeId: z.string().nullable().optional(),
         cycleId: z.string().nullable().optional(),
+        estimate: z.string().optional(),
+        dueDate: z.string().nullable().optional(),
+        projectId: z.string().nullable().optional(),
+        labelIds: z.array(z.string()).optional(),
+        clientMutationId: z.string().optional(),
       },
     },
     async (args) => {
-      const { id, ...patch } = args;
+      const { id, labelIds, ...patch } = args;
+
+      if (labelIds) {
+        await labelsService.setIssueLabels(ctx.teamId, id, labelIds);
+      }
       const issue = await issuesService.updateIssue(
         ctx.teamId,
         id,
@@ -269,6 +283,68 @@ export function createVerkMcpServer(ctx: { teamId: string; userId: string }) {
 
       return {
         content: [{ type: "text", text: JSON.stringify(comment, null, 2) }],
+      };
+    },
+  );
+
+  server.registerTool(
+    "list_comments",
+    {
+      title: "List comments",
+      description: "List comments on an issue",
+      inputSchema: { issueId: z.string() },
+    },
+    async (args) => {
+      const comments = await commentsService.listComments(
+        ctx.teamId,
+        args.issueId,
+      );
+
+      return {
+        content: [{ type: "text", text: JSON.stringify({ comments }, null, 2) }],
+      };
+    },
+  );
+
+  server.registerTool(
+    "delete_comment",
+    {
+      title: "Delete comment",
+      description: "Delete a comment",
+      inputSchema: { commentId: z.string() },
+    },
+    async (args) => {
+      await commentsService.deleteComment(
+        ctx.teamId,
+        args.commentId,
+        ctx.userId,
+        "ADMIN",
+      );
+
+      return { content: [{ type: "text", text: "deleted" }] };
+    },
+  );
+
+  server.registerTool(
+    "add_relation",
+    {
+      title: "Add relation",
+      description: "Relate two issues",
+      inputSchema: {
+        issueId: z.string(),
+        toIssueId: z.string(),
+        type: z.enum(["BLOCKS", "BLOCKED_BY", "RELATED", "PARENT", "CHILD"]),
+      },
+    },
+    async (args) => {
+      const { addRelation } = await import("@/lib/services/relations");
+      const relation = await addRelation(ctx.teamId, args.issueId, {
+        toIssueId: args.toIssueId,
+        type: args.type,
+      });
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(relation, null, 2) }],
       };
     },
   );

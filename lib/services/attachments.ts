@@ -1,4 +1,4 @@
-import { put } from "@vercel/blob";
+import { del, put } from "@vercel/blob";
 
 import { prisma } from "@/lib/db";
 import { AuthError } from "@/lib/errors";
@@ -64,6 +64,9 @@ export async function deleteAttachment(
 
   if (!existing || existing.issue.teamId !== teamId) {
     throw new AuthError("Attachment not found", "NOT_FOUND", 404);
+  }
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    await del(existing.url, { token: process.env.BLOB_READ_WRITE_TOKEN });
   }
   await prisma.attachment.delete({ where: { id: attachmentId } });
 }

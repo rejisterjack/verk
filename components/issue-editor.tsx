@@ -6,7 +6,11 @@ import { Button } from "@heroui/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { IssueActivityList } from "@/components/issue-activity";
 import { IssueAttachments } from "@/components/issue-attachments";
+import { IssueLinks } from "@/components/issue-links";
+import { MarkdownField } from "@/components/markdown-field";
+import { MarkdownBody } from "@/components/markdown-body";
 import { IssueComments } from "@/components/issue-comments";
 import { IssueRelations } from "@/components/issue-relations";
 import { PageHeader } from "@/components/page-header";
@@ -27,6 +31,7 @@ import { issueKey } from "@/lib/utils";
 type Member = { id: string; name: string | null; email: string };
 type Opt = { id: string; name: string };
 type LabelOpt = { id: string; name: string; color: string };
+type WorkflowOpt = { id: string; name: string };
 
 export function IssueEditor({
   teamId,
@@ -37,7 +42,9 @@ export function IssueEditor({
   members,
   cycles,
   projects = [],
+  milestones = [],
   labels = [],
+  workflows = [],
   initialLabelIds = [],
   canDelete,
 }: {
@@ -57,12 +64,16 @@ export function IssueEditor({
     assigneeId: string | null;
     cycleId: string | null;
     projectId?: string | null;
+    milestoneId?: string | null;
+    workflowStatusId?: string | null;
     revision: number;
   };
   members: Member[];
   cycles: Opt[];
   projects?: Opt[];
+  milestones?: Opt[];
   labels?: LabelOpt[];
+  workflows?: WorkflowOpt[];
   initialLabelIds?: string[];
   canDelete: boolean;
 }) {
@@ -174,7 +185,39 @@ export function IssueEditor({
 
     const result = await updateIssueAction(teamSlug, issue.number, formData);
 
-    if (result?.error) setError(result.error);
+    if (result && "conflict" in result && result.conflict) {
+      const server = (result.issue ?? {}) as Partial<typeof issue>;
+
+      setConflict({
+        id: issue.id,
+        teamId,
+        number: issue.number,
+        title: String(server.title ?? issue.title),
+        description: String(server.description ?? issue.description),
+        status: String(server.status ?? issue.status),
+        priority: String(server.priority ?? issue.priority),
+        estimate: issue.estimate ?? "NONE",
+        dueDate: issue.dueDate ?? null,
+        order: 0,
+        assigneeId: issue.assigneeId,
+        cycleId: issue.cycleId,
+        projectId: issue.projectId ?? null,
+        creatorId: "",
+        revision: Number(server.revision ?? issue.revision),
+        updatedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+        syncStatus: "conflict",
+        conflictLocal: {
+          title: patch.title,
+          description: patch.description,
+          status: patch.status,
+          priority: patch.priority,
+        },
+      });
+      if (typeof server.revision === "number") {
+        setIssue((prev) => ({ ...prev, revision: server.revision as number }));
+      }
+    } else if (result?.error) setError(result.error);
     setPending(false);
     router.refresh();
   }
@@ -211,6 +254,7 @@ export function IssueEditor({
         }}
       >
         <input name="labelsTouched" type="hidden" value="1" />
+        <input name="revision" type="hidden" value={issue.revision} />
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-muted">Title</span>
           <input
@@ -223,27 +267,29 @@ export function IssueEditor({
         </label>
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-muted">Description</span>
-          <textarea
-            key={"d" + issue.description + issue.revision}
-            className="min-h-40 rounded-lg border border-separator bg-background px-3 py-2"
-            defaultValue={issue.description}
-            name="description"
-          />
+          <MarkdownField defaultValue={issue.description} name="description" />
+          <MarkdownBody text={issue.description} />
         </label>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="flex flex-col gap-1 text-sm">
             <span className="text-muted">Status</span>
             <select
-              key={"s" + issue.status}
+              key={"s" + (issue.workflowStatusId ?? issue.status)}
               className="rounded-lg border border-separator bg-background px-3 py-2"
-              defaultValue={issue.status}
-              name="status"
+              defaultValue={issue.workflowStatusId ?? issue.status}
+              name={workflows.length ? "workflowStatusId" : "status"}
             >
-              {Object.entries(STATUS_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
+              {workflows.length
+                ? workflows.map((workflow) => (
+                    <option key={workflow.id} value={workflow.id}>
+                      {workflow.name}
+                    </option>
+                  ))
+                : Object.entries(STATUS_LABELS).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
             </select>
           </label>
           <label className="flex flex-col gap-1 text-sm">
@@ -329,6 +375,21 @@ export function IssueEditor({
               ))}
             </select>
           </label>
+          <label className="flex flex-col gap-1 text-sm sm:col-span-2">
+            <span className="text-muted">Milestone</span>
+            <select
+              className="rounded-lg border border-separator bg-background px-3 py-2"
+              defaultValue={issue.milestoneId ?? ""}
+              name="milestoneId"
+            >
+              <option value="">No milestone</option>
+              {milestones.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
         {labels.length ? (
           <fieldset className="text-sm">
@@ -372,6 +433,8 @@ export function IssueEditor({
       </form>
 
       <IssueRelations issueId={issue.id} teamId={teamId} teamSlug={teamSlug} />
+      <IssueLinks issueId={issue.id} teamId={teamId} />
+      <IssueActivityList issueId={issue.id} teamId={teamId} />
       <IssueAttachments issueId={issue.id} teamId={teamId} />
       <IssueComments issueId={issue.id} teamId={teamId} />
 
@@ -383,13 +446,89 @@ export function IssueEditor({
         </div>
       ) : null}
 
+      <SubscribeToggle issueId={issue.id} teamId={teamId} />
+
       {conflict ? (
         <ConflictModal
           issue={conflict}
           teamId={teamId}
           onClose={() => setConflict(null)}
+          onKeepMine={
+            conflict.creatorId === ""
+              ? async () => {
+                  const local = conflict.conflictLocal;
+                  const fd = new FormData();
+
+                  fd.set("title", String(local?.title ?? conflict.title));
+                  fd.set(
+                    "description",
+                    String(local?.description ?? conflict.description),
+                  );
+                  fd.set("status", String(local?.status ?? conflict.status));
+                  fd.set(
+                    "priority",
+                    String(local?.priority ?? conflict.priority),
+                  );
+                  fd.set("revision", String(conflict.revision));
+                  if (issue.number != null) {
+                    await updateIssueAction(teamSlug, issue.number, fd);
+                  }
+                  router.refresh();
+                }
+              : undefined
+          }
+          onKeepServer={
+            conflict.creatorId === ""
+              ? async () => {
+                  setIssue((prev) => ({
+                    ...prev,
+                    title: conflict.title,
+                    description: conflict.description,
+                    status: conflict.status,
+                    priority: conflict.priority,
+                    revision: conflict.revision,
+                  }));
+                  router.refresh();
+                }
+              : undefined
+          }
         />
       ) : null}
     </div>
+  );
+}
+
+function SubscribeToggle({
+  teamId,
+  issueId,
+}: {
+  teamId: string;
+  issueId: string;
+}) {
+  const [on, setOn] = useState(false);
+
+  useEffect(() => {
+    void fetch(`/api/teams/${teamId}/issues/${issueId}/subscription`, {
+      credentials: "same-origin",
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data) setOn(Boolean(data.subscribed));
+      });
+  }, [teamId, issueId]);
+
+  return (
+    <button
+      className="mt-6 text-sm text-accent"
+      type="button"
+      onClick={() => {
+        void fetch(`/api/teams/${teamId}/issues/${issueId}/subscription`, {
+          method: on ? "DELETE" : "POST",
+          credentials: "same-origin",
+        }).then(() => setOn((v) => !v));
+      }}
+    >
+      {on ? "Unsubscribe" : "Subscribe"}
+    </button>
   );
 }

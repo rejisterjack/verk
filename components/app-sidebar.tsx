@@ -15,6 +15,7 @@ import clsx from "clsx";
 import NextLink from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
+import { InstallPrompt } from "@/components/pwa/install-prompt";
 import { VerkLogo } from "@/components/verk-logo";
 import { logoutAction } from "@/lib/actions/auth";
 
@@ -27,12 +28,14 @@ export function AppSidebar({
   role,
   views = [],
   inboxCount = 0,
+  workspaceSlug,
 }: {
   teamSlug: string;
   teams: TeamOption[];
   role: string;
   views?: ViewOption[];
   inboxCount?: number;
+  workspaceSlug?: string | null;
 }) {
   const pathname = usePathname();
   const search = useSearchParams();
@@ -88,10 +91,34 @@ export function AppSidebar({
       icon: CalendarDaysIcon,
     },
     {
-      href: `${base}/settings`,
-      label: "Settings",
-      icon: Cog6ToothIcon,
+      href: `${base}/roadmap`,
+      label: "Roadmap",
+      icon: CalendarDaysIcon,
     },
+    {
+      href: `${base}/insights`,
+      label: "Insights",
+      icon: QueueListIcon,
+    },
+    {
+      href: `${base}/docs`,
+      label: "Docs",
+      icon: FolderIcon,
+    },
+    {
+      href: `${base}/customers`,
+      label: "Customers",
+      icon: UserIcon,
+    },
+    ...(role === "GUEST"
+      ? []
+      : [
+          {
+            href: `${base}/settings`,
+            label: "Settings",
+            icon: Cog6ToothIcon,
+          },
+        ]),
   ];
 
   return (
@@ -102,6 +129,14 @@ export function AppSidebar({
       >
         <VerkLogo size={24} />
       </NextLink>
+      {workspaceSlug ? (
+        <NextLink
+          className="px-1 text-xs text-muted hover:text-foreground"
+          href={`/w/${workspaceSlug}`}
+        >
+          Workspace
+        </NextLink>
+      ) : null}
 
       <label className="flex flex-col gap-1 px-1 text-sm">
         <span className="text-muted text-[10px] uppercase tracking-wide">
@@ -172,6 +207,7 @@ export function AppSidebar({
         </div>
       ) : null}
 
+      <InstallPrompt />
       <div className="mt-auto flex flex-col gap-1.5 px-1 text-[11px] text-muted">
         <span>⌘K command · ? shortcuts</span>
         <span>Role: {role}</span>

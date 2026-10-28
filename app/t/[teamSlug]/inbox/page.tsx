@@ -129,6 +129,40 @@ export default async function InboxPage({
                     Tomorrow
                   </Button>
                 </form>
+                <form
+                  action={async () => {
+                    "use server";
+                    const user = await auth();
+
+                    if (!user?.user?.id) return;
+                    await notifications.snoozeNotification(
+                      user.user.id,
+                      n.id,
+                      new Date(Date.now() + 24 * 60 * 60 * 1000),
+                    );
+                  }}
+                >
+                  <Button size="sm" type="submit" variant="ghost">
+                    1 day
+                  </Button>
+                </form>
+                <form
+                  action={async () => {
+                    "use server";
+                    const user = await auth();
+
+                    if (!user?.user?.id) return;
+                    await notifications.snoozeNotification(
+                      user.user.id,
+                      n.id,
+                      new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+                    );
+                  }}
+                >
+                  <Button size="sm" type="submit" variant="ghost">
+                    Next week
+                  </Button>
+                </form>
               </div>
             </li>
           ))}

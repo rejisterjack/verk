@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { parseLinearCsv } from "@/lib/import/linear-csv";
+import { fetchLinearIssuePages } from "@/lib/import/linear-pages";
 import * as issuesService from "@/lib/services/issues";
 
 export async function importLinearCsv(
@@ -46,55 +47,7 @@ export async function importFromLinearApi(
   apiKey: string,
   teamKey?: string,
 ) {
-  const query = `
-    query($first: Int!) {
-      issues(first: $first) {
-        nodes {
-          title
-          description
-          priority
-          state { name }
-          assignee { email }
-          team { key }
-        }
-      }
-    }
-  `;
-
-  const res = await fetch("https://api.linear.app/graphql", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: apiKey,
-    },
-    body: JSON.stringify({ query, variables: { first: 100 } }),
-  });
-
-  if (!res.ok) {
-    throw new Error(`Linear API error: ${res.status}`);
-  }
-
-  const json = (await res.json()) as {
-    data?: {
-      issues?: {
-        nodes: Array<{
-          title: string;
-          description?: string | null;
-          priority: number;
-          state?: { name: string };
-          assignee?: { email: string } | null;
-          team?: { key: string };
-        }>;
-      };
-    };
-    errors?: Array<{ message: string }>;
-  };
-
-  if (json.errors?.length) {
-    throw new Error(json.errors[0]!.message);
-  }
-
-  const nodes = json.data?.issues?.nodes ?? [];
+  const { nodes, capped } = await fetchLinearIssuePages(apiKey);
   const filtered = teamKey
     ? nodes.filter((n) => n.team?.key?.toLowerCase() === teamKey.toLowerCase())
     : nodes;
@@ -120,5 +73,7 @@ export async function importFromLinearApi(
     }),
   ];
 
-  return importLinearCsv(teamId, userId, csvLines.join("\n"));
+  const result = await importLinearCsv(teamId, userId, csvLines.join("\n"));
+
+  return { ...result, capped };
 }

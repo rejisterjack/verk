@@ -11,6 +11,13 @@ enum Role {
   OWNER
   ADMIN
   MEMBER
+  GUEST
+}
+
+enum InitiativeHealth {
+  ON_TRACK
+  AT_RISK
+  OFF_TRACK
 }
 
 enum IssueStatus {
@@ -89,6 +96,7 @@ model User {
   emailVerified DateTime?
   image         String?
   passwordHash  String?
+  disabled      Boolean   @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -106,6 +114,10 @@ model User {
   projectsLed         Project[]         @relation("ProjectLead")
   webhooksCreated     Webhook[]
   attachments         Attachment[]
+  triageTeams         Team[]            @relation("TriageOwner")
+  activities          IssueActivity[]
+  projectUpdates      ProjectUpdate[]
+  documentsUpdated    Document[]
 }
 
 model Account {
@@ -180,6 +192,17 @@ model Team {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
+  githubRepo           String?
+  githubMergeCompletes Boolean  @default(false)
+  slackWebhookUrl      String?
+  slaHours             Json?
+  timezone             String   @default("UTC")
+  slaStartHour         Int      @default(0)
+  slaEndHour           Int      @default(24)
+  slaWeekdays          String   @default("1,2,3,4,5")
+  cycleCooldownDays    Int      @default(0)
+  triageOwnerId        String?
+
   workspace         Workspace?        @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
   memberships       Membership[]
   invites           Invite[]
@@ -190,9 +213,14 @@ model Team {
   issueDeletions    IssueDeletion[]
   labels            Label[]
   projects          Project[]
+  initiatives       Initiative[]
   savedViews        SavedView[]
   workflowStatuses  WorkflowStatus[]
   webhooks          Webhook[]
+  triageOwner       User?             @relation("TriageOwner", fields: [triageOwnerId], references: [id], onDelete: SetNull)
+  templates         IssueTemplate[]
+  documents         Document[]
+  customers         Customer[]
 }
 
 model Membership {
@@ -254,9 +282,24 @@ model WorkflowStatus {
   position Int                @default(0)
   color    String             @default("#94a3b8")
 
-  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  team   Team    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  issues Issue[]
 
   @@unique([teamId, key])
+  @@index([teamId])
+}
+
+model Initiative {
+  id         String    @id @default(cuid())
+  teamId     String
+  name       String
+  targetDate DateTime?
+  health     InitiativeHealth @default(ON_TRACK)
+  createdAt  DateTime  @default(now())
+
+  team     Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  projects Project[]
+
   @@index([teamId])
 }
 
@@ -265,6 +308,7 @@ model Label {
   teamId    String
   name      String
   color     String   @default("#0f766e")
+  group     String?
   createdAt DateTime @default(now())
 
   team   Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
@@ -295,17 +339,21 @@ model Project {
   leadId       String?
   targetDate   DateTime?
   revision     Int           @default(0)
+  initiativeId String?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
   team       Team        @relation(fields: [teamId], references: [id], onDelete: Cascade)
   workspace  Workspace?  @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  initiative Initiative? @relation(fields: [initiativeId], references: [id], onDelete: SetNull)
   lead       User?       @relation("ProjectLead", fields: [leadId], references: [id], onDelete: SetNull)
   milestones Milestone[]
   issues     Issue[]
+  updates    ProjectUpdate[]
 
   @@index([teamId])
   @@index([workspaceId])
+  @@index([initiativeId])
 }
 
 model Milestone {
@@ -337,9 +385,10 @@ model Issue {
   revision    Int         @default(0)
   assigneeId  String?
   cycleId     String?
-  projectId   String?
-  milestoneId String?
-  creatorId   String
+  projectId        String?
+  milestoneId      String?
+  workflowStatusId String?
+  creatorId        String
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
@@ -347,8 +396,9 @@ model Issue {
   assignee     User?               @relation("IssueAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
   cycle        Cycle?              @relation(fields: [cycleId], references: [id], onDelete: SetNull)
   project      Project?            @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  milestone    Milestone?          @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
-  creator      User                @relation("IssueCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  milestone      Milestone?      @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+  workflowStatus WorkflowStatus? @relation(fields: [workflowStatusId], references: [id], onDelete: SetNull)
+  creator        User            @relation("IssueCreator", fields: [creatorId], references: [id], onDelete: Cascade)
   labels       IssueLabel[]
   comments     Comment[]
   notifications Notification[]
@@ -356,6 +406,9 @@ model Issue {
   relationsFrom IssueRelation[]    @relation("RelationFrom")
   relationsTo   IssueRelation[]    @relation("RelationTo")
   attachments  Attachment[]
+  activities   IssueActivity[]
+  links        IssueLink[]
+  requests     CustomerRequest[]
 
   @@unique([teamId, number])
   @@index([teamId, status])
@@ -364,6 +417,7 @@ model Issue {
   @@index([teamId, updatedAt])
   @@index([assigneeId])
   @@index([projectId])
+  @@index([workflowStatusId])
 }
 
 model IssueRelation {
@@ -388,10 +442,22 @@ model Comment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  issue  Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
-  author User  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  issue     Issue             @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  author    User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  reactions CommentReaction[]
 
   @@index([issueId])
+}
+
+model CommentReaction {
+  id        String @id @default(cuid())
+  commentId String
+  userId    String
+  emoji     String
+
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId, emoji])
 }
 
 model Attachment {
@@ -512,4 +578,101 @@ model Webhook {
   createdBy User @relation(fields: [createdById], references: [id], onDelete: Cascade)
 
   @@index([teamId])
+}
+
+model ProjectUpdate {
+  id        String   @id @default(cuid())
+  projectId String
+  authorId  String
+  body      String   @db.Text
+  health    InitiativeHealth @default(ON_TRACK)
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  author  User    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+model IssueTemplate {
+  id          String   @id @default(cuid())
+  teamId      String
+  name        String
+  title       String
+  description String   @default("") @db.Text
+  priority    Priority @default(NONE)
+  estimate    Estimate @default(NONE)
+  createdAt   DateTime @default(now())
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
+}
+
+model IssueActivity {
+  id        String   @id @default(cuid())
+  issueId   String
+  actorId   String
+  field     String
+  fromValue String   @default("")
+  toValue   String   @default("")
+  createdAt DateTime @default(now())
+
+  issue Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  actor User  @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([issueId])
+}
+
+model Document {
+  id          String   @id @default(cuid())
+  teamId      String
+  title       String
+  body        String   @default("") @db.Text
+  updatedById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  team      Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  updatedBy User @relation(fields: [updatedById], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  teamId    String
+  name      String
+  domain    String   @default("")
+  createdAt DateTime @default(now())
+
+  team     Team              @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  requests CustomerRequest[]
+
+  @@index([teamId])
+}
+
+model CustomerRequest {
+  id         String   @id @default(cuid())
+  customerId String
+  issueId    String?
+  body       String   @db.Text
+  createdAt  DateTime @default(now())
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  issue    Issue?   @relation(fields: [issueId], references: [id], onDelete: SetNull)
+
+  @@index([customerId])
+}
+
+model IssueLink {
+  id        String   @id @default(cuid())
+  issueId   String
+  kind      String
+  url       String
+  createdAt DateTime @default(now())
+
+  issue Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+
+  @@index([issueId])
 }

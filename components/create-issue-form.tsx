@@ -20,6 +20,7 @@ import { createIssueLocal } from "@/lib/offline/issue-repository";
 type Opt = { id: string; name: string };
 type Member = { id: string; name: string | null; email: string };
 type LabelOpt = { id: string; name: string; color: string };
+type WorkflowOpt = { id: string; name: string };
 
 export function CreateIssueForm({
   teamId,
@@ -27,14 +28,18 @@ export function CreateIssueForm({
   members,
   cycles,
   projects = [],
+  milestones = [],
   labels = [],
+  workflows = [],
 }: {
   teamId: string;
   teamSlug: string;
   members: Member[];
   cycles: Opt[];
   projects?: Opt[];
+  milestones?: Opt[];
   labels?: LabelOpt[];
+  workflows?: WorkflowOpt[];
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -141,14 +146,20 @@ export function CreateIssueForm({
               <span>Status</span>
               <select
                 className="rounded-lg border border-separator bg-background px-3 py-2"
-                defaultValue="BACKLOG"
-                name="status"
+                defaultValue={workflows[0]?.id ?? "BACKLOG"}
+                name={workflows.length ? "workflowStatusId" : "status"}
               >
-                {Object.entries(STATUS_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
+                {workflows.length
+                  ? workflows.map((workflow) => (
+                      <option key={workflow.id} value={workflow.id}>
+                        {workflow.name}
+                      </option>
+                    ))
+                  : Object.entries(STATUS_LABELS).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
               </select>
             </label>
             <label className="flex flex-col gap-1 text-sm">
@@ -228,6 +239,20 @@ export function CreateIssueForm({
                 {projects.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-sm sm:col-span-2">
+              <span>Milestone</span>
+              <select
+                className="rounded-lg border border-separator bg-background px-3 py-2"
+                name="milestoneId"
+              >
+                <option value="">No milestone</option>
+                {milestones.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
                   </option>
                 ))}
               </select>

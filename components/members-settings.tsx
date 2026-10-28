@@ -13,7 +13,7 @@ import { ROLE_LABELS } from "@/lib/labels";
 
 type Member = {
   id: string;
-  role: "OWNER" | "ADMIN" | "MEMBER";
+  role: "OWNER" | "ADMIN" | "MEMBER" | "GUEST";
   user: {
     id: string;
     name: string | null;
@@ -25,7 +25,7 @@ type Member = {
 type Invite = {
   id: string;
   email: string;
-  role: "OWNER" | "ADMIN" | "MEMBER";
+  role: "OWNER" | "ADMIN" | "MEMBER" | "GUEST";
   expiresAt: Date | string;
 };
 

@@ -119,6 +119,28 @@ export async function deleteCycle(teamId: string, cycleId: string, role: Role) {
 }
 
 /** Create next recurring cycle from team settings; optionally carry over unfinished issues. */
+export async function advanceDueCycles() {
+  const due = await prisma.cycle.findMany({
+    where: { isActive: true, endDate: { lt: new Date() } },
+    include: { team: { select: { cycleCooldownDays: true } } },
+  });
+  const advanced: string[] = [];
+
+  for (const cycle of due) {
+    const ready = new Date(cycle.endDate);
+
+    ready.setDate(ready.getDate() + (cycle.team.cycleCooldownDays || 0));
+    if (ready > new Date()) continue;
+    await advanceCycle(cycle.teamId, "OWNER");
+    const { dispatchWebhooks } = await import("@/lib/services/webhooks");
+
+    await dispatchWebhooks(cycle.teamId, "cycle.advanced", { cycleId: cycle.id });
+    advanced.push(cycle.teamId);
+  }
+
+  return advanced;
+}
+
 export async function advanceCycle(
   teamId: string,
   role: Role,

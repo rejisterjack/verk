@@ -16,7 +16,12 @@ import * as membersService from "@/lib/services/members";
 import * as projectsService from "@/lib/services/projects";
 import * as viewsService from "@/lib/services/views";
 import * as workspacesService from "@/lib/services/workspaces";
-import { WORKFLOW_KEY_TO_STATUS } from "@/lib/labels";
+import {
+  WORKFLOW_KEY_TO_STATUS,
+  WORKFLOW_TYPE_TO_STATUS,
+  statusToWorkflowKey,
+} from "@/lib/labels";
+import { slaBreached } from "@/lib/sla";
 
 export default async function IssuesPage({
   params,
@@ -31,6 +36,8 @@ export default async function IssuesPage({
     assignee?: string;
     layout?: string;
     view?: string;
+    group?: string;
+    workflowStatusId?: string;
   }>;
 }) {
   const { teamSlug } = await params;
@@ -38,7 +45,7 @@ export default async function IssuesPage({
   let teamCtx;
 
   try {
-    teamCtx = await requireTeamBySlug(teamSlug);
+    teamCtx = await requireTeamBySlug(teamSlug, "GUEST");
   } catch {
     notFound();
   }
@@ -50,11 +57,13 @@ export default async function IssuesPage({
     cycleId?: string;
     search?: string;
     assigneeId?: string;
+    workflowStatusId?: string;
   } = {
     status: query.status as IssueStatus | undefined,
     priority: query.priority as Priority | undefined,
     cycleId: query.cycleId,
     search: query.search,
+    workflowStatusId: query.workflowStatusId,
   };
 
   if (query.view) {
@@ -83,6 +92,7 @@ export default async function IssuesPage({
             issues: [] as Awaited<
               ReturnType<typeof issuesService.listIssues>
             >["issues"],
+            nextCursor: undefined as string | undefined,
           })
         : issuesService.listIssues(team.id, { ...filters, take: 100 }),
       isBoard
@@ -99,12 +109,28 @@ export default async function IssuesPage({
       workspacesService.listWorkflowStatuses(team.id),
     ]);
 
-  const boardColumns = workflows
-    .filter((w) => w.type !== "canceled")
-    .map((w) => WORKFLOW_KEY_TO_STATUS[w.key])
-    .filter((s): s is IssueStatus => Boolean(s));
+  const visibleWorkflows = workflows.filter((w) => w.type !== "canceled");
+  const boardColumns = visibleWorkflows.map((w) => w.key);
+  const columnLabels = Object.fromEntries(
+    visibleWorkflows.map((w) => [w.key, w.name]),
+  );
+  const columnStatus = Object.fromEntries(
+    visibleWorkflows.map((w) => [
+      w.key,
+      WORKFLOW_KEY_TO_STATUS[w.key] ??
+        WORKFLOW_TYPE_TO_STATUS[w.type] ??
+        "TODO",
+    ]),
+  );
+  const columnWorkflowIds = Object.fromEntries(
+    visibleWorkflows.map((w) => [w.key, w.id]),
+  );
+  const workflowById = new Map(workflows.map((w) => [w.id, w.key]));
 
   const projectOpts = projects.map((p) => ({ id: p.id, name: p.name }));
+  const milestoneOpts = projects.flatMap((p) =>
+    p.milestones.map((m) => ({ id: m.id, name: `${p.name}: ${m.name}` })),
+  );
   const labelOpts = labels.map((l) => ({
     id: l.id,
     name: l.name,
@@ -140,14 +166,25 @@ export default async function IssuesPage({
               >
                 Board
               </NextLink>
+              <NextLink className="px-3 py-1.5 text-muted" href={`/t/${teamSlug}/issues?layout=board&group=priority`}>
+                By priority
+              </NextLink>
+              <NextLink className="px-3 py-1.5 text-muted" href={`/t/${teamSlug}/issues?layout=board&group=project`}>
+                By project
+              </NextLink>
             </div>
             <CreateIssueForm
               cycles={cycleOpts}
               labels={labelOpts}
               members={memberOpts}
+              milestones={milestoneOpts}
               projects={projectOpts}
               teamId={team.id}
               teamSlug={teamSlug}
+              workflows={workflows.map((workflow) => ({
+                id: workflow.id,
+                name: workflow.name,
+              }))}
             />
           </div>
         }
@@ -171,15 +208,27 @@ export default async function IssuesPage({
             />
             <select
               className="rounded-lg border border-separator bg-background px-3 py-2 text-sm"
-              defaultValue={query.status ?? ""}
-              name="status"
+              defaultValue={query.workflowStatusId ?? ""}
+              name="workflowStatusId"
             >
-              <option value="">All statuses</option>
-              <option value="BACKLOG">Backlog</option>
-              <option value="TODO">Todo</option>
-              <option value="IN_PROGRESS">In Progress</option>
-              <option value="DONE">Done</option>
-              <option value="CANCELLED">Canceled</option>
+              <option value="">All workflow statuses</option>
+              {workflows.map((workflow) => (
+                <option key={workflow.id} value={workflow.id}>
+                  {workflow.name}
+                </option>
+              ))}
+            </select>
+            <select
+              className="rounded-lg border border-separator bg-background px-3 py-2 text-sm"
+              defaultValue={query.priority ?? ""}
+              name="priority"
+            >
+              <option value="">All priorities</option>
+              <option value="URGENT">Urgent</option>
+              <option value="HIGH">High</option>
+              <option value="MEDIUM">Medium</option>
+              <option value="LOW">Low</option>
+              <option value="NONE">No priority</option>
             </select>
             <select
               className="rounded-lg border border-separator bg-background px-3 py-2 text-sm"
@@ -222,9 +271,14 @@ export default async function IssuesPage({
               cycles={cycleOpts}
               labels={labelOpts}
               members={memberOpts}
+              milestones={milestoneOpts}
               projects={projectOpts}
               teamId={team.id}
               teamSlug={teamSlug}
+              workflows={workflows.map((workflow) => ({
+                id: workflow.id,
+                name: workflow.name,
+              }))}
             />
           }
           description="Create your first issue or import from Linear in Settings → Import."
@@ -232,25 +286,39 @@ export default async function IssuesPage({
         />
       ) : isBoard ? (
         <BoardView
+          columnLabels={columnLabels}
+          columnStatus={columnStatus}
+          columnWorkflowIds={columnWorkflowIds}
           columns={
-            boardColumns.length
-              ? boardColumns
-              : (["BACKLOG", "TODO", "IN_PROGRESS", "DONE"] as IssueStatus[])
+            query.group === "priority"
+              ? ["URGENT", "HIGH", "MEDIUM", "LOW", "NONE"]
+              : query.group === "project"
+                ? ["none", ...projectOpts.map((project) => project.id)]
+                : boardColumns.length
+                  ? boardColumns
+                  : (["backlog", "todo", "in_progress", "done"] as string[])
           }
-          columnLabels={Object.fromEntries(
-            workflows
-              .map((w) => {
-                const status = WORKFLOW_KEY_TO_STATUS[w.key];
-
-                return status ? ([status, w.name] as const) : null;
-              })
-              .filter((entry): entry is readonly [IssueStatus, string] =>
-                Boolean(entry),
-              ),
-          )}
+          groupBy={
+            query.group === "priority" || query.group === "project"
+              ? query.group
+              : "status"
+          }
+          workflows={workflows.map((workflow) => ({
+            id: workflow.id,
+            name: workflow.name,
+          }))}
           initialIssues={issues.map((i) => ({
             ...i,
             number: i.number,
+            columnKey:
+              query.group === "priority"
+                ? i.priority
+                : query.group === "project"
+                  ? i.projectId ?? "none"
+                  : ("workflowStatusId" in i &&
+                    typeof i.workflowStatusId === "string" &&
+                    workflowById.get(i.workflowStatusId)) ||
+                    statusToWorkflowKey(i.status),
             revision:
               "revision" in i ? (i as { revision?: number }).revision : 0,
           }))}
@@ -266,7 +334,14 @@ export default async function IssuesPage({
             cycleId: filters.cycleId,
             search: filters.search,
           }}
+          initialCursor={listResult.nextCursor}
+          slaHours={team.slaHours}
+          workflows={workflows.map((workflow) => ({
+            id: workflow.id,
+            name: workflow.name,
+          }))}
           initialIssues={listResult.issues.map((issue) => ({
+            createdAt: issue.createdAt.toISOString(),
             id: issue.id,
             number: issue.number,
             title: issue.title,

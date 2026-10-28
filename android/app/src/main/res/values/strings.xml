@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Verk</string>
+    <string name="title_activity_main">Verk</string>
+    <string name="package_name">com.rejisterjack.verk</string>
+    <string name="custom_url_scheme">com.rejisterjack.verk</string>
+</resources>

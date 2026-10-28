@@ -9,6 +9,7 @@ const labelSchema = z.object({
     .string()
     .regex(/^#[0-9a-fA-F]{6}$/)
     .optional(),
+  group: z.string().max(40).optional(),
 });
 
 export async function listLabels(teamId: string) {
@@ -26,7 +27,26 @@ export async function createLabel(teamId: string, input: unknown) {
       teamId,
       name: data.name,
       color: data.color ?? "#0f766e",
+      group: data.group,
     },
+  });
+}
+
+export async function updateLabel(
+  teamId: string,
+  labelId: string,
+  input: unknown,
+) {
+  const existing = await prisma.label.findFirst({
+    where: { id: labelId, teamId },
+  });
+
+  if (!existing) throw new AuthError("Label not found", "NOT_FOUND", 404);
+  const data = labelSchema.partial().parse(input);
+
+  return prisma.label.update({
+    where: { id: labelId },
+    data,
   });
 }
 
