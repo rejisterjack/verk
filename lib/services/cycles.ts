@@ -117,3 +117,75 @@ export async function deleteCycle(teamId: string, cycleId: string, role: Role) {
   });
   await prisma.cycle.delete({ where: { id: cycleId } });
 }
+
+/** Create next recurring cycle from team settings; optionally carry over unfinished issues. */
+export async function advanceCycle(
+  teamId: string,
+  role: Role,
+  opts?: { carryOver?: boolean },
+) {
+  assertRole(role, "MEMBER");
+  const team = await prisma.team.findUniqueOrThrow({ where: { id: teamId } });
+  const weeks = team.cycleDurationWeeks || 2;
+  const active = await prisma.cycle.findFirst({
+    where: { teamId, isActive: true },
+  });
+
+  const start = active?.endDate ? new Date(active.endDate) : new Date();
+  const end = new Date(start);
+
+  end.setDate(end.getDate() + weeks * 7);
+
+  const count = await prisma.cycle.count({ where: { teamId } });
+  const name = `Cycle ${count + 1}`;
+
+  return prisma.$transaction(async (tx) => {
+    if (active) {
+      await tx.cycle.update({
+        where: { id: active.id },
+        data: { isActive: false },
+      });
+    }
+
+    const next = await tx.cycle.create({
+      data: {
+        teamId,
+        name,
+        startDate: start,
+        endDate: end,
+        isActive: true,
+      },
+    });
+
+    if (opts?.carryOver !== false && active) {
+      await tx.issue.updateMany({
+        where: {
+          teamId,
+          cycleId: active.id,
+          status: { notIn: ["DONE", "CANCELLED"] },
+        },
+        data: { cycleId: next.id },
+      });
+    }
+
+    await tx.team.update({
+      where: { id: teamId },
+      data: { cyclesEnabled: true },
+    });
+
+    return next;
+  });
+}
+
+export function cycleCompletion(issues: { status: string }[]) {
+  if (!issues.length) return { total: 0, done: 0, percent: 0 };
+  const done = issues.filter(
+    (i) => i.status === "DONE" || i.status === "CANCELLED",
+  ).length;
+
+  return {
+    total: issues.length,
+    done,
+    percent: Math.round((done / issues.length) * 100),
+  };
+}

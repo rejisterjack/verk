@@ -20,11 +20,21 @@ export async function updateTeamAction(teamSlug: string, formData: FormData) {
   const { team, membership } = await requireTeamBySlug(teamSlug, "ADMIN");
   const name = String(formData.get("name") ?? "") || undefined;
   const slug = String(formData.get("slug") ?? "") || undefined;
+  const weeksRaw = String(formData.get("cycleDurationWeeks") ?? "");
+  const cycleDurationWeeks = weeksRaw
+    ? Number.parseInt(weeksRaw, 10)
+    : undefined;
 
   try {
     const updated = await teamsService.updateTeam(
       team.id,
-      { name, slug },
+      {
+        name,
+        slug,
+        ...(cycleDurationWeeks != null && Number.isFinite(cycleDurationWeeks)
+          ? { cycleDurationWeeks }
+          : {}),
+      },
       membership.role,
     );
 

@@ -18,6 +18,8 @@ const issueInclude = {
   assignee: { select: { id: true, name: true, email: true, image: true } },
   cycle: { select: { id: true, name: true, isActive: true } },
   creator: { select: { id: true, name: true, email: true } },
+  project: { select: { id: true, name: true, status: true } },
+  labels: { include: { label: true } },
 } as const;
 
 function parseRevision(
@@ -48,10 +50,28 @@ export async function listIssues(teamId: string, query: unknown) {
   if (q.priority) where.priority = q.priority;
   if (q.cycleId) where.cycleId = q.cycleId;
   if (q.assigneeId) where.assigneeId = q.assigneeId;
-  if (q.search) {
+  if (q.projectId) where.projectId = q.projectId;
+  if (q.number) where.number = q.number;
+  if (q.triage) {
     where.OR = [
+      { triageAt: { not: null } },
+      { status: "BACKLOG", assigneeId: null },
+    ];
+  }
+  if (q.search) {
+    const digitMatch = /^\d+$/.test(q.search) ? Number(q.search) : null;
+    const searchOr: Prisma.IssueWhereInput[] = [
       { title: { contains: q.search, mode: "insensitive" } },
       { description: { contains: q.search, mode: "insensitive" } },
+    ];
+
+    if (digitMatch != null && Number.isFinite(digitMatch)) {
+      searchOr.push({ number: digitMatch });
+    }
+
+    where.AND = [
+      ...(Array.isArray(where.AND) ? where.AND : []),
+      { OR: searchOr },
     ];
   }
 
@@ -105,22 +125,14 @@ export async function syncIssues(teamId: string, sinceIso: string) {
 export async function getIssueByNumber(teamId: string, number: number) {
   return prisma.issue.findUnique({
     where: { teamId_number: { teamId, number } },
-    include: {
-      assignee: { select: { id: true, name: true, email: true, image: true } },
-      cycle: true,
-      creator: { select: { id: true, name: true, email: true } },
-    },
+    include: issueInclude,
   });
 }
 
 export async function getIssueById(teamId: string, issueId: string) {
   return prisma.issue.findFirst({
     where: { id: issueId, teamId },
-    include: {
-      assignee: { select: { id: true, name: true, email: true, image: true } },
-      cycle: true,
-      creator: { select: { id: true, name: true, email: true } },
-    },
+    include: issueInclude,
   });
 }
 
@@ -151,6 +163,9 @@ export async function createIssue(
   }
 
   const data = createIssueSchema.parse(input);
+  const { labelIds, clientMutationId: _cm, ...issueData } = data;
+
+  void _cm;
 
   const issue = await prisma.$transaction(async (tx) => {
     const team = await tx.team.update({
@@ -159,7 +174,7 @@ export async function createIssue(
     });
 
     const maxOrder = await tx.issue.aggregate({
-      where: { teamId, status: data.status ?? "BACKLOG" },
+      where: { teamId, status: issueData.status ?? "BACKLOG" },
       _max: { order: true },
     });
 
@@ -167,23 +182,52 @@ export async function createIssue(
       data: {
         teamId,
         number: team.issueCounter,
-        title: data.title,
-        description: data.description ?? "",
-        status: data.status ?? "BACKLOG",
-        priority: data.priority ?? "NONE",
-        assigneeId: data.assigneeId ?? null,
-        cycleId: data.cycleId ?? null,
+        title: issueData.title,
+        description: issueData.description ?? "",
+        status: issueData.status ?? "BACKLOG",
+        priority: issueData.priority ?? "NONE",
+        estimate: issueData.estimate ?? "NONE",
+        dueDate: issueData.dueDate ?? null,
+        assigneeId: issueData.assigneeId ?? null,
+        cycleId: issueData.cycleId ?? null,
+        projectId: issueData.projectId ?? null,
+        milestoneId: issueData.milestoneId ?? null,
         creatorId: userId,
+        triageAt: issueData.status === "BACKLOG" ? new Date() : null,
         order: (maxOrder._max.order ?? 0) + 1,
         revision: 0,
+        labels: labelIds?.length
+          ? { create: labelIds.map((labelId) => ({ labelId })) }
+          : undefined,
       },
-      include: {
-        assignee: {
-          select: { id: true, name: true, email: true, image: true },
-        },
-        cycle: true,
-      },
+      include: issueInclude,
     });
+
+    await tx.issueSubscription.create({
+      data: { issueId: created.id, userId },
+    });
+
+    if (issueData.assigneeId && issueData.assigneeId !== userId) {
+      await tx.issueSubscription.upsert({
+        where: {
+          issueId_userId: {
+            issueId: created.id,
+            userId: issueData.assigneeId,
+          },
+        },
+        create: { issueId: created.id, userId: issueData.assigneeId },
+        update: {},
+      });
+      await tx.notification.create({
+        data: {
+          userId: issueData.assigneeId,
+          teamId,
+          issueId: created.id,
+          type: "ASSIGNED",
+          title: `Assigned: ${created.title}`,
+        },
+      });
+    }
 
     if (clientMutationId) {
       await tx.mutationReceipt.create({
@@ -197,6 +241,14 @@ export async function createIssue(
 
     return created;
   });
+
+  try {
+    const { dispatchWebhooks } = await import("@/lib/services/webhooks");
+
+    await dispatchWebhooks(teamId, "issue.created", issue);
+  } catch {
+    // non-blocking
+  }
 
   return issue;
 }
@@ -229,6 +281,20 @@ export async function updateIssue(
 
   void ignoredRevision;
   void ignoredMutationId;
+
+  if (data.assigneeId && data.assigneeId !== existing.assigneeId) {
+    const { ensureSubscribed, notifyIssueSubscribers } =
+      await import("@/lib/services/notifications");
+
+    await ensureSubscribed(issueId, data.assigneeId);
+    await notifyIssueSubscribers({
+      teamId,
+      issueId,
+      actorId: userId,
+      type: "ASSIGNED",
+      title: `Assigned: ${existing.title}`,
+    });
+  }
 
   if (expected != null && existing.revision !== expected) {
     const current = await getIssueById(teamId, issueId);

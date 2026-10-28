@@ -45,15 +45,37 @@ export const updateTeamSchema = z.object({
     .max(48)
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
     .optional(),
+  cycleDurationWeeks: z.number().int().min(1).max(8).optional(),
 });
+
+export const estimateSchema = z.enum([
+  "NONE",
+  "XS",
+  "S",
+  "M",
+  "L",
+  "XL",
+  "XXL",
+  "ONE",
+  "TWO",
+  "THREE",
+  "FIVE",
+  "EIGHT",
+  "THIRTEEN",
+]);
 
 export const createIssueSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().max(20000).optional().default(""),
   status: issueStatusSchema.optional(),
   priority: prioritySchema.optional(),
+  estimate: estimateSchema.optional(),
+  dueDate: z.coerce.date().nullable().optional(),
   assigneeId: z.string().cuid().nullable().optional(),
   cycleId: z.string().cuid().nullable().optional(),
+  projectId: z.string().cuid().nullable().optional(),
+  milestoneId: z.string().cuid().nullable().optional(),
+  labelIds: z.array(z.string().cuid()).optional(),
   clientMutationId: z.string().min(1).max(80).optional(),
 });
 
@@ -62,9 +84,14 @@ export const updateIssueSchema = z.object({
   description: z.string().max(20000).optional(),
   status: issueStatusSchema.optional(),
   priority: prioritySchema.optional(),
+  estimate: estimateSchema.optional(),
+  dueDate: z.coerce.date().nullable().optional(),
   assigneeId: z.string().cuid().nullable().optional(),
   cycleId: z.string().cuid().nullable().optional(),
+  projectId: z.string().cuid().nullable().optional(),
+  milestoneId: z.string().cuid().nullable().optional(),
   order: z.number().optional(),
+  triageAt: z.coerce.date().nullable().optional(),
   revision: z.number().int().optional(),
   clientMutationId: z.string().min(1).max(80).optional(),
 });
@@ -119,7 +146,15 @@ export const listIssuesQuerySchema = z.object({
   priority: prioritySchema.optional(),
   cycleId: z.string().cuid().optional(),
   assigneeId: z.string().cuid().optional(),
+  projectId: z.string().cuid().optional(),
+  number: z.coerce.number().int().positive().optional(),
+  triage: z.coerce.boolean().optional(),
   search: z.string().max(200).optional(),
   cursor: z.string().cuid().optional(),
   take: z.coerce.number().int().min(1).max(200).optional().default(50),
+});
+
+export const createCycleSchemaExtended = z.object({
+  durationWeeks: z.number().int().min(1).max(8).optional(),
+  carryOver: z.boolean().optional(),
 });

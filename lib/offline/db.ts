@@ -10,9 +10,13 @@ export type LocalIssue = {
   description: string;
   status: string;
   priority: string;
+  estimate: string;
+  dueDate: string | null;
   order: number;
   assigneeId: string | null;
   cycleId: string | null;
+  projectId: string | null;
+  labelIds?: string[];
   creatorId: string;
   revision: number;
   updatedAt: string;
@@ -28,7 +32,13 @@ export type LocalIssue = {
   conflictLocal?: Partial<LocalIssue> | null;
 };
 
-export type OutboxOpType = "create" | "update" | "reorder" | "delete";
+export type OutboxOpType =
+  | "create"
+  | "update"
+  | "reorder"
+  | "delete"
+  | "comment"
+  | "setLabels";
 
 export type OutboxStatus = "queued" | "inflight" | "failed";
 

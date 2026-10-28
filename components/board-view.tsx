@@ -27,6 +27,7 @@ import {
 import NextLink from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
+import { IssuePeek } from "@/components/app/issue-peek";
 import { ConflictModal } from "@/components/pwa/conflict-modal";
 import { PriorityChip } from "@/components/status-chip";
 import { BOARD_COLUMNS, STATUS_LABELS } from "@/lib/labels";
@@ -136,11 +137,13 @@ function SortableCard({
 
 function Column({
   status,
+  label,
   issues,
   teamSlug,
   onConflict,
 }: {
   status: IssueStatus;
+  label: string;
   issues: BoardIssue[];
   teamSlug: string;
   onConflict: (id: string) => void;
@@ -155,7 +158,7 @@ function Column({
       }`}
     >
       <div className="flex items-center justify-between border-b border-separator px-3 py-2">
-        <h3 className="text-sm font-semibold">{STATUS_LABELS[status]}</h3>
+        <h3 className="text-sm font-semibold">{label}</h3>
         <span className="text-xs text-muted">{issues.length}</span>
       </div>
       <SortableContext
@@ -182,18 +185,25 @@ export function BoardView({
   teamSlug,
   teamName,
   initialIssues,
+  columns = BOARD_COLUMNS,
+  columnLabels,
 }: {
   teamId: string;
   teamSlug: string;
   teamName: string;
   initialIssues: BoardIssue[];
+  columns?: IssueStatus[];
+  columnLabels?: Partial<Record<IssueStatus, string>>;
 }) {
   const [issues, setIssues] = useState(initialIssues);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [conflictIssue, setConflictIssue] = useState<LocalIssue | null>(null);
+  const [focusIndex, setFocusIndex] = useState(0);
+  const [peekOpen, setPeekOpen] = useState(false);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
   );
+  const columnIds = columns.length ? columns : BOARD_COLUMNS;
 
   useEffect(() => {
     if (!isOfflineEnabled()) return;
@@ -250,20 +260,57 @@ export function BoardView({
 
   const byStatus = useMemo(() => {
     const map = Object.fromEntries(
-      BOARD_COLUMNS.map((s) => [s, [] as BoardIssue[]]),
+      columnIds.map((s) => [s, [] as BoardIssue[]]),
     ) as Record<IssueStatus, BoardIssue[]>;
 
     for (const issue of issues) {
       if (map[issue.status]) map[issue.status].push(issue);
     }
-    for (const status of BOARD_COLUMNS) {
+    for (const status of columnIds) {
       map[status].sort((a, b) => a.order - b.order);
     }
 
     return map;
-  }, [issues]);
+  }, [issues, columnIds]);
+
+  const flatIssues = useMemo(
+    () => columnIds.flatMap((s) => byStatus[s] ?? []),
+    [columnIds, byStatus],
+  );
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (
+        e.target instanceof HTMLElement &&
+        (e.target.tagName === "INPUT" ||
+          e.target.tagName === "TEXTAREA" ||
+          e.target.isContentEditable)
+      ) {
+        return;
+      }
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (!flatIssues.length) return;
+      if (e.key === "j" || e.key === "J") {
+        e.preventDefault();
+        setFocusIndex((i) => Math.min(flatIssues.length - 1, i + 1));
+      } else if (e.key === "k" || e.key === "K") {
+        e.preventDefault();
+        setFocusIndex((i) => Math.max(0, i - 1));
+      } else if (e.key === " " || e.code === "Space") {
+        e.preventDefault();
+        setPeekOpen((o) => !o);
+      } else if (e.key === "Escape") {
+        setPeekOpen(false);
+      }
+    }
+
+    window.addEventListener("keydown", onKey);
+
+    return () => window.removeEventListener("keydown", onKey);
+  }, [flatIssues]);
 
   const activeIssue = issues.find((i) => i.id === activeId) ?? null;
+  const peekIssue = flatIssues[Math.min(focusIndex, flatIssues.length - 1)];
 
   async function openConflict(id: string) {
     const local = await getLocalIssue(teamId, id);
@@ -289,7 +336,7 @@ export function BoardView({
     let nextStatus = issue.status;
     const overId = String(over.id);
 
-    if (BOARD_COLUMNS.includes(overId as IssueStatus)) {
+    if (columnIds.includes(overId as IssueStatus)) {
       nextStatus = overId as IssueStatus;
     } else {
       const overIssue = issues.find((i) => i.id === overId);
@@ -303,7 +350,7 @@ export function BoardView({
 
     let insertAt = columnIssues.length;
 
-    if (!BOARD_COLUMNS.includes(overId as IssueStatus)) {
+    if (!columnIds.includes(overId as IssueStatus)) {
       const idx = columnIssues.findIndex((i) => i.id === overId);
 
       if (idx >= 0) insertAt = idx;
@@ -352,10 +399,11 @@ export function BoardView({
         onDragStart={onDragStart}
       >
         <div className="flex gap-4 overflow-x-auto pb-4">
-          {BOARD_COLUMNS.map((status) => (
+          {columnIds.map((status) => (
             <Column
               key={status}
-              issues={byStatus[status]}
+              issues={byStatus[status] ?? []}
+              label={columnLabels?.[status] ?? STATUS_LABELS[status]}
               status={status}
               teamSlug={teamSlug}
               onConflict={(id) => void openConflict(id)}
@@ -370,6 +418,13 @@ export function BoardView({
           ) : null}
         </DragOverlay>
       </DndContext>
+      {peekOpen && peekIssue ? (
+        <IssuePeek
+          issue={peekIssue}
+          teamSlug={teamSlug}
+          onClose={() => setPeekOpen(false)}
+        />
+      ) : null}
       {conflictIssue ? (
         <ConflictModal
           issue={conflictIssue}

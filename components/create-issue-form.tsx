@@ -10,28 +10,44 @@ import {
   TextField,
 } from "@heroui/react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { createIssueAction } from "@/lib/actions/issues";
+import { ESTIMATE_LABELS, PRIORITY_LABELS, STATUS_LABELS } from "@/lib/labels";
 import { isOfflineEnabled } from "@/lib/offline/feature";
 import { createIssueLocal } from "@/lib/offline/issue-repository";
-import { PRIORITY_LABELS, STATUS_LABELS } from "@/lib/labels";
+
+type Opt = { id: string; name: string };
+type Member = { id: string; name: string | null; email: string };
+type LabelOpt = { id: string; name: string; color: string };
 
 export function CreateIssueForm({
   teamId,
   teamSlug,
   members,
   cycles,
+  projects = [],
+  labels = [],
 }: {
   teamId: string;
   teamSlug: string;
-  members: Array<{ id: string; name: string | null; email: string }>;
-  cycles: Array<{ id: string; name: string }>;
+  members: Member[];
+  cycles: Opt[];
+  projects?: Opt[];
+  labels?: LabelOpt[];
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+
+  useEffect(() => {
+    const openHandler = () => setOpen(true);
+
+    window.addEventListener("verk:create-issue", openHandler);
+
+    return () => window.removeEventListener("verk:create-issue", openHandler);
+  }, []);
 
   if (!open) {
     return <Button onPress={() => setOpen(true)}>New issue</Button>;
@@ -39,7 +55,7 @@ export function CreateIssueForm({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-lg rounded-xl border border-separator bg-background p-6 shadow-xl">
+      <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-xl border border-separator bg-background p-6 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Create issue</h2>
           <Button size="sm" variant="ghost" onPress={() => setOpen(false)}>
@@ -52,29 +68,52 @@ export function CreateIssueForm({
             e.preventDefault();
             setPending(true);
             setError(null);
-            const formData = new FormData(e.currentTarget);
+            const form = e.currentTarget;
+            const formData = new FormData(form);
+            const named = (name: string) => {
+              const fromData = formData.get(name);
+              if (fromData != null && String(fromData).length > 0) {
+                return String(fromData);
+              }
+              const el = form.elements.namedItem(name);
 
-            if (isOfflineEnabled()) {
+              if (el && el instanceof HTMLSelectElement) return el.value;
+              if (el && el instanceof HTMLInputElement) return el.value;
+
+              return "";
+            };
+
+            const goOffline =
+              isOfflineEnabled() &&
+              typeof navigator !== "undefined" &&
+              !navigator.onLine;
+
+            if (goOffline) {
+              const dueRaw = named("dueDate");
               const local = await createIssueLocal(teamId, {
-                title: String(formData.get("title") ?? ""),
-                description: String(formData.get("description") ?? ""),
-                status: String(formData.get("status") ?? "BACKLOG"),
-                priority: String(formData.get("priority") ?? "NONE"),
-                assigneeId: formData.get("assigneeId")
-                  ? String(formData.get("assigneeId"))
-                  : null,
-                cycleId: formData.get("cycleId")
-                  ? String(formData.get("cycleId"))
-                  : null,
+                title: named("title") || String(formData.get("title") ?? ""),
+                description: named("description"),
+                status: named("status") || "BACKLOG",
+                priority: named("priority") || "NONE",
+                estimate: named("estimate") || "NONE",
+                dueDate: dueRaw || null,
+                assigneeId: named("assigneeId") || null,
+                cycleId: named("cycleId") || null,
+                projectId: named("projectId") || null,
+                labelIds: formData
+                  .getAll("labelIds")
+                  .map(String)
+                  .filter(Boolean),
               });
 
               setOpen(false);
               setPending(false);
-              if (local.number != null) {
-                router.push(`/t/${teamSlug}/issues/${local.number}`);
-              } else {
-                router.push(`/t/${teamSlug}/issues/tmp/${local.id}`);
-              }
+              const href =
+                local.number != null
+                  ? `/t/${teamSlug}/issues/${local.number}`
+                  : `/t/${teamSlug}/issues/tmp/${local.id}`;
+
+              router.push(href);
               router.refresh();
 
               return;
@@ -95,66 +134,125 @@ export function CreateIssueForm({
           </TextField>
           <TextField name="description">
             <Label>Description</Label>
-            <TextArea placeholder="Optional details…" rows={4} />
+            <TextArea placeholder="Optional details…" rows={3} />
           </TextField>
-          <label className="flex flex-col gap-1 text-sm">
-            <span>Status</span>
-            <select
-              className="rounded-lg border border-separator bg-background px-3 py-2"
-              defaultValue="BACKLOG"
-              name="status"
-            >
-              {Object.entries(STATUS_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span>Priority</span>
-            <select
-              className="rounded-lg border border-separator bg-background px-3 py-2"
-              defaultValue="NONE"
-              name="priority"
-            >
-              {Object.entries(PRIORITY_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span>Assignee</span>
-            <select
-              className="rounded-lg border border-separator bg-background px-3 py-2"
-              defaultValue=""
-              name="assigneeId"
-            >
-              <option value="">Unassigned</option>
-              {members.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name ?? m.email}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span>Cycle</span>
-            <select
-              className="rounded-lg border border-separator bg-background px-3 py-2"
-              defaultValue=""
-              name="cycleId"
-            >
-              <option value="">No cycle</option>
-              {cycles.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="flex flex-col gap-1 text-sm">
+              <span>Status</span>
+              <select
+                className="rounded-lg border border-separator bg-background px-3 py-2"
+                defaultValue="BACKLOG"
+                name="status"
+              >
+                {Object.entries(STATUS_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              <span>Priority</span>
+              <select
+                className="rounded-lg border border-separator bg-background px-3 py-2"
+                defaultValue="NONE"
+                name="priority"
+              >
+                {Object.entries(PRIORITY_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              <span>Estimate</span>
+              <select
+                className="rounded-lg border border-separator bg-background px-3 py-2"
+                defaultValue="NONE"
+                name="estimate"
+              >
+                {Object.entries(ESTIMATE_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              <span>Due date</span>
+              <input
+                className="rounded-lg border border-separator bg-background px-3 py-2"
+                name="dueDate"
+                type="date"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              <span>Assignee</span>
+              <select
+                className="rounded-lg border border-separator bg-background px-3 py-2"
+                defaultValue=""
+                name="assigneeId"
+              >
+                <option value="">Unassigned</option>
+                {members.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name ?? m.email}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              <span>Cycle</span>
+              <select
+                className="rounded-lg border border-separator bg-background px-3 py-2"
+                defaultValue=""
+                name="cycleId"
+              >
+                <option value="">No cycle</option>
+                {cycles.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-sm sm:col-span-2">
+              <span>Project</span>
+              <select
+                className="rounded-lg border border-separator bg-background px-3 py-2"
+                defaultValue=""
+                name="projectId"
+              >
+                <option value="">No project</option>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          {labels.length ? (
+            <fieldset className="text-sm">
+              <legend className="mb-1">Labels</legend>
+              <div className="flex flex-wrap gap-2">
+                {labels.map((l) => (
+                  <label
+                    key={l.id}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-separator px-2 py-1"
+                  >
+                    <input name="labelIds" type="checkbox" value={l.id} />
+                    <span
+                      className="size-2 rounded-full"
+                      style={{ background: l.color }}
+                    />
+                    {l.name}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          ) : null}
           {error ? <p className="text-danger text-sm">{error}</p> : null}
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="tertiary" onPress={() => setOpen(false)}>

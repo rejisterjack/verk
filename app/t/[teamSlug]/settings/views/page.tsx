@@ -1,0 +1,135 @@
+import { notFound, redirect } from "next/navigation";
+
+import { PageHeader } from "@/components/page-header";
+import { SubmitButton as Button } from "@/components/submit-button";
+import { requireTeamBySlug } from "@/lib/rbac";
+import * as viewsService from "@/lib/services/views";
+
+export default async function ViewsSettingsPage({
+  params,
+}: {
+  params: Promise<{ teamSlug: string }>;
+}) {
+  const { teamSlug } = await params;
+  let teamCtx;
+
+  try {
+    teamCtx = await requireTeamBySlug(teamSlug);
+  } catch {
+    notFound();
+  }
+
+  const teamId = teamCtx.team.id;
+  const views = await viewsService.listViews(teamId);
+
+  async function create(formData: FormData) {
+    "use server";
+    const name = String(formData.get("name") ?? "");
+    const status = String(formData.get("status") ?? "");
+    const layout = String(formData.get("layout") ?? "LIST") as "LIST" | "BOARD";
+
+    await viewsService.createView(teamId, {
+      name,
+      layout,
+      filterJson: status ? { status } : {},
+      pinned: true,
+    });
+    redirect(`/t/${teamSlug}/settings/views`);
+  }
+
+  return (
+    <div className="max-w-lg">
+      <PageHeader
+        description="Saved filters pinned in the sidebar"
+        title="Views"
+      />
+      <form
+        action={create}
+        className="mb-6 space-y-2 rounded-xl border border-separator p-4"
+      >
+        <input
+          required
+          className="w-full rounded-lg border border-separator bg-background px-3 py-2 text-sm"
+          name="name"
+          placeholder="View name"
+        />
+        <select
+          className="w-full rounded-lg border border-separator bg-background px-3 py-2 text-sm"
+          name="status"
+        >
+          <option value="">Any status</option>
+          <option value="BACKLOG">Backlog</option>
+          <option value="TODO">Todo</option>
+          <option value="IN_PROGRESS">In Progress</option>
+          <option value="DONE">Done</option>
+        </select>
+        <select
+          className="w-full rounded-lg border border-separator bg-background px-3 py-2 text-sm"
+          name="layout"
+        >
+          <option value="LIST">List</option>
+          <option value="BOARD">Board</option>
+        </select>
+        <Button type="submit">Save view</Button>
+      </form>
+      <ul className="space-y-2 text-sm">
+        {views.map((v) => (
+          <li
+            key={v.id}
+            className="space-y-2 rounded-lg border border-separator px-3 py-3"
+          >
+            <form
+              action={async (formData) => {
+                "use server";
+                await viewsService.updateView(teamId, v.id, {
+                  name: String(formData.get("name") ?? v.name),
+                  layout: String(formData.get("layout") ?? v.layout),
+                  pinned: formData.get("pinned") === "on",
+                  filterJson: v.filterJson as Record<string, unknown>,
+                });
+                redirect(`/t/${teamSlug}/settings/views`);
+              }}
+              className="flex flex-wrap items-end gap-2"
+            >
+              <input
+                className="flex-1 rounded-lg border border-separator bg-background px-2 py-1.5"
+                defaultValue={v.name}
+                name="name"
+              />
+              <select
+                className="rounded-lg border border-separator bg-background px-2 py-1.5"
+                defaultValue={v.layout}
+                name="layout"
+              >
+                <option value="LIST">List</option>
+                <option value="BOARD">Board</option>
+              </select>
+              <label className="flex items-center gap-1 text-xs">
+                <input
+                  defaultChecked={v.pinned}
+                  name="pinned"
+                  type="checkbox"
+                />
+                Pinned
+              </label>
+              <Button size="sm" type="submit">
+                Update
+              </Button>
+            </form>
+            <form
+              action={async () => {
+                "use server";
+                await viewsService.deleteView(teamId, v.id);
+                redirect(`/t/${teamSlug}/settings/views`);
+              }}
+            >
+              <Button size="sm" type="submit" variant="danger">
+                Delete
+              </Button>
+            </form>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}

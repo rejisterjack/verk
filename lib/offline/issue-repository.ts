@@ -11,6 +11,13 @@ import {
   newClientMutationId,
   newTmpIssueId,
 } from "@/lib/offline/ids";
+import {
+  buildCreateOutboxPayload,
+  buildUpdateOutboxPayload,
+  normalizeDueDate,
+  type CreateIssueLocalInput,
+  type UpdateIssueLocalPatch,
+} from "@/lib/offline/outbox-payload";
 
 export type ServerIssue = {
   id: string;
@@ -20,9 +27,13 @@ export type ServerIssue = {
   description?: string;
   status: string;
   priority: string;
+  estimate?: string;
+  dueDate?: string | Date | null;
   order: number;
   assigneeId?: string | null;
   cycleId?: string | null;
+  projectId?: string | null;
+  labels?: Array<{ labelId?: string; label?: { id: string } }>;
   creatorId?: string;
   revision?: number;
   updatedAt?: string;
@@ -49,6 +60,17 @@ function toLocal(
   teamId: string,
   syncStatus: LocalIssue["syncStatus"] = "synced",
 ): LocalIssue {
+  const dueRaw =
+    issue.dueDate instanceof Date
+      ? issue.dueDate.toISOString()
+      : typeof issue.dueDate === "string"
+        ? issue.dueDate
+        : null;
+  const labelIds =
+    issue.labels
+      ?.map((l) => l.labelId ?? l.label?.id)
+      .filter((id): id is string => Boolean(id)) ?? undefined;
+
   return {
     id: issue.id,
     teamId,
@@ -57,9 +79,13 @@ function toLocal(
     description: issue.description ?? "",
     status: issue.status,
     priority: issue.priority,
+    estimate: issue.estimate ?? "NONE",
+    dueDate: normalizeDueDate(dueRaw),
     order: issue.order,
     assigneeId: issue.assigneeId ?? null,
     cycleId: issue.cycleId ?? null,
+    projectId: issue.projectId ?? null,
+    labelIds,
     creatorId: issue.creatorId ?? "",
     revision: issue.revision ?? 0,
     updatedAt: issue.updatedAt ?? new Date().toISOString(),
@@ -77,7 +103,7 @@ async function enqueue(op: Omit<OutboxOp, "id">) {
   const { flushOutbox, requestBackgroundSync } =
     await import("@/lib/offline/sync-engine");
 
-  await requestBackgroundSync();
+  void requestBackgroundSync();
   if (typeof navigator !== "undefined" && navigator.onLine) {
     void flushOutbox();
   }
@@ -176,11 +202,15 @@ export async function listLocalIssues(
   }
   if (filters?.search) {
     const q = filters.search.toLowerCase();
+    const asNumber = /^\d+$/.test(filters.search)
+      ? Number(filters.search)
+      : null;
 
     rows = rows.filter(
       (i) =>
         i.title.toLowerCase().includes(q) ||
-        i.description.toLowerCase().includes(q),
+        i.description.toLowerCase().includes(q) ||
+        (asNumber != null && i.number === asNumber),
     );
   }
 
@@ -268,31 +298,28 @@ export async function pullDelta(teamId: string, since?: string) {
 
 export async function createIssueLocal(
   teamId: string,
-  input: {
-    title: string;
-    description?: string;
-    status?: string;
-    priority?: string;
-    assigneeId?: string | null;
-    cycleId?: string | null;
-    creatorId?: string;
-  },
+  input: CreateIssueLocalInput,
 ): Promise<LocalIssue> {
   const db = getOfflineDb();
   const id = newTmpIssueId();
   const now = new Date().toISOString();
   const clientMutationId = newClientMutationId();
+  const payload = buildCreateOutboxPayload(input, clientMutationId);
   const local: LocalIssue = {
     id,
     teamId,
     number: null,
-    title: input.title,
-    description: input.description ?? "",
-    status: input.status ?? "BACKLOG",
-    priority: input.priority ?? "NONE",
+    title: String(payload.title),
+    description: String(payload.description ?? ""),
+    status: String(payload.status),
+    priority: String(payload.priority),
+    estimate: String(payload.estimate ?? "NONE"),
+    dueDate: (payload.dueDate as string | null) ?? null,
     order: Date.now(),
-    assigneeId: input.assigneeId ?? null,
-    cycleId: input.cycleId ?? null,
+    assigneeId: (payload.assigneeId as string | null) ?? null,
+    cycleId: (payload.cycleId as string | null) ?? null,
+    projectId: (payload.projectId as string | null) ?? null,
+    labelIds: (payload.labelIds as string[]) ?? [],
     creatorId: input.creatorId ?? "",
     revision: 0,
     updatedAt: now,
@@ -305,15 +332,7 @@ export async function createIssueLocal(
     teamId,
     op: "create",
     issueId: id,
-    payload: {
-      title: local.title,
-      description: local.description,
-      status: local.status,
-      priority: local.priority,
-      assigneeId: local.assigneeId,
-      cycleId: local.cycleId,
-      clientMutationId,
-    },
+    payload,
     createdAt: Date.now(),
     status: "queued",
     attempts: 0,
@@ -326,27 +345,21 @@ export async function createIssueLocal(
 export async function updateIssueLocal(
   teamId: string,
   issueId: string,
-  patch: Partial<
-    Pick<
-      LocalIssue,
-      | "title"
-      | "description"
-      | "status"
-      | "priority"
-      | "assigneeId"
-      | "cycleId"
-      | "order"
-    >
-  >,
+  patch: UpdateIssueLocalPatch,
 ): Promise<LocalIssue | undefined> {
   const db = getOfflineDb();
   const existing = await db.issues.get(issueId);
 
   if (!existing || existing.teamId !== teamId) return undefined;
 
+  const payload = buildUpdateOutboxPayload(patch);
   const next: LocalIssue = {
     ...existing,
     ...patch,
+    dueDate:
+      "dueDate" in patch
+        ? ((payload.dueDate as string | null) ?? null)
+        : existing.dueDate,
     updatedAt: new Date().toISOString(),
     syncStatus: "pending",
   };
@@ -356,7 +369,7 @@ export async function updateIssueLocal(
     teamId,
     op: "update",
     issueId,
-    payload: { ...patch },
+    payload,
     baseRevision: existing.revision,
     createdAt: Date.now(),
     status: "queued",
@@ -400,6 +413,40 @@ export async function reorderIssueLocal(
   });
 
   return next;
+}
+
+export async function queueCommentLocal(
+  teamId: string,
+  issueId: string,
+  body: string,
+): Promise<void> {
+  await enqueue({
+    teamId,
+    op: "comment",
+    issueId,
+    payload: { body },
+    createdAt: Date.now(),
+    status: "queued",
+    attempts: 0,
+    clientMutationId: newClientMutationId(),
+  });
+}
+
+export async function setLabelsLocal(
+  teamId: string,
+  issueId: string,
+  labelIds: string[],
+): Promise<void> {
+  await enqueue({
+    teamId,
+    op: "setLabels",
+    issueId,
+    payload: { labelIds },
+    createdAt: Date.now(),
+    status: "queued",
+    attempts: 0,
+    clientMutationId: newClientMutationId(),
+  });
 }
 
 export async function deleteIssueLocal(

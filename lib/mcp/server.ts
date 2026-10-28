@@ -1,9 +1,12 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
+import * as commentsService from "@/lib/services/comments";
 import * as cyclesService from "@/lib/services/cycles";
 import * as issuesService from "@/lib/services/issues";
+import * as labelsService from "@/lib/services/labels";
 import * as membersService from "@/lib/services/members";
+import * as projectsService from "@/lib/services/projects";
 
 export function createVerkMcpServer(ctx: { teamId: string; userId: string }) {
   const server = new McpServer({
@@ -161,6 +164,111 @@ export function createVerkMcpServer(ctx: { teamId: string; userId: string }) {
 
       return {
         content: [{ type: "text", text: JSON.stringify({ members }, null, 2) }],
+      };
+    },
+  );
+
+  server.registerTool(
+    "list_projects",
+    {
+      title: "List projects",
+      description: "List projects for the team",
+      inputSchema: {},
+    },
+    async () => {
+      const projects = await projectsService.listProjects(ctx.teamId);
+
+      return {
+        content: [
+          { type: "text", text: JSON.stringify({ projects }, null, 2) },
+        ],
+      };
+    },
+  );
+
+  server.registerTool(
+    "create_project",
+    {
+      title: "Create project",
+      description: "Create a project",
+      inputSchema: {
+        name: z.string(),
+        summary: z.string().optional(),
+      },
+    },
+    async (args) => {
+      const project = await projectsService.createProject(ctx.teamId, args);
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(project, null, 2) }],
+      };
+    },
+  );
+
+  server.registerTool(
+    "update_project",
+    {
+      title: "Update project",
+      description: "Update a project by id",
+      inputSchema: {
+        id: z.string(),
+        name: z.string().optional(),
+        summary: z.string().optional(),
+        status: z
+          .enum(["BACKLOG", "PLANNED", "IN_PROGRESS", "COMPLETED", "CANCELLED"])
+          .optional(),
+      },
+    },
+    async (args) => {
+      const { id, ...patch } = args;
+      const project = await projectsService.updateProject(
+        ctx.teamId,
+        id,
+        patch,
+      );
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(project, null, 2) }],
+      };
+    },
+  );
+
+  server.registerTool(
+    "list_labels",
+    {
+      title: "List labels",
+      description: "List issue labels",
+      inputSchema: {},
+    },
+    async () => {
+      const labels = await labelsService.listLabels(ctx.teamId);
+
+      return {
+        content: [{ type: "text", text: JSON.stringify({ labels }, null, 2) }],
+      };
+    },
+  );
+
+  server.registerTool(
+    "add_comment",
+    {
+      title: "Add comment",
+      description: "Add a comment to an issue",
+      inputSchema: {
+        issueId: z.string(),
+        body: z.string(),
+      },
+    },
+    async (args) => {
+      const comment = await commentsService.addComment(
+        ctx.teamId,
+        args.issueId,
+        ctx.userId,
+        { body: args.body },
+      );
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(comment, null, 2) }],
       };
     },
   );

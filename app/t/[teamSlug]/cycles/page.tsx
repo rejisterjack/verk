@@ -27,7 +27,27 @@ export default async function CyclesPage({
   return (
     <div className="space-y-8">
       <PageHeader
-        description="Sprint planning with start and end dates"
+        actions={
+          <form
+            action={async () => {
+              "use server";
+              const ctx = await requireTeamBySlug(teamSlug);
+
+              await cyclesService.advanceCycle(
+                ctx.team.id,
+                ctx.membership.role,
+                {
+                  carryOver: true,
+                },
+              );
+            }}
+          >
+            <Button size="sm" type="submit" variant="secondary">
+              Start next cycle
+            </Button>
+          </form>
+        }
+        description="Time-boxed planning periods — advance creates the next cycle and carries unfinished work"
         title="Cycles"
       />
 

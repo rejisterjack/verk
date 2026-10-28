@@ -27,7 +27,7 @@ export default async function SettingsPage({
     <div className="max-w-2xl space-y-8">
       <PageHeader title="Team settings" />
 
-      <nav className="flex gap-3 text-sm">
+      <nav className="flex flex-wrap gap-3 text-sm">
         <NextLink className="text-accent" href={`/t/${teamSlug}/settings`}>
           General
         </NextLink>
@@ -39,10 +39,42 @@ export default async function SettingsPage({
         </NextLink>
         <NextLink
           className="text-muted hover:text-foreground"
+          href={`/t/${teamSlug}/settings/labels`}
+        >
+          Labels
+        </NextLink>
+        <NextLink
+          className="text-muted hover:text-foreground"
+          href={`/t/${teamSlug}/settings/views`}
+        >
+          Views
+        </NextLink>
+        <NextLink
+          className="text-muted hover:text-foreground"
+          href={`/t/${teamSlug}/settings/workflow`}
+        >
+          Workflow
+        </NextLink>
+        <NextLink
+          className="text-muted hover:text-foreground"
+          href={`/t/${teamSlug}/settings/import`}
+        >
+          Import
+        </NextLink>
+        <NextLink
+          className="text-muted hover:text-foreground"
           href={`/t/${teamSlug}/settings/api-keys`}
         >
           API keys
         </NextLink>
+        {canAdmin ? (
+          <NextLink
+            className="text-muted hover:text-foreground"
+            href={`/t/${teamSlug}/settings/webhooks`}
+          >
+            Webhooks
+          </NextLink>
+        ) : null}
       </nav>
 
       {canAdmin ? (
@@ -68,6 +100,17 @@ export default async function SettingsPage({
               className="rounded-lg border border-separator bg-background px-3 py-2"
               defaultValue={team.slug}
               name="slug"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="text-muted">Cycle duration (weeks)</span>
+            <input
+              className="rounded-lg border border-separator bg-background px-3 py-2"
+              defaultValue={team.cycleDurationWeeks}
+              max={8}
+              min={1}
+              name="cycleDurationWeeks"
+              type="number"
             />
           </label>
           <Button type="submit">Save</Button>

@@ -110,6 +110,36 @@ npm run dev`}</pre>
         </p>
       </section>
 
+      <section className="space-y-4" id="migrate-from-linear">
+        <h2 className="font-display text-2xl font-semibold tracking-tight">
+          Moving from Linear
+        </h2>
+        <p className="text-muted leading-relaxed">
+          Verk uses Linear vocabulary (Issues, Cycles, Projects, Triage, Inbox)
+          and keyboard habits (⌘K, C to create, G then I for Inbox).
+        </p>
+        <ol className="list-decimal space-y-2 pl-5 text-muted leading-relaxed">
+          <li>
+            Open <strong className="text-foreground">Settings → Import</strong>{" "}
+            on your team.
+          </li>
+          <li>
+            Export a CSV from Linear (Issues → Export) and upload it, or paste a
+            Linear personal API key for a one-shot GraphQL pull.
+          </li>
+          <li>
+            Continue planning in Triage → Cycles → Board. Use Projects to group
+            outcomes; pin Saved Views in the sidebar.
+          </li>
+        </ol>
+        <p className="text-sm text-muted">
+          CSV import surfaces created/total/errors. Linear API import pulls the
+          first 100 issues only (pagination is post-launch). Verk is
+          Linear-familiar, not Linear-complete — Initiatives, git automations,
+          and SLAs are out of scope for now.
+        </p>
+      </section>
+
       <section className="space-y-4" id="offline">
         <h2 className="font-display text-2xl font-semibold tracking-tight">
           Install &amp; offline
@@ -122,12 +152,14 @@ npm run dev`}</pre>
         <ul className="list-disc space-y-2 pl-5 text-muted leading-relaxed">
           <li>
             <strong className="text-foreground">Works offline:</strong> board
-            &amp; list reads, create / update / reorder / delete issues (queued
-            locally, synced when you reconnect).
+            &amp; list reads; create / update / reorder / delete issues
+            (including estimate, due date, project, and labels); queue comments
+            and label assignments (synced when you reconnect).
           </li>
           <li>
             <strong className="text-foreground">Online only:</strong> auth,
-            onboarding, team settings, members, API keys, cycles mutations, MCP.
+            onboarding, team settings, members, API keys, cycles mutations,
+            attachments (Blob), webhooks, import, MCP.
           </li>
           <li>
             Conflicts use server{" "}
@@ -161,6 +193,21 @@ npm run dev`}</pre>
           <li>
             Vercel Hobby does not allow commercial use; upgrade if you charge
             customers.
+          </li>
+          <li>
+            Five fixed status keys map 1:1 to{" "}
+            <code className="font-mono text-foreground text-sm">
+              Issue.status
+            </code>
+            ; rename/reorder in Settings → Workflow. New status types are
+            post-launch.
+          </li>
+          <li>
+            Issue attachments require{" "}
+            <code className="font-mono text-foreground text-sm">
+              BLOB_READ_WRITE_TOKEN
+            </code>
+            .
           </li>
         </ul>
       </section>

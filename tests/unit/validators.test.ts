@@ -4,6 +4,7 @@ import {
   createCycleSchema,
   createIssueSchema,
   inviteSchema,
+  listIssuesQuerySchema,
 } from "@/lib/validators";
 
 describe("validators", () => {
@@ -25,5 +26,11 @@ describe("validators", () => {
   it("defaults invite role to MEMBER", () => {
     const parsed = inviteSchema.parse({ email: "a@b.com" });
     expect(parsed.role).toBe("MEMBER");
+  });
+
+  it("accepts issue number filter on list query", () => {
+    const parsed = listIssuesQuerySchema.parse({ number: "12", take: "5" });
+    expect(parsed.number).toBe(12);
+    expect(parsed.take).toBe(5);
   });
 });

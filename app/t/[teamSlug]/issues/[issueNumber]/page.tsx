@@ -4,7 +4,9 @@ import { IssueEditor } from "@/components/issue-editor";
 import { requireTeamBySlug } from "@/lib/rbac";
 import * as issuesService from "@/lib/services/issues";
 import * as cyclesService from "@/lib/services/cycles";
+import * as labelsService from "@/lib/services/labels";
 import * as membersService from "@/lib/services/members";
+import * as projectsService from "@/lib/services/projects";
 
 export default async function IssueDetailPage({
   params,
@@ -28,9 +30,11 @@ export default async function IssueDetailPage({
 
   if (!issue) notFound();
 
-  const [cycles, members] = await Promise.all([
+  const [cycles, members, projects, labels] = await Promise.all([
     cyclesService.listCycles(team.id),
     membersService.listMembers(team.id),
+    projectsService.listProjects(team.id),
+    labelsService.listLabels(team.id),
   ]);
 
   const canDelete =
@@ -49,12 +53,22 @@ export default async function IssueDetailPage({
         description: issue.description,
         status: issue.status,
         priority: issue.priority,
+        estimate: issue.estimate,
+        dueDate: issue.dueDate?.toISOString() ?? null,
         assigneeId: issue.assigneeId,
         cycleId: issue.cycleId,
+        projectId: issue.projectId,
         revision: issue.revision,
       }}
+      initialLabelIds={issue.labels.map((l) => l.labelId)}
       issueNumber={issue.number}
+      labels={labels.map((l) => ({
+        id: l.id,
+        name: l.name,
+        color: l.color,
+      }))}
       members={members.map((m) => m.user)}
+      projects={projects.map((p) => ({ id: p.id, name: p.name }))}
       teamId={team.id}
       teamSlug={teamSlug}
     />

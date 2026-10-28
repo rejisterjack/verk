@@ -5,6 +5,20 @@ import { redirect } from "next/navigation";
 
 import { requireTeamBySlug } from "@/lib/rbac";
 import * as issuesService from "@/lib/services/issues";
+import * as labelsService from "@/lib/services/labels";
+
+function formNullId(formData: FormData, key: string) {
+  const v = String(formData.get(key) || "");
+
+  return v || null;
+}
+
+function formLabelIds(formData: FormData): string[] {
+  return formData
+    .getAll("labelIds")
+    .map(String)
+    .filter((id) => id.length > 0);
+}
 
 export async function createIssueAction(teamSlug: string, formData: FormData) {
   const { team, user } = await requireTeamBySlug(teamSlug);
@@ -12,8 +26,12 @@ export async function createIssueAction(teamSlug: string, formData: FormData) {
   const description = String(formData.get("description") ?? "");
   const status = String(formData.get("status") || "BACKLOG");
   const priority = String(formData.get("priority") || "NONE");
-  const assigneeId = String(formData.get("assigneeId") || "") || null;
-  const cycleId = String(formData.get("cycleId") || "") || null;
+  const estimate = String(formData.get("estimate") || "NONE");
+  const dueRaw = String(formData.get("dueDate") || "");
+  const assigneeId = formNullId(formData, "assigneeId");
+  const cycleId = formNullId(formData, "cycleId");
+  const projectId = formNullId(formData, "projectId");
+  const labelIds = formLabelIds(formData);
 
   try {
     const issue = await issuesService.createIssue(team.id, user.id, {
@@ -21,8 +39,12 @@ export async function createIssueAction(teamSlug: string, formData: FormData) {
       description,
       status,
       priority,
+      estimate,
+      dueDate: dueRaw ? new Date(dueRaw) : null,
       assigneeId,
       cycleId,
+      projectId,
+      labelIds,
     });
 
     revalidatePath(`/t/${teamSlug}/issues`);
@@ -49,18 +71,22 @@ export async function updateIssueAction(
 
   const payload: Record<string, unknown> = {};
 
-  for (const key of ["title", "description", "status", "priority"] as const) {
+  for (const key of [
+    "title",
+    "description",
+    "status",
+    "priority",
+    "estimate",
+  ] as const) {
     if (formData.has(key)) payload[key] = String(formData.get(key));
   }
-  if (formData.has("assigneeId")) {
-    const v = String(formData.get("assigneeId") || "");
-
-    payload.assigneeId = v || null;
+  for (const key of ["assigneeId", "cycleId", "projectId"] as const) {
+    if (formData.has(key)) payload[key] = formNullId(formData, key);
   }
-  if (formData.has("cycleId")) {
-    const v = String(formData.get("cycleId") || "");
+  if (formData.has("dueDate")) {
+    const dueRaw = String(formData.get("dueDate") || "");
 
-    payload.cycleId = v || null;
+    payload.dueDate = dueRaw ? new Date(dueRaw) : null;
   }
 
   try {
@@ -71,6 +97,15 @@ export async function updateIssueAction(
       membership.role,
       user.id,
     );
+
+    if (formData.get("labelsTouched") === "1") {
+      await labelsService.setIssueLabels(
+        team.id,
+        existing.id,
+        formLabelIds(formData),
+      );
+    }
+
     revalidatePath(`/t/${teamSlug}/issues`);
     revalidatePath(`/t/${teamSlug}/board`);
     revalidatePath(`/t/${teamSlug}/issues/${issueNumber}`);

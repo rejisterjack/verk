@@ -70,7 +70,16 @@ export async function requestBackgroundSync() {
     return;
   }
   try {
-    const reg = await navigator.serviceWorker.ready;
+    // serviceWorker.ready can hang indefinitely when no SW is controlling the page
+    const reg = await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise<null>((resolve) => {
+        window.setTimeout(() => resolve(null), 1500);
+      }),
+    ]);
+
+    if (!reg) return;
+
     const syncManager = (
       reg as ServiceWorkerRegistration & {
         sync?: { register: (tag: string) => Promise<void> };
@@ -263,21 +272,12 @@ async function flushOne(op: OutboxOp): Promise<FlushResult> {
       await applyServerAck(op.issueId, issue, op.teamId);
     } else if (op.op === "delete") {
       await db.issues.delete(op.issueId);
+    } else if (op.op === "comment" || op.op === "setLabels") {
+      // Side-effect ops — no local issue merge required
     } else if (res.status !== 204) {
       const issue = (await res.json()) as ServerIssue;
-      const local = await db.issues.get(op.issueId);
 
-      if (local) {
-        await db.issues.put({
-          ...local,
-          ...issue,
-          number: issue.number,
-          revision: issue.revision ?? local.revision + 1,
-          updatedAt: issue.updatedAt ?? new Date().toISOString(),
-          syncStatus: "synced",
-          teamId: op.teamId,
-        });
-      }
+      await applyServerAck(op.issueId, issue, op.teamId);
     }
 
     await db.outbox.delete(op.id);
@@ -327,6 +327,24 @@ async function executeOp(op: OutboxOp): Promise<Response> {
         revision: op.baseRevision,
         clientMutationId: op.clientMutationId,
       }),
+    });
+  }
+
+  if (op.op === "comment") {
+    return fetch(`${base}/${op.issueId}/comments`, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ body: op.payload.body }),
+    });
+  }
+
+  if (op.op === "setLabels") {
+    return fetch(`${base}/${op.issueId}/labels`, {
+      method: "PUT",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ labelIds: op.payload.labelIds ?? [] }),
     });
   }
 
