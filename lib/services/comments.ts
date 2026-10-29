@@ -22,6 +22,7 @@ export async function listComments(teamId: string, issueId: string) {
     where: { issueId },
     include: {
       author: { select: { id: true, name: true, email: true, image: true } },
+      reactions: { select: { userId: true, emoji: true } },
     },
     orderBy: { createdAt: "asc" },
   });
@@ -67,6 +68,10 @@ export async function addComment(
   const { dispatchWebhooks } = await import("@/lib/services/webhooks");
 
   await dispatchWebhooks(teamId, "comment.created", comment);
+  const { notifySlack } = await import("@/lib/services/surface");
+  const team = await prisma.team.findUnique({ where: { id: teamId } });
+
+  await notifySlack(team?.slackWebhookUrl, `Comment on ${issue.title}`);
 
   return comment;
 }

@@ -5,7 +5,7 @@ import {
   Role,
 } from "@/lib/generated/prisma/client";
 import { prisma } from "@/lib/db";
-import { nextTriageAt } from "@/lib/triage";
+import { nextTriageAt, snoozeTriage } from "@/lib/triage";
 import { WORKFLOW_TYPE_TO_STATUS } from "@/lib/labels";
 import { AuthError, ConflictError } from "@/lib/errors";
 import { assertRole } from "@/lib/rbac";
@@ -56,9 +56,23 @@ export async function listIssues(teamId: string, query: unknown) {
   if (q.workflowStatusId) where.workflowStatusId = q.workflowStatusId;
   if (q.number) where.number = q.number;
   if (q.triage) {
-    where.OR = [
-      { triageAt: { not: null } },
-      { status: "BACKLOG", assigneeId: null },
+    const now = new Date();
+
+    where.AND = [
+      ...(Array.isArray(where.AND) ? where.AND : []),
+      {
+        OR: [
+          {
+            status: "BACKLOG",
+            assigneeId: null,
+            OR: [{ triageAt: null }, { triageAt: { lte: now } }],
+          },
+          {
+            triageAt: { lte: now },
+            status: { notIn: ["DONE", "CANCELLED"] },
+          },
+        ],
+      },
     ];
   }
   if (q.search) {
@@ -275,11 +289,24 @@ export async function createIssue(
       });
     }
     await notifySlack(team?.slackWebhookUrl, `Created: ${issue.title}`);
+    const { recordActivity } = await import("@/lib/services/surface");
+
+    await recordActivity(issue.id, userId, "created", "", issue.title);
   } catch {
     // non-blocking
   }
 
   return issue;
+}
+
+export async function snoozeIssueTriage(
+  teamId: string,
+  issueId: string,
+  until: Date,
+) {
+  await snoozeTriage(teamId, issueId, until);
+
+  return getIssueById(teamId, issueId);
 }
 
 export async function updateIssue(
@@ -385,23 +412,53 @@ export async function updateIssue(
 
   if (saved) {
     const { recordActivity, notifySlack } = await import("@/lib/services/surface");
-    const fields = ["title", "status", "priority", "assigneeId", "cycleId", "projectId"] as const;
+    const fields = [
+      "title",
+      "description",
+      "status",
+      "priority",
+      "estimate",
+      "dueDate",
+      "assigneeId",
+      "cycleId",
+      "projectId",
+    ] as const;
+
+    const asText = (value: unknown) => {
+      if (value == null || value === "") return "";
+      if (value instanceof Date) return value.toISOString();
+
+      return String(value);
+    };
 
     for (const field of fields) {
-      if (data[field] !== undefined && String(data[field] ?? "") !== String(existing[field] ?? "")) {
+      if (data[field] !== undefined && asText(data[field]) !== asText(existing[field])) {
         await recordActivity(
           issueId,
           userId,
           field,
-          String(existing[field] ?? ""),
-          String(data[field] ?? ""),
+          asText(existing[field]),
+          asText(data[field]),
         );
       }
     }
-    if (data.assigneeId && data.assigneeId !== existing.assigneeId) {
-      const team = await prisma.team.findUnique({ where: { id: teamId } });
+    const team = await prisma.team.findUnique({ where: { id: teamId } });
 
+    if (data.assigneeId && data.assigneeId !== existing.assigneeId) {
       await notifySlack(team?.slackWebhookUrl, `Assigned: ${saved.title}`);
+    }
+    if (data.status && data.status !== existing.status) {
+      await notifySlack(
+        team?.slackWebhookUrl,
+        `Status ${existing.status} → ${data.status}: ${saved.title}`,
+      );
+      try {
+        const { commentOnLinkedPullRequest } = await import("@/lib/github");
+
+        await commentOnLinkedPullRequest(issueId, String(data.status));
+      } catch (error) {
+        console.error("GitHub status comment failed", error);
+      }
     }
     const { dispatchWebhooks } = await import("@/lib/services/webhooks");
 

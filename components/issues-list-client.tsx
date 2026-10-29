@@ -17,7 +17,7 @@ import {
   upsertTeam,
   type ServerIssue,
 } from "@/lib/offline/issue-repository";
-import { slaBreached } from "@/lib/sla";
+import { slaBreached, type SlaWindow } from "@/lib/sla";
 import { issueKey } from "@/lib/utils";
 
 type ListIssue = {
@@ -53,6 +53,7 @@ export function IssuesListClient({
   filters,
   initialCursor,
   slaHours,
+  slaWindow,
   workflows = [],
 }: {
   teamId: string;
@@ -61,6 +62,7 @@ export function IssuesListClient({
   initialIssues: ListIssue[];
   initialCursor?: string;
   slaHours?: unknown;
+  slaWindow?: SlaWindow;
   workflows?: { id: string; name: string }[];
   filters?: {
     status?: string;
@@ -240,6 +242,8 @@ export function IssuesListClient({
                       issue.status,
                       new Date(issue.createdAt),
                       slaHours,
+                      new Date(),
+                      slaWindow,
                     ) ? (
                       <span className="ml-2 text-xs text-danger">SLA</span>
                     ) : null}

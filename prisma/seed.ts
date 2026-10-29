@@ -13,7 +13,7 @@ const adapter = new PrismaNeon({
 });
 const prisma = new PrismaClient({ adapter });
 
-async function main() {
+export async function seedDemo() {
   const passwordHash = await bcrypt.hash("demo1234", 10);
 
   const demoUser = await prisma.user.upsert({
@@ -365,12 +365,14 @@ async function main() {
   );
 }
 
-main()
-  .catch((e) => {
-    // eslint-disable-next-line no-console -- seed CLI feedback
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+if (process.argv[1]?.includes("seed")) {
+  seedDemo()
+    .catch((e) => {
+      // eslint-disable-next-line no-console -- seed CLI feedback
+      console.error(e);
+      process.exit(1);
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+}

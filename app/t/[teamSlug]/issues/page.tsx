@@ -22,6 +22,7 @@ import {
   statusToWorkflowKey,
 } from "@/lib/labels";
 import { slaBreached } from "@/lib/sla";
+import { listTemplates } from "@/lib/services/surface";
 
 export default async function IssuesPage({
   params,
@@ -85,7 +86,7 @@ export default async function IssuesPage({
   const isBoard = query.layout === "board";
   const mine = query.assignee === "me";
 
-  const [listResult, boardIssues, cycles, members, projects, labels, workflows] =
+  const [listResult, boardIssues, cycles, members, projects, labels, workflows, templates] =
     await Promise.all([
       isBoard
         ? Promise.resolve({
@@ -107,6 +108,7 @@ export default async function IssuesPage({
       projectsService.listProjects(team.id),
       labelsService.listLabels(team.id),
       workspacesService.listWorkflowStatuses(team.id),
+      listTemplates(team.id),
     ]);
 
   const visibleWorkflows = workflows.filter((w) => w.type !== "canceled");
@@ -181,6 +183,14 @@ export default async function IssuesPage({
               projects={projectOpts}
               teamId={team.id}
               teamSlug={teamSlug}
+              templates={templates.map((template) => ({
+                id: template.id,
+                name: template.name,
+                title: template.title,
+                description: template.description,
+                priority: template.priority,
+                estimate: template.estimate,
+              }))}
               workflows={workflows.map((workflow) => ({
                 id: workflow.id,
                 name: workflow.name,
@@ -275,6 +285,14 @@ export default async function IssuesPage({
               projects={projectOpts}
               teamId={team.id}
               teamSlug={teamSlug}
+              templates={templates.map((template) => ({
+                id: template.id,
+                name: template.name,
+                title: template.title,
+                description: template.description,
+                priority: template.priority,
+                estimate: template.estimate,
+              }))}
               workflows={workflows.map((workflow) => ({
                 id: workflow.id,
                 name: workflow.name,
@@ -303,6 +321,13 @@ export default async function IssuesPage({
               ? query.group
               : "status"
           }
+          slaHours={team.slaHours}
+          slaWindow={{
+            timezone: team.timezone,
+            startHour: team.slaStartHour,
+            endHour: team.slaEndHour,
+            weekdays: team.slaWeekdays,
+          }}
           workflows={workflows.map((workflow) => ({
             id: workflow.id,
             name: workflow.name,
@@ -336,6 +361,12 @@ export default async function IssuesPage({
           }}
           initialCursor={listResult.nextCursor}
           slaHours={team.slaHours}
+          slaWindow={{
+            timezone: team.timezone,
+            startHour: team.slaStartHour,
+            endHour: team.slaEndHour,
+            weekdays: team.slaWeekdays,
+          }}
           workflows={workflows.map((workflow) => ({
             id: workflow.id,
             name: workflow.name,

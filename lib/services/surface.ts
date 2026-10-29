@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { AuthError } from "@/lib/errors";
 
-const emoji = ["👍", "👀", "🎉", "❤️", "🚀"] as const;
+export const REACTION_EMOJIS = ["👍", "👀", "🎉", "❤️", "🚀"] as const;
 
 export async function toggleReaction(
   teamId: string,
@@ -11,7 +11,7 @@ export async function toggleReaction(
   userId: string,
   symbol: string,
 ) {
-  if (!emoji.includes(symbol as (typeof emoji)[number])) {
+  if (!REACTION_EMOJIS.includes(symbol as (typeof REACTION_EMOJIS)[number])) {
     throw new AuthError("Unsupported reaction", "BAD_REQUEST", 400);
   }
   const comment = await prisma.comment.findFirst({
@@ -105,6 +105,47 @@ export async function createTemplate(teamId: string, input: unknown) {
   });
 }
 
+const templateSchema = z.object({
+  name: z.string().min(1).max(80),
+  title: z.string().min(1).max(200),
+  description: z.string().max(20000).optional().default(""),
+  priority: z.string().optional(),
+  estimate: z.string().optional(),
+});
+
+export async function updateTemplate(
+  teamId: string,
+  templateId: string,
+  input: unknown,
+) {
+  const existing = await prisma.issueTemplate.findFirst({
+    where: { id: templateId, teamId },
+  });
+
+  if (!existing) throw new AuthError("Template not found", "NOT_FOUND", 404);
+  const data = templateSchema.parse(input);
+
+  return prisma.issueTemplate.update({
+    where: { id: templateId },
+    data: {
+      name: data.name,
+      title: data.title,
+      description: data.description,
+      priority: (data.priority as "NONE") || "NONE",
+      estimate: (data.estimate as "NONE") || "NONE",
+    },
+  });
+}
+
+export async function deleteTemplate(teamId: string, templateId: string) {
+  const existing = await prisma.issueTemplate.findFirst({
+    where: { id: templateId, teamId },
+  });
+
+  if (!existing) throw new AuthError("Template not found", "NOT_FOUND", 404);
+  await prisma.issueTemplate.delete({ where: { id: templateId } });
+}
+
 export async function listActivity(teamId: string, issueId: string) {
   return prisma.issueActivity.findMany({
     where: { issueId, issue: { teamId } },
@@ -146,10 +187,22 @@ export async function saveDocument(
   });
 }
 
+export async function deleteDocument(teamId: string, documentId: string) {
+  const existing = await prisma.document.findFirst({
+    where: { id: documentId, teamId },
+  });
+
+  if (!existing) throw new AuthError("Document not found", "NOT_FOUND", 404);
+  await prisma.document.delete({ where: { id: documentId } });
+}
+
 export async function listCustomers(teamId: string) {
   return prisma.customer.findMany({
     where: { teamId },
-    include: { _count: { select: { requests: true } } },
+    include: {
+      _count: { select: { requests: true } },
+      requests: { select: { id: true, body: true, issueId: true } },
+    },
     orderBy: { name: "asc" },
   });
 }
@@ -181,16 +234,45 @@ export async function addCustomerRequest(
     .object({
       body: z.string().min(1).max(5000),
       issueId: z.string().optional(),
+      issueNumber: z.coerce.number().int().positive().optional(),
     })
     .parse(input);
+  let issueId = data.issueId || null;
+
+  if (data.issueNumber) {
+    const issue = await prisma.issue.findFirst({
+      where: { teamId, number: data.issueNumber },
+    });
+
+    if (!issue) throw new AuthError("Issue not found", "NOT_FOUND", 404);
+    issueId = issue.id;
+  }
 
   return prisma.customerRequest.create({
     data: {
       customerId,
       body: data.body,
-      issueId: data.issueId || null,
+      issueId,
     },
   });
+}
+
+export async function deleteCustomer(teamId: string, customerId: string) {
+  const existing = await prisma.customer.findFirst({
+    where: { id: customerId, teamId },
+  });
+
+  if (!existing) throw new AuthError("Customer not found", "NOT_FOUND", 404);
+  await prisma.customer.delete({ where: { id: customerId } });
+}
+
+export async function deleteCustomerRequest(teamId: string, requestId: string) {
+  const existing = await prisma.customerRequest.findFirst({
+    where: { id: requestId, customer: { teamId } },
+  });
+
+  if (!existing) throw new AuthError("Request not found", "NOT_FOUND", 404);
+  await prisma.customerRequest.delete({ where: { id: requestId } });
 }
 
 export async function listIssueLinks(teamId: string, issueId: string) {
@@ -210,7 +292,7 @@ export async function addIssueLink(
   if (!issue) throw new AuthError("Issue not found", "NOT_FOUND", 404);
   const data = z
     .object({
-      kind: z.enum(["figma", "sentry", "link"]),
+      kind: z.enum(["figma", "sentry", "link", "github"]),
       url: z.string().url(),
     })
     .parse(input);
@@ -218,6 +300,19 @@ export async function addIssueLink(
   return prisma.issueLink.create({
     data: { issueId, kind: data.kind, url: data.url },
   });
+}
+
+export async function deleteIssueLink(
+  teamId: string,
+  issueId: string,
+  linkId: string,
+) {
+  const link = await prisma.issueLink.findFirst({
+    where: { id: linkId, issueId, issue: { teamId } },
+  });
+
+  if (!link) throw new AuthError("Link not found", "NOT_FOUND", 404);
+  await prisma.issueLink.delete({ where: { id: linkId } });
 }
 
 export async function recordActivity(
@@ -238,10 +333,15 @@ export async function insightCounts(teamId: string) {
   const since = new Date();
 
   since.setDate(since.getDate() - 56);
-  const [created, done, cycles] = await Promise.all([
+  const [created, done, statusGroups, cycles] = await Promise.all([
     prisma.issue.count({ where: { teamId, createdAt: { gte: since } } }),
     prisma.issue.count({
       where: { teamId, status: "DONE", updatedAt: { gte: since } },
+    }),
+    prisma.issue.groupBy({
+      by: ["status"],
+      where: { teamId, createdAt: { gte: since } },
+      _count: { _all: true },
     }),
     prisma.cycle.findMany({
       where: { teamId },
@@ -254,6 +354,9 @@ export async function insightCounts(teamId: string) {
   return {
     created,
     done,
+    byStatus: Object.fromEntries(
+      statusGroups.map((row) => [row.status, row._count._all]),
+    ),
     cycles: cycles.map((cycle) => {
       const total = cycle.issues.length;
       const finished = cycle.issues.filter((issue) => issue.status === "DONE").length;
@@ -270,9 +373,17 @@ export async function insightCounts(teamId: string) {
 export async function notifySlack(url: string | null | undefined, text: string) {
   if (!url) return;
 
-  await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text }),
-  }).catch(() => undefined);
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+
+    if (!response.ok) {
+      console.error(`Slack webhook failed: ${response.status}`);
+    }
+  } catch (error) {
+    console.error("Slack webhook failed", error);
+  }
 }

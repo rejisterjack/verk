@@ -63,23 +63,48 @@ export async function setIssueLabels(
   teamId: string,
   issueId: string,
   labelIds: string[],
+  actorId?: string,
 ) {
   const issue = await prisma.issue.findFirst({
     where: { id: issueId, teamId },
+    include: { labels: { include: { label: true } } },
   });
 
   if (!issue) throw new AuthError("Issue not found", "NOT_FOUND", 404);
+  const before = issue.labels
+    .map((row) => row.label.name)
+    .sort()
+    .join(", ");
 
   await prisma.$transaction([
     prisma.issueLabel.deleteMany({ where: { issueId } }),
-    prisma.issueLabel.createMany({
-      data: labelIds.map((labelId) => ({ issueId, labelId })),
-      skipDuplicates: true,
-    }),
+    ...(labelIds.length
+      ? [
+          prisma.issueLabel.createMany({
+            data: labelIds.map((labelId) => ({ issueId, labelId })),
+            skipDuplicates: true,
+          }),
+        ]
+      : []),
   ]);
 
-  return prisma.issue.findUnique({
+  const saved = await prisma.issue.findUnique({
     where: { id: issueId },
     include: { labels: { include: { label: true } } },
   });
+
+  if (actorId && saved) {
+    const after = saved.labels
+      .map((row) => row.label.name)
+      .sort()
+      .join(", ");
+
+    if (before !== after) {
+      const { recordActivity } = await import("@/lib/services/surface");
+
+      await recordActivity(issueId, actorId, "labels", before, after);
+    }
+  }
+
+  return saved;
 }

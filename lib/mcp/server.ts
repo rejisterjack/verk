@@ -134,7 +134,7 @@ export function createVerkMcpServer(ctx: { teamId: string; userId: string }) {
       const { id, labelIds, ...patch } = args;
 
       if (labelIds) {
-        await labelsService.setIssueLabels(ctx.teamId, id, labelIds);
+        await labelsService.setIssueLabels(ctx.teamId, id, labelIds, ctx.userId);
       }
       const issue = await issuesService.updateIssue(
         ctx.teamId,

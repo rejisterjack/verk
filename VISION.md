@@ -8,7 +8,7 @@ A minimal, self-hostable project management tool built on Next.js and Neon Postg
 
 ## The problem it solves
 
-Linear is the best project management tool available but it costs money, and the cost adds up fast for small teams. Plane is open source and free but self-hosting it requires Docker, a server, and ongoing maintenance. There is no option that is genuinely free, genuinely easy to host, and actually pleasant to use. Verk is that option: clone the repo, paste a Neon connection string, push to Vercel, done in five minutes.
+Linear is the best project management tool available but it costs money, and the cost adds up fast for small teams. Plane is open source and free but self-hosting it requires Docker, a server, and ongoing maintenance. There is no option that is genuinely free, genuinely easy to host, and actually pleasant to use. Verk is that option: clone the repo, set four environment variables (`DATABASE_URL`, `DIRECT_URL`, `AUTH_SECRET`, `AUTH_URL`), push to Vercel, done in five minutes.
 
 ## What it does
 
@@ -37,7 +37,7 @@ Linear is the best project management tool available but it costs money, and the
 ## How I portray it
 
 - One-line pitch: "Linear UX, Vercel deploy, Neon database, free forever."
-- Lead with the deploy demo: show the Vercel button, a Neon connection string, and a working board in under two minutes
+- Lead with the deploy demo: show the Vercel button, the four required env vars (`DATABASE_URL`, `DIRECT_URL`, `AUTH_SECRET`, `AUTH_URL`), and a working board in under two minutes
 - Show the MCP integration as the differentiator, since neither Linear's OSS tooling nor Plane does this well
 - Position it as infrastructure for developers, not a consumer product
 - Be honest that it covers the core 80% of Linear and is not trying to replace every feature
@@ -61,7 +61,7 @@ Linear is the best project management tool available but it costs money, and the
 
 ## What done looks like
 
-- A working Deploy to Vercel button that completes in under five minutes with only a Neon connection string needed
+- A working Deploy to Vercel button that completes in under five minutes with `DATABASE_URL`, `DIRECT_URL`, `AUTH_SECRET`, and `AUTH_URL` set
 - Issues, statuses, priorities, cycles, and teams all working end to end
 - Board view and list view
 - A working MCP server that an agent can connect to and use

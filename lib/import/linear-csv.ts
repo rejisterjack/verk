@@ -6,6 +6,8 @@ export type LinearCsvRow = {
   status: IssueStatus;
   priority: Priority;
   assigneeEmail?: string;
+  labels?: string[];
+  projectName?: string;
 };
 
 const STATUS_MAP: Record<string, IssueStatus> = {
@@ -89,6 +91,8 @@ export function parseLinearCsv(text: string): LinearCsvRow[] {
     "assignee email",
     "email",
   ]);
+  const labelsIdx = headerIndex(headers, ["labels", "label"]);
+  const projectIdx = headerIndex(headers, ["project", "project name"]);
 
   if (titleIdx < 0) {
     throw new Error("CSV must include a Title column");
@@ -115,6 +119,17 @@ export function parseLinearCsv(text: string): LinearCsvRow[] {
       assigneeEmail:
         assigneeIdx >= 0 && cells[assigneeIdx]
           ? cells[assigneeIdx]!.toLowerCase()
+          : undefined,
+      labels:
+        labelsIdx >= 0 && cells[labelsIdx]
+          ? cells[labelsIdx]!
+              .split(",")
+              .map((name) => name.trim())
+              .filter(Boolean)
+          : undefined,
+      projectName:
+        projectIdx >= 0 && cells[projectIdx]?.trim()
+          ? cells[projectIdx]!.trim()
           : undefined,
     });
   }

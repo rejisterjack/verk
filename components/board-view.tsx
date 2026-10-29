@@ -32,6 +32,7 @@ import { IssuePeek } from "@/components/app/issue-peek";
 import { ConflictModal } from "@/components/pwa/conflict-modal";
 import { PriorityChip } from "@/components/status-chip";
 import { BOARD_COLUMNS, STATUS_LABELS } from "@/lib/labels";
+import { slaBreached, type SlaWindow } from "@/lib/sla";
 import {
   getLocalIssue,
   hydrateIssuesFromServer,
@@ -55,6 +56,7 @@ type BoardIssue = {
   order: number;
   revision?: number;
   syncStatus?: string;
+  createdAt?: string | Date;
   assignee: {
     id: string;
     name: string | null;
@@ -67,10 +69,14 @@ function SortableCard({
   issue,
   teamSlug,
   onConflict,
+  slaHours,
+  slaWindow,
 }: {
   issue: BoardIssue;
   teamSlug: string;
   onConflict: (id: string) => void;
+  slaHours?: unknown;
+  slaWindow?: SlaWindow;
 }) {
   const {
     attributes,
@@ -127,7 +133,20 @@ function SortableCard({
           <PriorityChip priority={issue.priority} />
         </div>
       </div>
-      <p className="mt-1 text-sm font-medium leading-snug">{issue.title}</p>
+      <p className="mt-1 text-sm font-medium leading-snug">
+        {issue.title}
+        {issue.createdAt &&
+        slaBreached(
+          issue.priority,
+          issue.status,
+          new Date(issue.createdAt),
+          slaHours,
+          new Date(),
+          slaWindow,
+        ) ? (
+          <span className="ml-2 text-xs text-danger">SLA</span>
+        ) : null}
+      </p>
       {issue.assignee ? (
         <p className="mt-2 text-xs text-muted">
           {issue.assignee.name ?? issue.assignee.email}
@@ -143,12 +162,16 @@ function Column({
   issues,
   teamSlug,
   onConflict,
+  slaHours,
+  slaWindow,
 }: {
   status: string;
   label: string;
   issues: BoardIssue[];
   teamSlug: string;
   onConflict: (id: string) => void;
+  slaHours?: unknown;
+  slaWindow?: SlaWindow;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
 
@@ -172,6 +195,8 @@ function Column({
             <SortableCard
               key={issue.id}
               issue={issue}
+              slaHours={slaHours}
+              slaWindow={slaWindow}
               teamSlug={teamSlug}
               onConflict={onConflict}
             />
@@ -193,6 +218,8 @@ export function BoardView({
   columnWorkflowIds,
   groupBy = "status",
   workflows = [],
+  slaHours,
+  slaWindow,
 }: {
   teamId: string;
   teamSlug: string;
@@ -204,6 +231,8 @@ export function BoardView({
   columnWorkflowIds?: Record<string, string>;
   groupBy?: "status" | "priority" | "assignee" | "project";
   workflows?: { id: string; name: string }[];
+  slaHours?: unknown;
+  slaWindow?: SlaWindow;
 }) {
   const router = useRouter();
   const [issues, setIssues] = useState(initialIssues);
@@ -464,6 +493,8 @@ export function BoardView({
                 STATUS_LABELS[status as IssueStatus] ??
                 status
               }
+              slaHours={slaHours}
+              slaWindow={slaWindow}
               status={status}
               teamSlug={teamSlug}
               onConflict={(id) => void openConflict(id)}

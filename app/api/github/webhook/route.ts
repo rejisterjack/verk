@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 import { prisma } from "@/lib/db";
+import { rateLimit } from "@/lib/rate-limit";
 import { addComment } from "@/lib/services/comments";
 
 function safeEqual(a: string, b: string) {
@@ -13,6 +14,12 @@ function safeEqual(a: string, b: string) {
 }
 
 export async function POST(request: Request) {
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
+
+  if (!rateLimit(`github-webhook:${ip}`).ok) {
+    return Response.json({ error: "Too many requests" }, { status: 429 });
+  }
   const secret = process.env.GITHUB_WEBHOOK_SECRET;
 
   if (!secret) return new Response(null, { status: 404 });
@@ -27,7 +34,12 @@ export async function POST(request: Request) {
 
   const event = JSON.parse(raw) as {
     action?: string;
-    pull_request?: { title?: string; head?: { ref?: string } };
+    pull_request?: {
+      title?: string;
+      html_url?: string;
+      merged?: boolean;
+      head?: { ref?: string };
+    };
     repository?: { full_name?: string };
   };
 
@@ -60,13 +72,24 @@ export async function POST(request: Request) {
 
   if (!owner) return Response.json({ ok: true, linked: false });
 
-  await addComment(team.id, issue.id, owner.userId, {
-    body: `GitHub pull request mentions ${match[0]} in ${repo}.`,
-  });
+  const url = event.pull_request?.html_url;
 
-  const merged =
-    event.action === "closed" &&
-    (event.pull_request as { merged?: boolean } | undefined)?.merged;
+  if (url) {
+    const existing = await prisma.issueLink.findFirst({
+      where: { issueId: issue.id, kind: "github", url },
+    });
+
+    if (!existing) {
+      await prisma.issueLink.create({
+        data: { issueId: issue.id, kind: "github", url },
+      });
+      await addComment(team.id, issue.id, owner.userId, {
+        body: `GitHub pull request mentions ${match[0]} in ${repo}.`,
+      });
+    }
+  }
+
+  const merged = event.action === "closed" && event.pull_request?.merged;
 
   if (merged && team.githubMergeCompletes) {
     const { updateIssue } = await import("@/lib/services/issues");

@@ -18,3 +18,18 @@ export function nextTriageAt(
 
   return undefined;
 }
+
+export async function snoozeTriage(teamId: string, issueId: string, until: Date) {
+  const { prisma } = await import("@/lib/db");
+  const { AuthError } = await import("@/lib/errors");
+  const existing = await prisma.issue.findFirst({
+    where: { id: issueId, teamId },
+  });
+
+  if (!existing) throw new AuthError("Issue not found", "NOT_FOUND", 404);
+
+  await prisma.issue.update({
+    where: { id: issueId },
+    data: { triageAt: until, revision: { increment: 1 } },
+  });
+}

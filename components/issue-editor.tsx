@@ -26,6 +26,7 @@ import {
   updateIssueLocal,
   type ServerIssue,
 } from "@/lib/offline/issue-repository";
+import { slaBreached, type SlaWindow } from "@/lib/sla";
 import { issueKey } from "@/lib/utils";
 
 type Member = { id: string; name: string | null; email: string };
@@ -47,6 +48,10 @@ export function IssueEditor({
   workflows = [],
   initialLabelIds = [],
   canDelete,
+  currentUserId,
+  slaHours,
+  slaWindow,
+  createdAt,
 }: {
   teamId: string;
   teamSlug: string;
@@ -76,6 +81,10 @@ export function IssueEditor({
   workflows?: WorkflowOpt[];
   initialLabelIds?: string[];
   canDelete: boolean;
+  currentUserId?: string;
+  slaHours?: unknown;
+  slaWindow?: SlaWindow;
+  createdAt?: string | null;
 }) {
   const router = useRouter();
   const [issue, setIssue] = useState(initialIssue);
@@ -242,7 +251,19 @@ export function IssueEditor({
   return (
     <div className="max-w-3xl">
       <PageHeader
-        description={issueKey(teamSlug, issue.number)}
+        description={`${issueKey(teamSlug, issue.number)}${
+          createdAt &&
+          slaBreached(
+            issue.priority,
+            issue.status,
+            new Date(createdAt),
+            slaHours,
+            new Date(),
+            slaWindow,
+          )
+            ? " · SLA"
+            : ""
+        }`}
         title={issue.title}
       />
 
@@ -436,7 +457,11 @@ export function IssueEditor({
       <IssueLinks issueId={issue.id} teamId={teamId} />
       <IssueActivityList issueId={issue.id} teamId={teamId} />
       <IssueAttachments issueId={issue.id} teamId={teamId} />
-      <IssueComments issueId={issue.id} teamId={teamId} />
+      <IssueComments
+        currentUserId={currentUserId}
+        issueId={issue.id}
+        teamId={teamId}
+      />
 
       {canDelete ? (
         <div className="mt-8 border-t border-separator pt-6">

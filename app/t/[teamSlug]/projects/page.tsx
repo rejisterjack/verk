@@ -27,9 +27,13 @@ export default async function ProjectsPage({
   async function createInitiative(formData: FormData) {
     "use server";
     const name = String(formData.get("name") ?? "").trim();
+    const targetRaw = String(formData.get("targetDate") ?? "");
 
     if (!name) return;
-    await projectsService.createInitiative(teamId, { name });
+    await projectsService.createInitiative(teamId, {
+      name,
+      targetDate: targetRaw ? new Date(targetRaw) : null,
+    });
     redirect(`/t/${teamSlug}/projects`);
   }
 
@@ -61,6 +65,11 @@ export default async function ProjectsPage({
           className="min-w-[200px] flex-1 rounded-lg border border-separator bg-background px-3 py-2 text-sm"
           name="name"
           placeholder="Initiative name"
+        />
+        <input
+          className="rounded-lg border border-separator bg-background px-3 py-2 text-sm"
+          name="targetDate"
+          type="date"
         />
         <Button type="submit" variant="tertiary">
           Create initiative

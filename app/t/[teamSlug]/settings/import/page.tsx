@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { PageHeader } from "@/components/page-header";
 import { SubmitButton as Button } from "@/components/submit-button";
+import { rateLimit } from "@/lib/rate-limit";
 import { requireTeamBySlug } from "@/lib/rbac";
 import * as importService from "@/lib/services/import";
 
@@ -37,6 +38,9 @@ export default async function ImportPage({
     const file = formData.get("file");
 
     if (!(file instanceof File)) return;
+    if (!rateLimit(`import:${teamId}`).ok) {
+      redirect(`/t/${teamSlug}/settings/import?errors=${encodeURIComponent("Too many requests")}`);
+    }
     const text = await file.text();
     const result = await importService.importLinearCsv(teamId, userId, text);
     const qs = new URLSearchParams({
@@ -56,6 +60,9 @@ export default async function ImportPage({
     const teamKey = String(formData.get("teamKey") ?? "").trim() || undefined;
 
     if (!apiKey) return;
+    if (!rateLimit(`import:${teamId}`).ok) {
+      redirect(`/t/${teamSlug}/settings/import?errors=${encodeURIComponent("Too many requests")}`);
+    }
     try {
       const result = await importService.importFromLinearApi(
         teamId,
@@ -126,7 +133,7 @@ export default async function ImportPage({
       <section className="space-y-3 border-t border-separator pt-8">
         <h2 className="text-sm font-semibold">Linear API import</h2>
         <p className="text-sm text-muted">
-          Paste a Linear personal API key. Imports the first 100 issues (Linear
+          Paste a Linear personal API key. Imports up to 2,000 issues (Linear
           API cap for this launch). Keys are used once and not stored.
         </p>
         <form action={importApi} className="space-y-3">

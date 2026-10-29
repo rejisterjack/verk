@@ -1,21 +1,39 @@
+import { timingSafeEqual } from "node:crypto";
+
 import { NextRequest } from "next/server";
 
+import { rateLimit } from "@/lib/rate-limit";
 import { isDemoMode } from "@/lib/utils";
 
+function safeEqual(a: string, b: string) {
+  const left = Buffer.from(a);
+  const right = Buffer.from(b);
+
+  if (left.length !== right.length) return false;
+
+  return timingSafeEqual(left, right);
+}
+
 export async function POST(request: NextRequest) {
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
+
+  if (!rateLimit(`demo-reset:${ip}`).ok) {
+    return Response.json({ error: "Too many requests" }, { status: 429 });
+  }
   if (!isDemoMode()) {
     return Response.json({ error: "Demo mode disabled" }, { status: 403 });
   }
-  const secret = request.headers.get("x-demo-reset-secret");
+  const secret = request.headers.get("x-demo-reset-secret") ?? "";
+  const expected = process.env.DEMO_RESET_SECRET ?? "";
 
-  if (!secret || secret !== process.env.DEMO_RESET_SECRET) {
+  if (!expected || !secret || !safeEqual(secret, expected)) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Dynamic import keeps seed logic out of cold paths when unused
-  const { execSync } = await import("node:child_process");
+  const { seedDemo } = await import("@/prisma/seed");
 
-  execSync("npx tsx prisma/seed.ts", { stdio: "inherit" });
+  await seedDemo();
 
   return Response.json({ ok: true });
 }

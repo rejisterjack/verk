@@ -119,6 +119,7 @@ export async function updateIssueAction(
         team.id,
         existing.id,
         formLabelIds(formData),
+        user.id,
       );
     }
 
@@ -138,6 +139,31 @@ export async function updateIssueAction(
       error: error instanceof Error ? error.message : "Failed to update issue",
     };
   }
+}
+
+export async function triageIssueAction(
+  teamSlug: string,
+  issueId: string,
+  action: "accept" | "decline" | "snooze",
+) {
+  const { team, membership, user } = await requireTeamBySlug(teamSlug);
+
+  if (action === "snooze") {
+    const until = new Date(Date.now() + 60 * 60 * 1000);
+
+    await issuesService.snoozeIssueTriage(team.id, issueId, until);
+  } else {
+    await issuesService.updateIssue(
+      team.id,
+      issueId,
+      { status: action === "accept" ? "TODO" : "CANCELLED" },
+      membership.role,
+      user.id,
+    );
+  }
+
+  revalidatePath(`/t/${teamSlug}/triage`);
+  revalidatePath(`/t/${teamSlug}/issues`);
 }
 
 export async function deleteIssueAction(teamSlug: string, issueNumber: number) {

@@ -47,6 +47,18 @@ export async function ensureWorkspaceForTeam(
   return workspace;
 }
 
+export async function createTeamInWorkspace(workspaceId: string, name: string) {
+  const { createTeam } = await import("@/lib/services/teams");
+  const team = await createTeam({ name });
+
+  await prisma.team.update({
+    where: { id: team.id },
+    data: { workspaceId },
+  });
+
+  return team;
+}
+
 export async function createWorkspace(userId: string, input: unknown) {
   const data = workspaceSchema.parse(input);
   const slug = data.slug ?? slugify(data.name);

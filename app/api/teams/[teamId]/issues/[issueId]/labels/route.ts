@@ -10,10 +10,15 @@ export async function PUT(
   try {
     const { teamId, issueId } = await context.params;
 
-    await authenticateRequest(request, teamId);
+    const authResult = await authenticateRequest(request, teamId);
     const body = (await request.json()) as { labelIds?: string[] };
 
-    await labelsService.setIssueLabels(teamId, issueId, body.labelIds ?? []);
+    await labelsService.setIssueLabels(
+      teamId,
+      issueId,
+      body.labelIds ?? [],
+      authResult.user.id,
+    );
 
     return Response.json({ ok: true });
   } catch (error) {

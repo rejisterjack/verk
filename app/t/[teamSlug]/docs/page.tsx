@@ -4,7 +4,7 @@ import { MarkdownBody } from "@/components/markdown-body";
 import { PageHeader } from "@/components/page-header";
 import { SubmitButton as Button } from "@/components/submit-button";
 import { requireTeamBySlug } from "@/lib/rbac";
-import { listDocuments, saveDocument } from "@/lib/services/surface";
+import { deleteDocument, listDocuments, saveDocument } from "@/lib/services/surface";
 
 export default async function TeamDocsPage({
   params,
@@ -55,6 +55,40 @@ export default async function TeamDocsPage({
         <article key={doc.id} className="rounded-xl border border-separator p-4">
           <h2 className="font-medium">{doc.title}</h2>
           <MarkdownBody text={doc.body} />
+          {teamCtx.membership.role !== "GUEST" ? (
+            <form
+              action={async (formData) => {
+                "use server";
+                await saveDocument(
+                  teamId,
+                  userId,
+                  {
+                    title: String(formData.get("title") ?? ""),
+                    body: String(formData.get("body") ?? ""),
+                  },
+                  doc.id,
+                );
+                redirect(`/t/${teamSlug}/docs`);
+              }}
+              className="mt-3 space-y-2"
+            >
+              <input className="w-full rounded border border-separator px-2 py-1 text-sm" defaultValue={doc.title} name="title" required />
+              <textarea className="min-h-20 w-full rounded border border-separator px-2 py-1 text-sm" defaultValue={doc.body} name="body" />
+              <Button size="sm" type="submit">Update</Button>
+            </form>
+          ) : null}
+          {teamCtx.membership.role !== "GUEST" ? (
+            <form
+              action={async () => {
+                "use server";
+                await deleteDocument(teamId, doc.id);
+                redirect(`/t/${teamSlug}/docs`);
+              }}
+              className="mt-2"
+            >
+              <Button size="sm" type="submit" variant="danger">Delete</Button>
+            </form>
+          ) : null}
         </article>
       ))}
     </div>

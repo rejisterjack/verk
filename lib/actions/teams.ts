@@ -71,6 +71,28 @@ export async function updateTeamAction(teamSlug: string, formData: FormData) {
             }
           : {}),
         githubMergeCompletes: formData.get("githubMergeCompletes") === "true",
+        ...(formData.has("triageOwnerId")
+          ? {
+              triageOwnerId:
+                String(formData.get("triageOwnerId") ?? "").trim() || null,
+            }
+          : {}),
+        ...(formData.has("timezone")
+          ? { timezone: String(formData.get("timezone") ?? "UTC") || "UTC" }
+          : {}),
+        ...(formData.has("slaStartHour")
+          ? { slaStartHour: Number(formData.get("slaStartHour") || 0) }
+          : {}),
+        ...(formData.has("slaEndHour")
+          ? { slaEndHour: Number(formData.get("slaEndHour") || 24) }
+          : {}),
+        ...(formData.has("slaWeekdays")
+          ? {
+              slaWeekdays:
+                String(formData.get("slaWeekdays") ?? "1,2,3,4,5") ||
+                "1,2,3,4,5",
+            }
+          : {}),
       },
       membership.role,
     );

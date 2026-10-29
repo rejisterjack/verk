@@ -3,7 +3,14 @@ import { notFound, redirect } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { SubmitButton as Button } from "@/components/submit-button";
 import { requireTeamBySlug } from "@/lib/rbac";
-import { addCustomerRequest, createCustomer, listCustomers } from "@/lib/services/surface";
+import { prisma } from "@/lib/db";
+import {
+  addCustomerRequest,
+  createCustomer,
+  deleteCustomer,
+  deleteCustomerRequest,
+  listCustomers,
+} from "@/lib/services/surface";
 
 export default async function CustomersPage({
   params,
@@ -18,8 +25,16 @@ export default async function CustomersPage({
   } catch {
     notFound();
   }
-  const customers = await listCustomers(teamCtx.team.id);
   const teamId = teamCtx.team.id;
+  const [customers, issues] = await Promise.all([
+    listCustomers(teamId),
+    prisma.issue.findMany({
+      where: { teamId },
+      select: { number: true, title: true },
+      orderBy: { number: "desc" },
+      take: 200,
+    }),
+  ]);
 
   async function create(formData: FormData) {
     "use server";
@@ -44,20 +59,56 @@ export default async function CustomersPage({
             <p>
               {customer.name} · {customer._count.requests} requests
             </p>
+            <ul className="text-xs text-muted">
+              {customer.requests.map((request) => (
+                <li key={request.id} className="flex items-center gap-2">
+                  <span>{request.body}</span>
+                  <form
+                    action={async () => {
+                      "use server";
+                      await deleteCustomerRequest(teamId, request.id);
+                      redirect(`/t/${teamSlug}/customers`);
+                    }}
+                  >
+                    <Button size="sm" type="submit" variant="danger">Remove</Button>
+                  </form>
+                </li>
+              ))}
+            </ul>
             <form
               action={async (formData) => {
                 "use server";
+                const issueNumber = Number(formData.get("issueNumber"));
+
                 await addCustomerRequest(teamId, customer.id, {
                   body: String(formData.get("body") ?? ""),
-                  issueId: String(formData.get("issueId") ?? "") || undefined,
+                  ...(Number.isFinite(issueNumber) && issueNumber > 0
+                    ? { issueNumber }
+                    : {}),
                 });
                 redirect(`/t/${teamSlug}/customers`);
               }}
               className="flex gap-2"
             >
               <input className="flex-1 rounded border border-separator px-2 py-1" name="body" placeholder="Request" required />
-              <input className="w-40 rounded border border-separator px-2 py-1" name="issueId" placeholder="Issue id" />
+              <select className="rounded border border-separator px-2 py-1" name="issueNumber">
+                <option value="">No issue</option>
+                {issues.map((issue) => (
+                  <option key={issue.number} value={issue.number}>
+                    #{issue.number} {issue.title}
+                  </option>
+                ))}
+              </select>
               <Button size="sm" type="submit">Link</Button>
+            </form>
+            <form
+              action={async () => {
+                "use server";
+                await deleteCustomer(teamId, customer.id);
+                redirect(`/t/${teamSlug}/customers`);
+              }}
+            >
+              <Button size="sm" type="submit" variant="danger">Delete customer</Button>
             </form>
           </li>
         ))}

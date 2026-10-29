@@ -102,11 +102,24 @@ export default async function ViewsSettingsPage({
             <form
               action={async (formData) => {
                 "use server";
+                const filterJson: Record<string, string> = {};
+                const status = String(formData.get("status") ?? "");
+                const priority = String(formData.get("priority") ?? "");
+                const cycleId = String(formData.get("cycleId") ?? "");
+                const assigneeId = String(formData.get("assigneeId") ?? "");
+                const projectId = String(formData.get("projectId") ?? "");
+
+                if (status) filterJson.status = status;
+                if (priority) filterJson.priority = priority;
+                if (cycleId) filterJson.cycleId = cycleId;
+                if (assigneeId) filterJson.assigneeId = assigneeId;
+                if (projectId) filterJson.projectId = projectId;
+
                 await viewsService.updateView(teamId, v.id, {
                   name: String(formData.get("name") ?? v.name),
                   layout: String(formData.get("layout") ?? v.layout),
                   pinned: formData.get("pinned") === "on",
-                  filterJson: v.filterJson as Record<string, unknown>,
+                  filterJson,
                 });
                 redirect(`/t/${teamSlug}/settings/views`);
               }}
@@ -116,6 +129,47 @@ export default async function ViewsSettingsPage({
                 className="flex-1 rounded-lg border border-separator bg-background px-2 py-1.5"
                 defaultValue={v.name}
                 name="name"
+              />
+              <select
+                className="rounded-lg border border-separator bg-background px-2 py-1.5"
+                defaultValue={String((v.filterJson as { status?: string }).status ?? "")}
+                name="status"
+              >
+                <option value="">Any status</option>
+                <option value="BACKLOG">Backlog</option>
+                <option value="TODO">Todo</option>
+                <option value="IN_PROGRESS">In progress</option>
+                <option value="DONE">Done</option>
+                <option value="CANCELLED">Cancelled</option>
+              </select>
+              <select
+                className="rounded-lg border border-separator bg-background px-2 py-1.5"
+                defaultValue={String((v.filterJson as { priority?: string }).priority ?? "")}
+                name="priority"
+              >
+                <option value="">Any priority</option>
+                <option value="URGENT">Urgent</option>
+                <option value="HIGH">High</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="LOW">Low</option>
+              </select>
+              <input
+                className="w-28 rounded-lg border border-separator bg-background px-2 py-1.5"
+                defaultValue={String((v.filterJson as { cycleId?: string }).cycleId ?? "")}
+                name="cycleId"
+                placeholder="Cycle id"
+              />
+              <input
+                className="w-28 rounded-lg border border-separator bg-background px-2 py-1.5"
+                defaultValue={String((v.filterJson as { assigneeId?: string }).assigneeId ?? "")}
+                name="assigneeId"
+                placeholder="Assignee id"
+              />
+              <input
+                className="w-28 rounded-lg border border-separator bg-background px-2 py-1.5"
+                defaultValue={String((v.filterJson as { projectId?: string }).projectId ?? "")}
+                name="projectId"
+                placeholder="Project id"
               />
               <select
                 className="rounded-lg border border-separator bg-background px-2 py-1.5"

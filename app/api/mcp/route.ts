@@ -2,11 +2,18 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { NextRequest } from "next/server";
 
 import { createVerkMcpServer } from "@/lib/mcp/server";
+import { rateLimit } from "@/lib/rate-limit";
 import { resolveApiKey } from "@/lib/services/api-keys";
 
 export const runtime = "nodejs";
 
 async function handle(request: NextRequest) {
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
+
+  if (!rateLimit(`mcp:${ip}`).ok) {
+    return Response.json({ error: "Too many requests" }, { status: 429 });
+  }
   const header = request.headers.get("authorization");
 
   if (!header?.startsWith("Bearer ")) {

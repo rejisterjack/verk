@@ -21,6 +21,14 @@ type Opt = { id: string; name: string };
 type Member = { id: string; name: string | null; email: string };
 type LabelOpt = { id: string; name: string; color: string };
 type WorkflowOpt = { id: string; name: string };
+type TemplateOpt = {
+  id: string;
+  name: string;
+  title: string;
+  description: string;
+  priority: string;
+  estimate: string;
+};
 
 export function CreateIssueForm({
   teamId,
@@ -31,6 +39,7 @@ export function CreateIssueForm({
   milestones = [],
   labels = [],
   workflows = [],
+  templates = [],
 }: {
   teamId: string;
   teamSlug: string;
@@ -40,11 +49,14 @@ export function CreateIssueForm({
   milestones?: Opt[];
   labels?: LabelOpt[];
   workflows?: WorkflowOpt[];
+  templates?: TemplateOpt[];
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [templateId, setTemplateId] = useState("");
+  const template = templates.find((item) => item.id === templateId);
 
   useEffect(() => {
     const openHandler = () => setOpen(true);
@@ -132,14 +144,35 @@ export function CreateIssueForm({
             }
           }}
         >
-          <TextField isRequired name="title">
+          {templates.length > 0 ? (
+            <label className="flex flex-col gap-1 text-sm">
+              <span>Template</span>
+              <select
+                className="rounded-lg border border-separator bg-background px-3 py-2"
+                value={templateId}
+                onChange={(event) => setTemplateId(event.target.value)}
+              >
+                <option value="">None</option>
+                {templates.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+          <TextField key={`${templateId}-title`} isRequired name="title">
             <Label>Title</Label>
-            <Input placeholder="Ship MCP docs" />
+            <Input defaultValue={template?.title ?? ""} placeholder="Ship MCP docs" />
             <FieldError />
           </TextField>
-          <TextField name="description">
+          <TextField key={`${templateId}-description`} name="description">
             <Label>Description</Label>
-            <TextArea placeholder="Optional details…" rows={3} />
+            <TextArea
+              defaultValue={template?.description ?? ""}
+              placeholder="Optional details…"
+              rows={3}
+            />
           </TextField>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="flex flex-col gap-1 text-sm">
@@ -165,8 +198,9 @@ export function CreateIssueForm({
             <label className="flex flex-col gap-1 text-sm">
               <span>Priority</span>
               <select
+                key={`${templateId}-priority`}
                 className="rounded-lg border border-separator bg-background px-3 py-2"
-                defaultValue="NONE"
+                defaultValue={template?.priority ?? "NONE"}
                 name="priority"
               >
                 {Object.entries(PRIORITY_LABELS).map(([value, label]) => (
@@ -179,8 +213,9 @@ export function CreateIssueForm({
             <label className="flex flex-col gap-1 text-sm">
               <span>Estimate</span>
               <select
+                key={`${templateId}-estimate`}
                 className="rounded-lg border border-separator bg-background px-3 py-2"
-                defaultValue="NONE"
+                defaultValue={template?.estimate ?? "NONE"}
                 name="estimate"
               >
                 {Object.entries(ESTIMATE_LABELS).map(([value, label]) => (

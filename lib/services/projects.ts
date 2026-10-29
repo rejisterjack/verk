@@ -20,13 +20,16 @@ export const createProjectSchema = z.object({
   targetDate: z.coerce.date().nullable().optional(),
 });
 
-export const updateProjectSchema = createProjectSchema.partial();
+export const updateProjectSchema = createProjectSchema.partial().extend({
+  initiativeId: z.string().cuid().nullable().optional(),
+});
 
 export async function listProjects(teamId: string) {
   const projects = await prisma.project.findMany({
     where: { teamId },
     include: {
       lead: { select: { id: true, name: true, email: true } },
+      initiative: { select: { id: true, name: true } },
       milestones: { orderBy: { sortOrder: "asc" } },
       _count: { select: { issues: true } },
     },
@@ -41,6 +44,7 @@ export async function getProject(teamId: string, projectId: string) {
     where: { id: projectId, teamId },
     include: {
       lead: { select: { id: true, name: true, email: true } },
+      initiative: { select: { id: true, name: true } },
       milestones: { orderBy: { sortOrder: "asc" } },
       issues: {
         select: {
@@ -112,7 +116,10 @@ export async function deleteProject(teamId: string, projectId: string) {
 export async function listInitiatives(teamId: string) {
   return prisma.initiative.findMany({
     where: { teamId },
-    include: { _count: { select: { projects: true } } },
+    include: {
+      _count: { select: { projects: true } },
+      projects: { select: { id: true, name: true, targetDate: true, status: true } },
+    },
     orderBy: { createdAt: "desc" },
   });
 }
@@ -131,6 +138,26 @@ export async function createInitiative(teamId: string, input: unknown) {
       name: data.name,
       targetDate: data.targetDate ?? null,
     },
+  });
+}
+
+export async function updateInitiative(teamId: string, initiativeId: string, input: unknown) {
+  const existing = await prisma.initiative.findFirst({
+    where: { id: initiativeId, teamId },
+  });
+
+  if (!existing) throw new AuthError("Initiative not found", "NOT_FOUND", 404);
+  const data = z
+    .object({
+      name: z.string().min(1).max(120).optional(),
+      targetDate: z.coerce.date().nullable().optional(),
+      health: z.enum(["ON_TRACK", "AT_RISK", "OFF_TRACK"]).optional(),
+    })
+    .parse(input);
+
+  return prisma.initiative.update({
+    where: { id: initiativeId },
+    data,
   });
 }
 
@@ -175,6 +202,19 @@ export async function createMilestone(
       sortOrder: (max._max.sortOrder ?? 0) + 1,
     },
   });
+}
+
+export async function deleteMilestone(
+  teamId: string,
+  projectId: string,
+  milestoneId: string,
+) {
+  const milestone = await prisma.milestone.findFirst({
+    where: { id: milestoneId, projectId, project: { teamId } },
+  });
+
+  if (!milestone) throw new AuthError("Milestone not found", "NOT_FOUND", 404);
+  await prisma.milestone.delete({ where: { id: milestoneId } });
 }
 
 export function projectProgress(issues: { status: string }[]) {

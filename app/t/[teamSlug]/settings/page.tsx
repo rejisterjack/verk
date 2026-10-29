@@ -1,11 +1,12 @@
 import NextLink from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { SubmitButton as Button } from "@/components/submit-button";
 import { PageHeader } from "@/components/page-header";
 import { deleteTeamAction, updateTeamAction } from "@/lib/actions/teams";
 import { isDemoMode } from "@/lib/utils";
 import { requireTeamBySlug } from "@/lib/rbac";
+import { listMembers } from "@/lib/services/members";
 
 export default async function SettingsPage({
   params,
@@ -22,6 +23,7 @@ export default async function SettingsPage({
   }
   const { team, membership } = teamCtx;
   const canAdmin = membership.role === "ADMIN" || membership.role === "OWNER";
+  const members = canAdmin ? await listMembers(team.id) : [];
 
   return (
     <div className="max-w-2xl space-y-8">
@@ -142,6 +144,62 @@ export default async function SettingsPage({
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
+            <span className="text-muted">Triage owner</span>
+            <select
+              className="rounded-lg border border-separator bg-background px-3 py-2"
+              defaultValue={team.triageOwnerId ?? ""}
+              name="triageOwnerId"
+            >
+              <option value="">None</option>
+              {members.map((member) => (
+                <option key={member.user.id} value={member.user.id}>
+                  {member.user.name ?? member.user.email}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="text-muted">SLA timezone</span>
+            <input
+              className="rounded-lg border border-separator bg-background px-3 py-2"
+              defaultValue={team.timezone}
+              name="timezone"
+              placeholder="UTC"
+            />
+          </label>
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <label className="flex flex-col gap-1">
+              <span className="text-muted">SLA start hour</span>
+              <input
+                className="rounded-lg border border-separator bg-background px-3 py-2"
+                defaultValue={team.slaStartHour}
+                max={23}
+                min={0}
+                name="slaStartHour"
+                type="number"
+              />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-muted">SLA end hour</span>
+              <input
+                className="rounded-lg border border-separator bg-background px-3 py-2"
+                defaultValue={team.slaEndHour}
+                max={24}
+                min={1}
+                name="slaEndHour"
+                type="number"
+              />
+            </label>
+          </div>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="text-muted">SLA weekdays (1=Mon … 7=Sun)</span>
+            <input
+              className="rounded-lg border border-separator bg-background px-3 py-2"
+              defaultValue={team.slaWeekdays}
+              name="slaWeekdays"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
             <span className="text-muted">GitHub repo (owner/name)</span>
             <input
               className="rounded-lg border border-separator bg-background px-3 py-2"
@@ -151,7 +209,7 @@ export default async function SettingsPage({
             />
           </label>
           <div className="grid grid-cols-2 gap-2 text-sm">
-            {(["URGENT", "HIGH", "MEDIUM", "LOW"] as const).map((key) => (
+            {(["NONE", "URGENT", "HIGH", "MEDIUM", "LOW"] as const).map((key) => (
               <label key={key} className="flex flex-col gap-1">
                 <span className="text-muted">{key} SLA hours</span>
                 <input
@@ -204,9 +262,25 @@ export default async function SettingsPage({
       ) : null}
 
       {isDemoMode() ? (
-        <p className="text-sm text-muted">
-          Demo mode is on — team deletion is disabled.
-        </p>
+        <div className="space-y-2">
+          <p className="text-sm text-muted">
+            Demo mode is on — team deletion is disabled.
+          </p>
+          {membership.role === "OWNER" ? (
+            <form
+              action={async () => {
+                "use server";
+                if (!process.env.DEMO_RESET_SECRET) return;
+                const { seedDemo } = await import("@/prisma/seed");
+
+                await seedDemo();
+                redirect(`/t/${teamSlug}/settings`);
+              }}
+            >
+              <Button type="submit">Reset demo data</Button>
+            </form>
+          ) : null}
+        </div>
       ) : null}
     </div>
   );

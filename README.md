@@ -4,7 +4,7 @@
 
 Minimal project management for solo developers and small teams — issues, cycles, board & list views, team RBAC, and a built-in MCP server so AI agents can work your backlog natively.
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Frejisterjack%2Fverk&env=DATABASE_URL,DIRECT_URL,AUTH_SECRET,AUTH_URL&envDescription=Neon%20Postgres%20URLs%20and%20Auth.js%20secret&project-name=verk&repository-name=verk)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Frejisterjack%2Fverk&env=DATABASE_URL,DIRECT_URL,AUTH_SECRET,AUTH_URL&envDescription=Required%3A%20DATABASE_URL%20(Neon%20pooled)%2C%20DIRECT_URL%20(Neon%20direct)%2C%20AUTH_SECRET%2C%20AUTH_URL&project-name=verk&repository-name=verk)
 
 Demo (fake data): [verk.rejisterjack.com](https://verk.rejisterjack.com)
 
@@ -18,23 +18,21 @@ Demo (fake data): [verk.rejisterjack.com](https://verk.rejisterjack.com)
 - Inbox (read + snooze), Triage, Projects, milestones, comments, relations, attachments
 - Saved views (create/edit/delete/pin) and webhooks (secret shown once)
 - Installable PWA with offline issue CRUD plus queued comments and label updates
-- Import from Linear (CSV or first-100 API) under Settings → Import
+- Import from Linear (CSV or API, up to 2,000 issues) under Settings → Import
 - Built-in MCP server at `/api/mcp`
 - One-click Vercel + Neon deploy — **no Docker**
 
-## Demo video (coming soon)
+## Demo
 
-Recording pending — replace this section with a Loom/YouTube link after capture.
+Walk the live demo at [verk.rejisterjack.com](https://verk.rejisterjack.com) (`demo@verk.dev` / `demo1234`): command palette search, create with labels and estimate, board drag, inbox snooze, Settings → Import.
 
-Until then: screenshot at [`public/icons/icon-512.png`](public/icons/icon-512.png).
-
-What to record: ⌘K issue search, create with labels/estimate, board DnD, inbox snooze, Settings → Import.
+A hosted Loom or YouTube recording of those shots is not published yet. Paste that URL here after capture.
 
 ## Quick start (local)
 
 ```bash
 cp .env.example .env
-# Fill DATABASE_URL + DIRECT_URL from Neon, and AUTH_SECRET
+# Required: DATABASE_URL, DIRECT_URL, AUTH_SECRET, AUTH_URL
 npm install
 npm run db:migrate
 npm run db:seed
@@ -46,7 +44,7 @@ Seeded demo login: `demo@verk.dev` / `demo1234` · team slug `acme-engineering`
 ## Deploy checklist
 
 1. Create a Neon project; copy pooled `DATABASE_URL` and direct `DIRECT_URL`.
-2. Deploy to Vercel. Set env vars from `.env.example` (at least the Neon + Auth block; add GitHub / Resend / Blob for those features).
+2. Deploy to Vercel. The button asks for the four required variables: `DATABASE_URL`, `DIRECT_URL`, `AUTH_SECRET`, and `AUTH_URL`. Add GitHub, Resend, or Blob from `.env.example` only for those features.
 3. `vercel-build` runs `prisma migrate deploy` then `next build --webpack`.
 4. Sign in (or seed), confirm issues/board, point your domain.
 
@@ -56,18 +54,22 @@ Copy [`.env.example`](.env.example). Core + integrations for full product surfac
 
 | Variable | Notes |
 |---|---|
-| `DATABASE_URL` | Neon pooled (app runtime) |
-| `DIRECT_URL` | Neon direct (Prisma migrate) |
-| `AUTH_SECRET` | `openssl rand -base64 32` |
-| `AUTH_URL` | App origin; OAuth callback base + invite links |
+| `DATABASE_URL` | Required. Neon pooled connection (app runtime) |
+| `DIRECT_URL` | Required. Neon direct connection (Prisma migrate) |
+| `AUTH_SECRET` | Required. `openssl rand -base64 32` |
+| `AUTH_URL` | Required. App origin; OAuth callback base and invite links |
 | `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET` | GitHub OAuth sign-in (callback: `{AUTH_URL}/api/auth/callback/github`) |
 | `RESEND_API_KEY` / `EMAIL_FROM` | Send team invite emails |
 | `BLOB_READ_WRITE_TOKEN` | Issue attachments via Vercel Blob |
 | `NEXT_PUBLIC_PWA_OFFLINE` | Offline outbox (`true` default; set `false` to disable) |
+| `GITHUB_WEBHOOK_SECRET` | HMAC secret for `POST /api/github/webhook` |
+| `GITHUB_TOKEN` | Comments on linked pull requests when issue status changes |
+| `DEMO_RESET_SECRET` | Header `x-demo-reset-secret` for `POST /api/demo/reset` when `DEMO_MODE=true` |
+| `CAPACITOR_SERVER_URL` | Native shell URL. Defaults to `https://verk.rejisterjack.com` |
 
 Prisma runs `migrate deploy` during `npm run build` / Vercel builds.
 
-There is no GitHub PR/commit sync — GitHub env vars are sign-in only. Outbound webhooks are configured in Settings → Webhooks (no extra env).
+GitHub sign-in uses `AUTH_GITHUB_ID` and `AUTH_GITHUB_SECRET`. A pull request that mentions `KEY-123` is stored as one GitHub link on that issue (`GITHUB_WEBHOOK_SECRET`). When the issue status changes and `GITHUB_TOKEN` is set, Verk posts a comment on that pull request. Verk does not merge pull requests. Outbound webhooks are configured in Settings → Webhooks.
 
 ### Offline / PWA
 
@@ -117,7 +119,9 @@ On seeded `acme-engineering` after migrate + seed:
 - Workflow settings can add statuses beyond the five defaults. Extra keys map onto the nearest built-in status type.
 - Linear API import pages results and stops at 2,000 issues.
 - Offline outbox covers issue CRUD plus comments, labels, estimate, due date, and project.
-- Initiatives, SLA hour targets, and a GitHub pull-request mention webhook are included. Full two-way git status sync and native store apps are not. Install Verk from the browser when the install prompt appears.
+- Initiatives, SLA hour targets, and GitHub pull-request links are included. Status changes comment on linked pull requests when `GITHUB_TOKEN` is set. Verk does not merge pull requests.
+- MCP, SCIM, Linear import, the GitHub webhook, and demo reset are limited to 20 requests per minute per server instance. A second instance has its own counter. The 21st request returns 429.
+- Native shell: `npm run mobile:sync`, then `npm run mobile:ios` or `npm run mobile:android`. App id `com.rejisterjack.verk`. `CAPACITOR_SERVER_URL` defaults to `https://verk.rejisterjack.com`. Store submission still needs your Apple and Google developer accounts, signing, and privacy listings.
 
 ## Stack
 

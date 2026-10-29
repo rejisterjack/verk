@@ -5,6 +5,8 @@ export type LinearNode = {
   state?: { name: string };
   assignee?: { email: string } | null;
   team?: { key: string };
+  labels?: { nodes: { name: string }[] };
+  project?: { name: string } | null;
 };
 
 const LINEAR_PAGE = `
@@ -18,6 +20,8 @@ const LINEAR_PAGE = `
         state { name }
         assignee { email }
         team { key }
+        labels { nodes { name } }
+        project { name }
       }
     }
   }

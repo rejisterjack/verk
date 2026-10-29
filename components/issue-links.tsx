@@ -35,11 +35,25 @@ export function IssueLinks({
       <h2 className="text-sm font-semibold">Links</h2>
       <ul className="mt-2 space-y-1 text-sm">
         {links.map((link) => (
-          <li key={link.id}>
+          <li key={link.id} className="flex items-center gap-2">
             <span className="text-muted">{link.kind}</span>{" "}
             <a className="text-accent" href={link.url} rel="noreferrer" target="_blank">
               {link.url}
             </a>
+            <button
+              className="text-xs text-danger"
+              type="button"
+              onClick={() => {
+                void fetch(`/api/teams/${teamId}/issues/${issueId}/links`, {
+                  method: "DELETE",
+                  credentials: "same-origin",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ id: link.id }),
+                }).then(() => load());
+              }}
+            >
+              Remove
+            </button>
           </li>
         ))}
       </ul>

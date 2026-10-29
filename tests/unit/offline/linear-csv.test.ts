@@ -21,6 +21,16 @@ describe("parseLinearCsv", () => {
     expect(rows[1]?.status).toBe("CANCELLED");
   });
 
+  it("maps labels and project", () => {
+    const csv = `Title,Description,Status,Priority,Assignee,Labels,Project
+"Ship","Details","Todo","Low","demo@verk.dev","Bug, MCP","Launch"
+`;
+    const rows = parseLinearCsv(csv);
+
+    expect(rows[0]?.labels).toEqual(["Bug", "MCP"]);
+    expect(rows[0]?.projectName).toBe("Launch");
+  });
+
   it("throws without Title", () => {
     expect(() => parseLinearCsv("Name\nfoo")).toThrow(/Title/);
   });

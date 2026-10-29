@@ -47,6 +47,15 @@ export default async function IssueDetailPage({
   return (
     <IssueEditor
       canDelete={canDelete}
+      createdAt={issue.createdAt.toISOString()}
+      currentUserId={user.id}
+      slaHours={team.slaHours}
+      slaWindow={{
+        timezone: team.timezone,
+        startHour: team.slaStartHour,
+        endHour: team.slaEndHour,
+        weekdays: team.slaWeekdays,
+      }}
       cycles={cycles.map((c) => ({ id: c.id, name: c.name }))}
       initialIssue={{
         id: issue.id,

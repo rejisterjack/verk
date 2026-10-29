@@ -12,7 +12,7 @@ export default function DocsPage() {
           Getting started
         </h1>
         <p className="mt-3 text-muted">
-          From Neon connection string to a live board in under five minutes.
+          Set DATABASE_URL, DIRECT_URL, AUTH_SECRET, and AUTH_URL. A live board in under five minutes.
         </p>
       </header>
 
@@ -40,10 +40,20 @@ export default function DocsPage() {
             >
               Deploy to Vercel
             </a>{" "}
-            and paste the env vars plus an{" "}
+            and set the four required variables:{" "}
+            <code className="font-mono text-foreground text-sm">
+              DATABASE_URL
+            </code>
+            ,{" "}
+            <code className="font-mono text-foreground text-sm">
+              DIRECT_URL
+            </code>
+            ,{" "}
             <code className="font-mono text-foreground text-sm">
               AUTH_SECRET
             </code>
+            , and{" "}
+            <code className="font-mono text-foreground text-sm">AUTH_URL</code>
             .
           </li>
           <li>
@@ -131,10 +141,12 @@ npm run dev`}</pre>
           </li>
         </ol>
         <p className="text-sm text-muted">
-          CSV import surfaces created/total/errors. Linear API import pages
-          through results and stops at 2,000 issues. Verk is
-          Linear-familiar, not Linear-complete — Initiatives, git automations,
-          and SLAs are out of scope for now.
+          CSV import surfaces created/total/errors and maps Labels and Project
+          columns. Linear API import pages through results, stops at 2,000
+          issues, and maps label and project names. Initiatives and SLA hour
+          targets are included. A merged pull request can mark the linked issue
+          Done. When GITHUB_TOKEN is set, a status change posts a comment on
+          each linked pull request. Verk does not merge pull requests.
         </p>
       </section>
 

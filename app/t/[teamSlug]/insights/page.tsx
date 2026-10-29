@@ -28,6 +28,14 @@ export default async function InsightsPage({
       <p className="text-sm">
         Created {stats.created} · Completed {stats.done}
       </p>
+      <ul className="space-y-1 text-sm">
+        {Object.entries(stats.byStatus).map(([status, count]) => (
+          <li key={status} className="flex justify-between">
+            <span>{status}</span>
+            <span>{count}</span>
+          </li>
+        ))}
+      </ul>
       <ul className="space-y-2 text-sm">
         {stats.cycles.map((cycle) => (
           <li key={cycle.id} className="flex justify-between">

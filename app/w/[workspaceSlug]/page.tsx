@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/page-header";
 import { SubmitButton as Button } from "@/components/submit-button";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { createTeamInWorkspace } from "@/lib/services/workspaces";
 
 export default async function WorkspacePage({
   params,
@@ -71,6 +72,26 @@ export default async function WorkspacePage({
           </li>
         ))}
       </ul>
+      <form
+        action={async (formData) => {
+          "use server";
+          const name = String(formData.get("name") ?? "").trim();
+
+          if (!name) return;
+          const team = await createTeamInWorkspace(workspaceId, name);
+
+          redirect(`/t/${team.slug}/issues`);
+        }}
+        className="mb-6 flex gap-2"
+      >
+        <input
+          required
+          className="flex-1 rounded-lg border border-separator px-3 py-2 text-sm"
+          name="name"
+          placeholder="New team name"
+        />
+        <Button type="submit">Add team</Button>
+      </form>
       <ul className="divide-y divide-separator rounded-xl border border-separator">
         {membership.workspace.teams.map((team) => (
           <li key={team.id}>

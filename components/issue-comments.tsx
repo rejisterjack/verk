@@ -3,19 +3,24 @@
 import { Button } from "@heroui/react";
 import { useEffect, useState } from "react";
 
+const REACTIONS = ["👍", "👀", "🎉", "❤️", "🚀"] as const;
+
 type Comment = {
   id: string;
   body: string;
   createdAt: string;
   author: { id: string; name: string | null; email: string };
+  reactions?: { userId: string; emoji: string }[];
 };
 
 export function IssueComments({
   teamId,
   issueId,
+  currentUserId,
 }: {
   teamId: string;
   issueId: string;
+  currentUserId?: string;
 }) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [body, setBody] = useState("");
@@ -89,26 +94,37 @@ export function IssueComments({
             </p>
             <p className="mt-1 whitespace-pre-wrap">{c.body}</p>
             <div className="mt-2 flex gap-1">
-              {["👍", "👀", "🎉"].map((emoji) => (
-                <button
-                  key={emoji}
-                  className="rounded border border-separator px-1 text-xs"
-                  type="button"
-                  onClick={() => {
-                    void fetch(
-                      `/api/teams/${teamId}/issues/${issueId}/reactions`,
-                      {
-                        method: "POST",
-                        credentials: "same-origin",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ commentId: c.id, emoji }),
-                      },
-                    );
-                  }}
-                >
-                  {emoji}
-                </button>
-              ))}
+              {REACTIONS.map((emoji) => {
+                const matches = (c.reactions ?? []).filter(
+                  (reaction) => reaction.emoji === emoji,
+                );
+                const pressed = matches.some(
+                  (reaction) => reaction.userId === currentUserId,
+                );
+
+                return (
+                  <button
+                    key={emoji}
+                    aria-pressed={pressed}
+                    className={`rounded border px-1 text-xs ${pressed ? "border-accent" : "border-separator"}`}
+                    type="button"
+                    onClick={() => {
+                      void fetch(
+                        `/api/teams/${teamId}/issues/${issueId}/reactions`,
+                        {
+                          method: "POST",
+                          credentials: "same-origin",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ commentId: c.id, emoji }),
+                        },
+                      ).then(() => load());
+                    }}
+                  >
+                    {emoji}
+                    {matches.length > 0 ? ` ${matches.length}` : ""}
+                  </button>
+                );
+              })}
             </div>
             {!c.id.startsWith("tmp-") ? (
               <button

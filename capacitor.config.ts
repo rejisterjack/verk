@@ -3,7 +3,7 @@ const config = {
   appName: "Verk",
   webDir: "public",
   server: {
-    url: "https://verk.rejisterjack.com",
+    url: process.env.CAPACITOR_SERVER_URL || "https://verk.rejisterjack.com",
     cleartext: false,
   },
 };

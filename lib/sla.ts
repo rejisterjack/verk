@@ -1,5 +1,12 @@
 const CLOSED = new Set(["DONE", "CANCELLED"]);
 
+export type SlaWindow = {
+  timezone?: string;
+  startHour?: number;
+  endHour?: number;
+  weekdays?: string;
+};
+
 export function withinSlaWindow(
   now: Date,
   opts: { timezone?: string; startHour?: number; endHour?: number; weekdays?: string },
@@ -35,7 +42,7 @@ export function slaBreached(
   createdAt: Date,
   slaHours: unknown,
   now = new Date(),
-  window?: { timezone?: string; startHour?: number; endHour?: number; weekdays?: string },
+  window?: SlaWindow,
 ): boolean {
   if (CLOSED.has(status)) return false;
   if (window && !withinSlaWindow(now, window)) return false;
