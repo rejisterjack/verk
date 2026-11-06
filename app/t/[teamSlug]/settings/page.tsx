@@ -1,8 +1,8 @@
-import NextLink from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { SubmitButton as Button } from "@/components/submit-button";
 import { PageHeader } from "@/components/page-header";
+import { SettingsNav } from "@/components/settings-nav";
 import { deleteTeamAction, updateTeamAction } from "@/lib/actions/teams";
 import { isDemoMode } from "@/lib/utils";
 import { requireTeamBySlug } from "@/lib/rbac";
@@ -29,55 +29,7 @@ export default async function SettingsPage({
     <div className="max-w-2xl space-y-8">
       <PageHeader title="Team settings" />
 
-      <nav className="flex flex-wrap gap-3 text-sm">
-        <NextLink className="text-accent" href={`/t/${teamSlug}/settings`}>
-          General
-        </NextLink>
-        <NextLink
-          className="text-muted hover:text-foreground"
-          href={`/t/${teamSlug}/settings/members`}
-        >
-          Members
-        </NextLink>
-        <NextLink
-          className="text-muted hover:text-foreground"
-          href={`/t/${teamSlug}/settings/labels`}
-        >
-          Labels
-        </NextLink>
-        <NextLink
-          className="text-muted hover:text-foreground"
-          href={`/t/${teamSlug}/settings/views`}
-        >
-          Views
-        </NextLink>
-        <NextLink
-          className="text-muted hover:text-foreground"
-          href={`/t/${teamSlug}/settings/workflow`}
-        >
-          Workflow
-        </NextLink>
-        <NextLink
-          className="text-muted hover:text-foreground"
-          href={`/t/${teamSlug}/settings/import`}
-        >
-          Import
-        </NextLink>
-        <NextLink
-          className="text-muted hover:text-foreground"
-          href={`/t/${teamSlug}/settings/api-keys`}
-        >
-          API keys
-        </NextLink>
-        {canAdmin ? (
-          <NextLink
-            className="text-muted hover:text-foreground"
-            href={`/t/${teamSlug}/settings/webhooks`}
-          >
-            Webhooks
-          </NextLink>
-        ) : null}
-      </nav>
+      <SettingsNav canAdmin={canAdmin} teamSlug={teamSlug} />
 
       {canAdmin ? (
         <form

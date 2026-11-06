@@ -56,7 +56,11 @@ export function IssueAttachments({
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
 
-      setError(err.error ?? "Upload failed (is BLOB_READ_WRITE_TOKEN set?)");
+      setError(
+        typeof err.error === "string"
+          ? err.error
+          : "Upload unavailable — set BLOB_READ_WRITE_TOKEN to enable attachments.",
+      );
 
       return;
     }

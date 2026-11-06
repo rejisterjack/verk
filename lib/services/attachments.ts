@@ -30,7 +30,7 @@ export async function createAttachment(
 
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     throw new AuthError(
-      "BLOB_READ_WRITE_TOKEN is not configured",
+      "Attachments need BLOB_READ_WRITE_TOKEN. Add a Vercel Blob token to enable uploads.",
       "BAD_REQUEST",
       400,
     );

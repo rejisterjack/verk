@@ -63,8 +63,8 @@ export function MembersSettings({
             setInviteUrl(result.inviteUrl ?? null);
             setMessage(
               result.emailSent
-                ? "Invite emailed and link ready to copy."
-                : `Invite created. ${result.emailError ?? "Email not sent — copy the link."}`,
+                ? "Invite emailed. Link below if you want to share it too."
+                : `Invite created. ${result.emailError ?? "Email not sent — copy the magic link below."}`,
             );
             e.currentTarget.reset();
           }}
@@ -89,21 +89,27 @@ export function MembersSettings({
             <p className="w-full text-sm text-muted">{message}</p>
           ) : null}
           {inviteUrl ? (
-            <div className="w-full flex gap-2 items-center">
-              <input
-                readOnly
-                className="flex-1 rounded-lg border border-separator bg-background px-3 py-2 text-xs"
-                value={inviteUrl}
-              />
-              <Button
-                size="sm"
-                variant="secondary"
-                onPress={async () => {
-                  await navigator.clipboard.writeText(inviteUrl);
-                }}
-              >
-                Copy link
-              </Button>
+            <div className="w-full space-y-1 rounded-lg border border-separator bg-surface p-3">
+              <p className="text-xs font-medium text-foreground">
+                Magic invite link
+              </p>
+              <div className="flex gap-2 items-center">
+                <input
+                  readOnly
+                  aria-label="Invite magic link"
+                  className="flex-1 rounded-lg border border-separator bg-background px-3 py-2 text-xs"
+                  value={inviteUrl}
+                />
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onPress={async () => {
+                    await navigator.clipboard.writeText(inviteUrl);
+                  }}
+                >
+                  Copy link
+                </Button>
+              </div>
             </div>
           ) : null}
         </form>

@@ -333,7 +333,17 @@ export async function insightCounts(teamId: string) {
   const since = new Date();
 
   since.setDate(since.getDate() - 56);
-  const [created, done, statusGroups, cycles] = await Promise.all([
+  const weekStarts: Date[] = [];
+
+  for (let i = 7; i >= 0; i -= 1) {
+    const start = new Date();
+
+    start.setHours(0, 0, 0, 0);
+    start.setDate(start.getDate() - i * 7);
+    weekStarts.push(start);
+  }
+
+  const [created, done, statusGroups, cycles, recentIssues] = await Promise.all([
     prisma.issue.count({ where: { teamId, createdAt: { gte: since } } }),
     prisma.issue.count({
       where: { teamId, status: "DONE", updatedAt: { gte: since } },
@@ -349,11 +359,38 @@ export async function insightCounts(teamId: string) {
       orderBy: { startDate: "desc" },
       take: 6,
     }),
+    prisma.issue.findMany({
+      where: { teamId, createdAt: { gte: since } },
+      select: { createdAt: true, status: true, updatedAt: true },
+    }),
   ]);
+
+  const weekly = weekStarts.map((start, index) => {
+    const end =
+      index < weekStarts.length - 1
+        ? weekStarts[index + 1]!
+        : new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const createdCount = recentIssues.filter(
+      (issue) => issue.createdAt >= start && issue.createdAt < end,
+    ).length;
+    const doneCount = recentIssues.filter(
+      (issue) =>
+        issue.status === "DONE" &&
+        issue.updatedAt >= start &&
+        issue.updatedAt < end,
+    ).length;
+
+    return {
+      label: start.toISOString().slice(5, 10),
+      created: createdCount,
+      done: doneCount,
+    };
+  });
 
   return {
     created,
     done,
+    weekly,
     byStatus: Object.fromEntries(
       statusGroups.map((row) => [row.status, row._count._all]),
     ),
