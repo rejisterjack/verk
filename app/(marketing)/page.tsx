@@ -74,9 +74,9 @@ export default function HomePage() {
 
             <NextLink
               className="inline-flex items-center gap-2 rounded-xl border border-separator/60 px-4 py-3.5 text-xs font-mono text-muted transition-colors hover:text-foreground"
-              href="/register"
+              href="/docs"
             >
-              Self-Host Locally
+              Self-Host Docs
             </NextLink>
           </div>
 

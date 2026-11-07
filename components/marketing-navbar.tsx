@@ -10,9 +10,11 @@ import { ThemeSwitch } from "@/components/theme-switch";
 import { VerkLogo } from "@/components/verk-logo";
 import { siteConfig } from "@/config/site";
 
-export function MarketingNavbar() {
+export function MarketingNavbar({ demoMode = false }: { demoMode?: boolean }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
+  const ctaHref = demoMode ? "/login" : "/register";
+  const ctaLabel = demoMode ? "Try demo" : "Start free";
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-separator/60 bg-background/75 backdrop-blur-xl">
@@ -56,8 +58,8 @@ export function MarketingNavbar() {
           >
             Log in
           </Button>
-          <Button size="sm" onPress={() => router.push("/register")}>
-            Start free
+          <Button size="sm" onPress={() => router.push(ctaHref)}>
+            {ctaLabel}
           </Button>
         </div>
         <div className="flex sm:hidden items-center gap-2">
@@ -83,7 +85,7 @@ export function MarketingNavbar() {
               {item.label}
             </NextLink>
           ))}
-          <Button onPress={() => router.push("/register")}>Start free</Button>
+          <Button onPress={() => router.push(ctaHref)}>{ctaLabel}</Button>
         </div>
       )}
     </nav>

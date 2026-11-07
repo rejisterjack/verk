@@ -21,11 +21,13 @@ import {
 
 export function LoginForm({
   callbackUrl = "/onboarding",
+  demoMode = false,
   githubEnabled,
   googleEnabled,
   oidcEnabled,
 }: {
   callbackUrl?: string;
+  demoMode?: boolean;
   githubEnabled: boolean;
   googleEnabled?: boolean;
   oidcEnabled?: boolean;
@@ -37,12 +39,21 @@ export function LoginForm({
     <div className="mx-auto w-full max-w-md space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">Log in to Verk</h1>
-        <p className="text-muted text-sm mt-1">
-          No account?{" "}
-          <NextLink className="text-accent underline" href="/register">
-            Register
-          </NextLink>
-        </p>
+        {demoMode ? (
+          <p className="text-muted text-sm mt-1">
+            Public demo credentials:{" "}
+            <code className="font-mono text-foreground">demo@verk.dev</code> /{" "}
+            <code className="font-mono text-foreground">demo1234</code>. Open
+            registration is off on this host.
+          </p>
+        ) : (
+          <p className="text-muted text-sm mt-1">
+            No account?{" "}
+            <NextLink className="text-accent underline" href="/register">
+              Register
+            </NextLink>
+          </p>
+        )}
       </div>
 
       {githubEnabled ? (

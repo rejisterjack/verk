@@ -1,6 +1,7 @@
 import { MarketingNavbar } from "@/components/marketing-navbar";
 import { VerkLogo } from "@/components/verk-logo";
 import { siteConfig } from "@/config/site";
+import { isDemoMode } from "@/lib/utils";
 
 export default function MarketingLayout({
   children,
@@ -9,7 +10,7 @@ export default function MarketingLayout({
 }) {
   return (
     <div className="relative flex min-h-screen flex-col">
-      <MarketingNavbar />
+      <MarketingNavbar demoMode={isDemoMode()} />
       <main className="flex-grow">{children}</main>
       <footer className="border-t border-separator">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-10 sm:flex-row sm:items-end sm:justify-between">

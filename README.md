@@ -24,7 +24,9 @@ Demo (fake data): [verk.rejisterjack.com](https://verk.rejisterjack.com)
 
 ## Demo
 
-Walk the live demo at [verk.rejisterjack.com](https://verk.rejisterjack.com) (`demo@verk.dev` / `demo1234`): command palette search, create with labels and estimate, board drag, inbox snooze, Settings → Import.
+The public host [verk.rejisterjack.com](https://verk.rejisterjack.com) is a **shared writable playground** with fake data (`DEMO_MODE=true`). Sign in as `demo@verk.dev` / `demo1234`. Open registration and team deletion are off. Issue/board edits work so you can try the product; data resets daily. Do not put secrets there — self-host for private data.
+
+Walk the demo: command palette search, create with labels and estimate, board drag, inbox snooze, Settings → Import.
 
 Demo clip: [docs/demo.gif](docs/demo.gif).
 

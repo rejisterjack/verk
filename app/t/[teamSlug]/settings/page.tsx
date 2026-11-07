@@ -1,4 +1,4 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
 import { SubmitButton as Button } from "@/components/submit-button";
 import { PageHeader } from "@/components/page-header";
@@ -214,25 +214,10 @@ export default async function SettingsPage({
       ) : null}
 
       {isDemoMode() ? (
-        <div className="space-y-2">
-          <p className="text-sm text-muted">
-            Demo mode is on — team deletion is disabled.
-          </p>
-          {membership.role === "OWNER" ? (
-            <form
-              action={async () => {
-                "use server";
-                if (!process.env.DEMO_RESET_SECRET) return;
-                const { seedDemo } = await import("@/prisma/seed");
-
-                await seedDemo();
-                redirect(`/t/${teamSlug}/settings`);
-              }}
-            >
-              <Button type="submit">Reset demo data</Button>
-            </form>
-          ) : null}
-        </div>
+        <p className="text-sm text-muted">
+          Demo mode is on — team deletion is disabled. Shared demo data resets
+          daily via cron (secret-gated). Do not put real secrets here.
+        </p>
       ) : null}
     </div>
   );

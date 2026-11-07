@@ -7,6 +7,7 @@ import { headers } from "next/headers";
 import { signIn, signOut } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
+import { isDemoMode } from "@/lib/utils";
 import { registerSchema } from "@/lib/validators";
 
 async function authThrottle(action: string) {
@@ -17,6 +18,12 @@ async function authThrottle(action: string) {
 }
 
 export async function registerAction(formData: FormData) {
+  if (isDemoMode()) {
+    return {
+      error: "Registration is disabled on the public demo. Use demo@verk.dev.",
+    };
+  }
+
   const throttle = await authThrottle("register");
 
   if (!throttle.ok) {
