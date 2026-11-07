@@ -1,4 +1,5 @@
 import { LoginForm } from "@/components/auth-form";
+import { isDemoMode } from "@/lib/utils";
 
 export default async function LoginPage({
   searchParams,
@@ -6,10 +7,12 @@ export default async function LoginPage({
   searchParams: Promise<{ callbackUrl?: string }>;
 }) {
   const params = await searchParams;
+  const demo = isDemoMode();
 
   return (
     <LoginForm
       callbackUrl={params.callbackUrl ?? "/onboarding"}
+      demoMode={demo}
       githubEnabled={Boolean(
         process.env.AUTH_GITHUB_ID && process.env.AUTH_GITHUB_SECRET,
       )}

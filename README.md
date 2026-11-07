@@ -24,9 +24,11 @@ Demo (fake data): [verk.rejisterjack.com](https://verk.rejisterjack.com)
 
 ## Demo
 
-Walk the live demo at [verk.rejisterjack.com](https://verk.rejisterjack.com) (`demo@verk.dev` / `demo1234`): command palette search, create with labels and estimate, board drag, inbox snooze, Settings → Import.
+The public host [verk.rejisterjack.com](https://verk.rejisterjack.com) is a **shared writable playground** with fake data (`DEMO_MODE=true`). Sign in as `demo@verk.dev` / `demo1234`. Open registration and team deletion are off. Issue/board edits work so you can try the product; data resets daily. Do not put secrets there — self-host for private data.
 
-A hosted Loom or YouTube recording of those shots is not published yet. Paste that URL here after capture.
+Walk the demo: command palette search, create with labels and estimate, board drag, inbox snooze, Settings → Import.
+
+Demo clip: [docs/demo.gif](docs/demo.gif).
 
 ## Quick start (local)
 
@@ -112,6 +114,18 @@ On seeded `acme-engineering` after migrate + seed:
 7. Settings → Import page loads  
 8. Attachments: without Blob token shows config error; with token uploads  
 
+## CI / Playwright
+
+GitHub Actions lint, typecheck, unit tests, and a production build always run. The **Migrate + Playwright** step runs only when repository secret `DATABASE_URL` is set (plus `DIRECT_URL` / `AUTH_SECRET` for that job). Without those secrets, e2e is skipped — there is no Docker Postgres in CI.
+
+## SCIM
+
+`/api/scim/Users` is Users-only (no Groups). Every list/create call needs `teamId` (query for GET, body for POST) and `Authorization: Bearer $SCIM_TOKEN`. Membership is scoped to that team.
+
+## Capacitor (native shell)
+
+Capacitor wraps the hosted web app — it is a remote shell over `CAPACITOR_SERVER_URL` (default `https://verk.rejisterjack.com`), not an offline-native client. `npm run mobile:sync` then `npm run mobile:ios` / `mobile:android`. App id `com.rejisterjack.verk`. Store submission still needs your Apple/Google developer accounts, signing, and privacy listings.
+
 ## Honest caveats
 
 - Neon free tier sleeps after inactivity — the first load after a quiet period is slow.
@@ -121,7 +135,6 @@ On seeded `acme-engineering` after migrate + seed:
 - Offline outbox covers issue CRUD plus comments, labels, estimate, due date, and project.
 - Initiatives, SLA hour targets, and GitHub pull-request links are included. Status changes comment on linked pull requests when `GITHUB_TOKEN` is set. Verk does not merge pull requests.
 - MCP, SCIM, Linear import, the GitHub webhook, and demo reset are limited to 20 requests per minute per server instance. A second instance has its own counter. The 21st request returns 429.
-- Native shell: `npm run mobile:sync`, then `npm run mobile:ios` or `npm run mobile:android`. App id `com.rejisterjack.verk`. `CAPACITOR_SERVER_URL` defaults to `https://verk.rejisterjack.com`. Store submission still needs your Apple and Google developer accounts, signing, and privacy listings.
 
 ## Stack
 

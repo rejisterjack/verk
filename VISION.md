@@ -28,7 +28,7 @@ Linear is the best project management tool available but it costs money, and the
 
 ## How it is used
 
-1. A developer clicks the Deploy to Vercel button in the README, connects their Neon database, and sets one environment variable
+1. A developer clicks the Deploy to Vercel button in the README, connects their Neon database, and sets `DATABASE_URL`, `DIRECT_URL`, `AUTH_SECRET`, and `AUTH_URL`
 2. Vercel runs the schema migration automatically on first deploy
 3. They invite teammates by email, create a team, and start adding issues
 4. They work through issues on a board or list view, moving them through statuses and grouping them into cycles for sprints
@@ -65,7 +65,7 @@ Linear is the best project management tool available but it costs money, and the
 - Issues, statuses, priorities, cycles, and teams all working end to end
 - Board view and list view
 - A working MCP server that an agent can connect to and use
-- A clean README with a demo video and the deploy button front and centre
+- A clean README with a demo clip (`docs/demo.gif`) and the deploy button front and centre
 - The repo is open source on GitHub at github.com/rejisterjack/verk
 
 ## Honest notes

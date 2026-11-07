@@ -9,7 +9,14 @@ export async function sendInviteEmail(opts: {
   const apiKey = process.env.RESEND_API_KEY;
 
   if (!apiKey) {
-    return { sent: false, error: "RESEND_API_KEY not configured" };
+    console.info(
+      `[verk] RESEND_API_KEY absent — share invite link manually: ${opts.inviteUrl}`,
+    );
+
+    return {
+      sent: false,
+      error: "Email not configured — copy the invite link below",
+    };
   }
 
   const resend = new Resend(apiKey);
@@ -31,9 +38,16 @@ export async function sendInviteEmail(opts: {
 
     return { sent: true };
   } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to send email";
+
+    console.info(
+      `[verk] Invite email failed (${message}) — share invite link manually: ${opts.inviteUrl}`,
+    );
+
     return {
       sent: false,
-      error: error instanceof Error ? error.message : "Failed to send email",
+      error: `${message} — copy the invite link below`,
     };
   }
 }

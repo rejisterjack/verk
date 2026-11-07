@@ -4,6 +4,7 @@ import clsx from "clsx";
 
 import { Providers } from "./providers";
 
+import { DemoBanner } from "@/components/demo-banner";
 import { siteConfig } from "@/config/site";
 import { fontDisplay, fontMono, fontSans } from "@/config/fonts";
 
@@ -57,6 +58,7 @@ export default function RootLayout({
         )}
       >
         <Providers themeProps={{ attribute: "class", defaultTheme: "light" }}>
+          <DemoBanner />
           {children}
         </Providers>
       </body>
