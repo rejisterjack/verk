@@ -1,6 +1,6 @@
 "use client";
 
-import type { ChangeEvent } from "react";
+import { Checkbox, CheckboxGroup, Label } from "@heroui/react";
 
 import { groupLabels } from "@/lib/labels";
 
@@ -23,44 +23,54 @@ export function LabelChecklist({
   onToggle?: (id: string, checked: boolean) => void;
 }) {
   const groups = groupLabels(labels);
+  const controlled = Boolean(onToggle);
 
   return (
     <div className="space-y-3">
-      {groups.map((group) => (
-        <div key={group.name || "all"}>
-          {group.name ? (
-            <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted">
-              {group.name}
-            </p>
-          ) : null}
-          <div className="flex flex-wrap gap-2">
+      {groups.map((group) => {
+        const groupIds = group.labels.map((label) => label.id);
+        const groupValue = controlled
+          ? groupIds.filter((id) => selected?.has(id))
+          : undefined;
+
+        return (
+          <CheckboxGroup
+            key={group.name || "all"}
+            name={name}
+            {...(controlled
+              ? {
+                  value: groupValue,
+                  onChange: (values: string[]) => {
+                    if (!onToggle) return;
+                    for (const id of groupIds) {
+                      const next = values.includes(id);
+                      const prev = selected?.has(id) ?? false;
+
+                      if (next !== prev) onToggle(id, next);
+                    }
+                  },
+                }
+              : {})}
+          >
+            <Label>{group.name || "Labels"}</Label>
             {group.labels.map((label) => (
-              <label
-                key={label.id}
-                className="inline-flex items-center gap-1.5 rounded-md border border-separator px-2 py-1"
-              >
-                <input
-                  name={name}
-                  type="checkbox"
-                  value={label.id}
-                  {...(onToggle
-                    ? {
-                        checked: selected?.has(label.id) ?? false,
-                        onChange: (event: ChangeEvent<HTMLInputElement>) =>
-                          onToggle(label.id, event.target.checked),
-                      }
-                    : {})}
-                />
-                <span
-                  className="size-2 rounded-full"
-                  style={{ background: label.color }}
-                />
-                {label.name}
-              </label>
+              <Checkbox key={label.id} value={label.id}>
+                <Checkbox.Content>
+                  <Checkbox.Control>
+                    <Checkbox.Indicator />
+                  </Checkbox.Control>
+                  <span
+                    aria-hidden
+                    className="inline-block size-2 rounded-full"
+                    style={{ background: label.color }}
+                  />
+                  {label.name}
+                </Checkbox.Content>
+              </Checkbox>
             ))}
-          </div>
-        </div>
-      ))}
+          </CheckboxGroup>
+        );
+      })}
     </div>
   );
 }

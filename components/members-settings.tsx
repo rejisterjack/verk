@@ -1,8 +1,9 @@
 "use client";
 
-import { Button } from "@heroui/react";
+import { Button, Form, Input, Label, TextField } from "@heroui/react";
 import { useState } from "react";
 
+import { SelectField } from "@/components/ui/select-field";
 import {
   inviteMemberAction,
   removeMemberAction,
@@ -46,8 +47,8 @@ export function MembersSettings({
   return (
     <div className="space-y-8">
       {canAdmin ? (
-        <form
-          className="flex flex-wrap gap-2 rounded-xl border border-separator p-4"
+        <Form
+          className="flex flex-wrap items-end gap-2 rounded-xl border border-separator p-4"
           onSubmit={async (e) => {
             e.preventDefault();
             setMessage(null);
@@ -69,21 +70,24 @@ export function MembersSettings({
             e.currentTarget.reset();
           }}
         >
-          <input
-            required
-            className="min-w-56 flex-1 rounded-lg border border-separator bg-background px-3 py-2 text-sm"
+          <TextField
+            isRequired
+            className="min-w-56 flex-1"
             name="email"
-            placeholder="teammate@company.com"
             type="email"
-          />
-          <select
-            className="rounded-lg border border-separator bg-background px-3 py-2 text-sm"
-            defaultValue="MEMBER"
-            name="role"
           >
-            <option value="MEMBER">Member</option>
-            <option value="ADMIN">Admin</option>
-          </select>
+            <Label>Email</Label>
+            <Input placeholder="teammate@company.com" />
+          </TextField>
+          <SelectField
+            defaultValue="MEMBER"
+            label="Role"
+            name="role"
+            options={[
+              { id: "MEMBER", label: "Member" },
+              { id: "ADMIN", label: "Admin" },
+            ]}
+          />
           <Button type="submit">Invite</Button>
           {message ? (
             <p className="w-full text-sm text-muted">{message}</p>
@@ -93,13 +97,16 @@ export function MembersSettings({
               <p className="text-xs font-medium text-foreground">
                 Magic invite link
               </p>
-              <div className="flex gap-2 items-center">
-                <input
-                  readOnly
+              <div className="flex gap-2 items-end">
+                <TextField
+                  isReadOnly
                   aria-label="Invite magic link"
-                  className="flex-1 rounded-lg border border-separator bg-background px-3 py-2 text-xs"
+                  className="flex-1"
                   value={inviteUrl}
-                />
+                >
+                  <Label>Invite link</Label>
+                  <Input />
+                </TextField>
                 <Button
                   size="sm"
                   variant="secondary"
@@ -112,7 +119,7 @@ export function MembersSettings({
               </div>
             </div>
           ) : null}
-        </form>
+        </Form>
       ) : null}
 
       <div className="overflow-x-auto rounded-xl border border-separator">
@@ -136,26 +143,21 @@ export function MembersSettings({
                 </td>
                 <td className="px-4 py-3">
                   {canAdmin ? (
-                    <form
-                      onChange={async (e) => {
-                        const form = e.currentTarget;
-                        const formData = new FormData(form);
+                    <SelectField
+                      defaultValue={m.role}
+                      label="Role"
+                      name="role"
+                      options={Object.entries(ROLE_LABELS).map(
+                        ([id, label]) => ({ id, label }),
+                      )}
+                      onChange={async (key) => {
+                        if (key == null) return;
+                        const formData = new FormData();
 
+                        formData.set("role", String(key));
                         await updateMemberRoleAction(teamSlug, m.id, formData);
                       }}
-                    >
-                      <select
-                        className="rounded-lg border border-separator bg-background px-2 py-1"
-                        defaultValue={m.role}
-                        name="role"
-                      >
-                        {Object.entries(ROLE_LABELS).map(([value, label]) => (
-                          <option key={value} value={value}>
-                            {label}
-                          </option>
-                        ))}
-                      </select>
-                    </form>
+                    />
                   ) : (
                     ROLE_LABELS[m.role]
                   )}

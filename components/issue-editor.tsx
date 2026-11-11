@@ -2,7 +2,16 @@
 
 import type { LocalIssue } from "@/lib/offline/db";
 
-import { Button } from "@heroui/react";
+import { parseDate } from "@internationalized/date";
+import {
+  Button,
+  DateField,
+  Form,
+  Input,
+  Label,
+  Switch,
+  TextField,
+} from "@heroui/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -16,6 +25,7 @@ import { IssueComments } from "@/components/issue-comments";
 import { IssueRelations } from "@/components/issue-relations";
 import { PageHeader } from "@/components/page-header";
 import { ConflictModal } from "@/components/pwa/conflict-modal";
+import { SelectField } from "@/components/ui/select-field";
 import { deleteIssueAction, updateIssueAction } from "@/lib/actions/issues";
 import { ESTIMATE_LABELS, PRIORITY_LABELS, STATUS_LABELS } from "@/lib/labels";
 import { isOfflineEnabled } from "@/lib/offline/feature";
@@ -271,7 +281,7 @@ export function IssueEditor({
         title={issue.title}
       />
 
-      <form
+      <Form
         className="flex flex-col gap-4"
         onSubmit={async (e) => {
           e.preventDefault();
@@ -280,160 +290,124 @@ export function IssueEditor({
       >
         <input name="labelsTouched" type="hidden" value="1" />
         <input name="revision" type="hidden" value={issue.revision} />
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-muted">Title</span>
-          <input
-            key={issue.title + issue.revision}
-            required
-            className="rounded-lg border border-separator bg-background px-3 py-2"
-            defaultValue={issue.title}
-            name="title"
-          />
-        </label>
-        <div className="flex flex-col gap-1 text-sm">
-          <span className="text-muted">Description</span>
+        <TextField
+          key={issue.title + issue.revision}
+          isRequired
+          defaultValue={issue.title}
+          name="title"
+        >
+          <Label>Title</Label>
+          <Input />
+        </TextField>
+        <div className="flex flex-col gap-1">
           <MarkdownField defaultValue={issue.description} name="description" />
           <MarkdownBody text={issue.description} />
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-muted">Status</span>
-            <select
-              key={"s" + (issue.workflowStatusId ?? issue.status)}
-              className="rounded-lg border border-separator bg-background px-3 py-2"
-              defaultValue={issue.workflowStatusId ?? issue.status}
-              name={workflows.length ? "workflowStatusId" : "status"}
-            >
-              {workflows.length
-                ? workflows.map((workflow) => (
-                    <option key={workflow.id} value={workflow.id}>
-                      {workflow.name}
-                    </option>
-                  ))
-                : Object.entries(STATUS_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-muted">Priority</span>
-            <select
-              key={"p" + issue.priority}
-              className="rounded-lg border border-separator bg-background px-3 py-2"
-              defaultValue={issue.priority}
-              name="priority"
-            >
-              {Object.entries(PRIORITY_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-muted">Estimate</span>
-            <select
-              className="rounded-lg border border-separator bg-background px-3 py-2"
-              defaultValue={issue.estimate ?? "NONE"}
-              name="estimate"
-            >
-              {Object.entries(ESTIMATE_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-muted">Due date</span>
-            <input
-              className="rounded-lg border border-separator bg-background px-3 py-2"
-              defaultValue={dueValue}
-              name="dueDate"
-              type="date"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-muted">Assignee</span>
-            <select
-              className="rounded-lg border border-separator bg-background px-3 py-2"
-              defaultValue={issue.assigneeId ?? ""}
-              name="assigneeId"
-            >
-              <option value="">Unassigned</option>
-              {members.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name ?? m.email}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-muted">Cycle</span>
-            <select
-              className="rounded-lg border border-separator bg-background px-3 py-2"
-              defaultValue={issue.cycleId ?? ""}
-              name="cycleId"
-            >
-              <option value="">No cycle</option>
-              {cycles.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-            <span className="text-muted">Project</span>
-            <select
-              className="rounded-lg border border-separator bg-background px-3 py-2"
-              defaultValue={issue.projectId ?? ""}
+          <SelectField
+            key={"s" + (issue.workflowStatusId ?? issue.status)}
+            isRequired
+            defaultValue={issue.workflowStatusId ?? issue.status}
+            label="Status"
+            name={workflows.length ? "workflowStatusId" : "status"}
+            options={
+              workflows.length
+                ? workflows.map((workflow) => ({
+                    id: workflow.id,
+                    label: workflow.name,
+                  }))
+                : Object.entries(STATUS_LABELS).map(([id, label]) => ({
+                    id,
+                    label,
+                  }))
+            }
+          />
+          <SelectField
+            key={"p" + issue.priority}
+            isRequired
+            defaultValue={issue.priority}
+            label="Priority"
+            name="priority"
+            options={Object.entries(PRIORITY_LABELS).map(([id, label]) => ({
+              id,
+              label,
+            }))}
+          />
+          <SelectField
+            defaultValue={issue.estimate ?? "NONE"}
+            label="Estimate"
+            name="estimate"
+            options={Object.entries(ESTIMATE_LABELS).map(([id, label]) => ({
+              id,
+              label,
+            }))}
+          />
+          <DateField
+            defaultValue={dueValue ? parseDate(dueValue) : null}
+            name="dueDate"
+          >
+            <Label>Due date</Label>
+            <DateField.Group>
+              <DateField.Input>
+                {(segment) => <DateField.Segment segment={segment} />}
+              </DateField.Input>
+            </DateField.Group>
+          </DateField>
+          <SelectField
+            clearable
+            defaultValue={issue.assigneeId ?? undefined}
+            label="Assignee"
+            name="assigneeId"
+            options={members.map((m) => ({
+              id: m.id,
+              label: m.name ?? m.email,
+            }))}
+            placeholder="Unassigned"
+          />
+          <SelectField
+            clearable
+            defaultValue={issue.cycleId ?? undefined}
+            label="Cycle"
+            name="cycleId"
+            options={cycles.map((c) => ({ id: c.id, label: c.name }))}
+            placeholder="No cycle"
+          />
+          <div className="sm:col-span-2">
+            <SelectField
+              clearable
+              defaultValue={issue.projectId ?? undefined}
+              label="Project"
               name="projectId"
-            >
-              <option value="">No project</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-            <span className="text-muted">Milestone</span>
-            <select
-              className="rounded-lg border border-separator bg-background px-3 py-2"
-              defaultValue={issue.milestoneId ?? ""}
+              options={projects.map((p) => ({ id: p.id, label: p.name }))}
+              placeholder="No project"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <SelectField
+              clearable
+              defaultValue={issue.milestoneId ?? undefined}
+              label="Milestone"
               name="milestoneId"
-            >
-              <option value="">No milestone</option>
-              {milestones.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-          </label>
+              options={milestones.map((m) => ({ id: m.id, label: m.name }))}
+              placeholder="No milestone"
+            />
+          </div>
         </div>
         {labels.length ? (
-          <fieldset className="text-sm">
-            <legend className="mb-1 text-muted">Labels</legend>
-            <LabelChecklist
-              labels={labels}
-              selected={selectedLabels}
-              onToggle={(id, checked) => {
-                setSelectedLabels((prev) => {
-                  const next = new Set(prev);
+          <LabelChecklist
+            labels={labels}
+            selected={selectedLabels}
+            onToggle={(id, checked) => {
+              setSelectedLabels((prev) => {
+                const next = new Set(prev);
 
-                  if (checked) next.add(id);
-                  else next.delete(id);
+                if (checked) next.add(id);
+                else next.delete(id);
 
-                  return next;
-                });
-              }}
-            />
-          </fieldset>
+                return next;
+              });
+            }}
+          />
         ) : null}
         {error ? <p className="text-sm text-danger">{error}</p> : null}
         <div className="flex gap-2">
@@ -441,7 +415,7 @@ export function IssueEditor({
             {pending ? "Saving…" : "Save changes"}
           </Button>
         </div>
-      </form>
+      </Form>
 
       <IssueRelations issueId={issue.id} teamId={teamId} teamSlug={teamSlug} />
       <IssueLinks issueId={issue.id} teamId={teamId} />
@@ -533,17 +507,22 @@ function SubscribeToggle({
   }, [teamId, issueId]);
 
   return (
-    <button
-      className="mt-6 text-sm text-accent"
-      type="button"
-      onClick={() => {
+    <Switch
+      className="mt-6"
+      isSelected={on}
+      onChange={(selected) => {
         void fetch(`/api/teams/${teamId}/issues/${issueId}/subscription`, {
-          method: on ? "DELETE" : "POST",
+          method: selected ? "POST" : "DELETE",
           credentials: "same-origin",
-        }).then(() => setOn((v) => !v));
+        }).then(() => setOn(selected));
       }}
     >
-      {on ? "Unsubscribe" : "Subscribe"}
-    </button>
+      <Switch.Control>
+        <Switch.Thumb />
+      </Switch.Control>
+      <Switch.Content>
+        <Label>{on ? "Subscribed" : "Subscribe"}</Label>
+      </Switch.Content>
+    </Switch>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { Button, ButtonGroup, Label, TextArea, TextField } from "@heroui/react";
 import { useRef } from "react";
 
 export function MarkdownField({
@@ -29,43 +30,43 @@ export function MarkdownField({
   }
 
   return (
-    <div className="flex flex-col gap-1">
-      <div className="flex gap-1 text-xs">
-        <button
-          className="rounded border border-separator px-2 py-1"
+    <TextField defaultValue={defaultValue} name={name}>
+      <Label>Description</Label>
+      <ButtonGroup>
+        <Button
+          size="sm"
           type="button"
-          onClick={() => insert("**")}
+          variant="secondary"
+          onPress={() => insert("**")}
         >
           Bold
-        </button>
-        <button
-          className="rounded border border-separator px-2 py-1"
+        </Button>
+        <Button
+          size="sm"
           type="button"
-          onClick={() => insert("\n- ", "")}
+          variant="secondary"
+          onPress={() => insert("\n- ", "")}
         >
           List
-        </button>
-        <button
-          className="rounded border border-separator px-2 py-1"
+        </Button>
+        <Button
+          size="sm"
           type="button"
-          onClick={() => insert("[", "](https://)")}
+          variant="secondary"
+          onPress={() => insert("[", "](https://)")}
         >
           Link
-        </button>
-        <button
-          className="rounded border border-separator px-2 py-1"
+        </Button>
+        <Button
+          size="sm"
           type="button"
-          onClick={() => insert("`")}
+          variant="secondary"
+          onPress={() => insert("`")}
         >
           Code
-        </button>
-      </div>
-      <textarea
-        ref={ref}
-        className="min-h-40 rounded-lg border border-separator bg-background px-3 py-2"
-        defaultValue={defaultValue}
-        name={name}
-      />
-    </div>
+        </Button>
+      </ButtonGroup>
+      <TextArea ref={ref} rows={8} />
+    </TextField>
   );
 }

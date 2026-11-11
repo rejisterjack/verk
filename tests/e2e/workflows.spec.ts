@@ -48,3 +48,17 @@ test("add relation by issue number", async ({ page }) => {
   await row.getByRole("button", { name: /^Remove$/ }).click();
   await expect(link).toHaveCount(0, { timeout: 10_000 });
 });
+
+test("create initiative on initiatives page", async ({ page }) => {
+  await loginAsDemo(page);
+  await page.goto("/t/acme-engineering/initiatives");
+  await expect(
+    page.getByRole("heading", { name: "Initiatives" }),
+  ).toBeVisible();
+
+  const title = `E2E Initiative ${Date.now()}`;
+  await page.getByPlaceholder(/Q4 Mobile App Launch/i).fill(title);
+  await page.getByRole("button", { name: /create initiative/i }).click();
+
+  await expect(page.getByText(title)).toBeVisible({ timeout: 10_000 });
+});

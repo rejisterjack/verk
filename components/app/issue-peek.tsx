@@ -2,10 +2,13 @@
 
 import type { IssueStatus, Priority } from "@/lib/generated/prisma/client";
 
+import { Button, Link } from "@heroui/react";
 import NextLink from "next/link";
 
 import { MarkdownBody } from "@/components/markdown-body";
 import { PriorityChip, StatusChip } from "@/components/status-chip";
+import { SelectField } from "@/components/ui/select-field";
+import { PRIORITY_LABELS, STATUS_LABELS } from "@/lib/labels";
 import { issueKey } from "@/lib/utils";
 
 export type PeekIssue = {
@@ -43,13 +46,9 @@ export function IssuePeek({
         <span className="text-xs text-muted">
           {issueKey(teamSlug, issue.number)}
         </span>
-        <button
-          className="rounded-lg px-2 py-1 text-sm text-muted hover:bg-default"
-          type="button"
-          onClick={onClose}
-        >
+        <Button size="sm" variant="ghost" onPress={onClose}>
           Esc
-        </button>
+        </Button>
       </div>
       <div className="flex-1 overflow-auto p-4">
         <h2 className="text-lg font-semibold leading-snug">{issue.title}</h2>
@@ -58,65 +57,58 @@ export function IssuePeek({
           <PriorityChip priority={issue.priority} />
         </div>
         {teamId ? (
-          <div>
-            <label className="mt-3 block text-xs text-muted">
-              Status
-              <select
-                className="mt-1 w-full rounded-lg border border-separator bg-background px-2 py-1 text-sm text-foreground"
-                defaultValue={issue.status}
-                onChange={(event) => {
-                  const value = event.target.value;
+          <div className="mt-3 flex flex-col gap-3">
+            <SelectField
+              defaultValue={
+                workflows.length
+                  ? (workflows[0]?.id ?? issue.status)
+                  : issue.status
+              }
+              label="Status"
+              options={
+                workflows.length
+                  ? workflows.map((workflow) => ({
+                      id: workflow.id,
+                      label: workflow.name,
+                    }))
+                  : Object.entries(STATUS_LABELS).map(([id, label]) => ({
+                      id,
+                      label,
+                    }))
+              }
+              onChange={(key) => {
+                if (key == null) return;
+                const value = String(key);
 
-                  void fetch(`/api/teams/${teamId}/issues/${issue.id}`, {
-                    method: "PATCH",
-                    credentials: "same-origin",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(
-                      workflows.length
-                        ? { workflowStatusId: value }
-                        : { status: value },
-                    ),
-                  });
-                }}
-              >
-                {workflows.length ? (
-                  workflows.map((workflow) => (
-                    <option key={workflow.id} value={workflow.id}>
-                      {workflow.name}
-                    </option>
-                  ))
-                ) : (
-                  <>
-                    <option value="BACKLOG">Backlog</option>
-                    <option value="TODO">Todo</option>
-                    <option value="IN_PROGRESS">In progress</option>
-                    <option value="DONE">Done</option>
-                    <option value="CANCELLED">Canceled</option>
-                  </>
-                )}
-              </select>
-            </label>
-            <label className="mt-2 block text-xs text-muted">
-              Priority
-              <select
-                className="mt-1 w-full rounded-lg border border-separator bg-background px-2 py-1 text-sm text-foreground"
-                defaultValue={issue.priority}
-                onChange={(event) => {
-                  void fetch(`/api/teams/${teamId}/issues/${issue.id}`, {
-                    method: "PATCH",
-                    credentials: "same-origin",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ priority: event.target.value }),
-                  });
-                }}
-              >
-                <option value="NONE">No priority</option>
-                <option value="URGENT">Urgent</option>
-                <option value="HIGH">High</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="LOW">Low</option>
-              </select>
-            </label>
+                void fetch(`/api/teams/${teamId}/issues/${issue.id}`, {
+                  method: "PATCH",
+                  credentials: "same-origin",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(
+                    workflows.length
+                      ? { workflowStatusId: value }
+                      : { status: value },
+                  ),
+                });
+              }}
+            />
+            <SelectField
+              defaultValue={issue.priority}
+              label="Priority"
+              options={Object.entries(PRIORITY_LABELS).map(([id, label]) => ({
+                id,
+                label,
+              }))}
+              onChange={(key) => {
+                if (key == null) return;
+                void fetch(`/api/teams/${teamId}/issues/${issue.id}`, {
+                  method: "PATCH",
+                  credentials: "same-origin",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ priority: String(key) }),
+                });
+              }}
+            />
           </div>
         ) : null}
         <div className="mt-4">
@@ -124,12 +116,17 @@ export function IssuePeek({
         </div>
       </div>
       <div className="border-t border-separator p-4">
-        <NextLink
-          className="inline-flex rounded-lg bg-accent px-3 py-2 text-sm font-medium text-accent-foreground"
-          href={href}
+        <Link
+          render={(domProps) => (
+            <NextLink
+              {...domProps}
+              ref={domProps.ref as React.Ref<HTMLAnchorElement>}
+              href={href}
+            />
+          )}
         >
           Open full issue
-        </NextLink>
+        </Link>
       </div>
     </div>
   );

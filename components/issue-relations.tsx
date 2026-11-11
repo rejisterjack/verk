@@ -1,7 +1,11 @@
 "use client";
 
-import { Button } from "@heroui/react";
+import type { Key } from "@heroui/react";
+
+import { Button, Form, Input, Label, TextField } from "@heroui/react";
 import { useEffect, useState } from "react";
+
+import { SelectField } from "@/components/ui/select-field";
 
 type Rel = {
   id: string;
@@ -20,7 +24,7 @@ export function IssueRelations({
   issueId: string;
 }) {
   const [relations, setRelations] = useState<Rel[]>([]);
-  const [type, setType] = useState("RELATED");
+  const [type, setType] = useState<Key>("RELATED");
   const [targetNumber, setTargetNumber] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -71,7 +75,7 @@ export function IssueRelations({
         method: "POST",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ toIssueId: match.id, type }),
+        body: JSON.stringify({ toIssueId: match.id, type: String(type) }),
       },
     );
 
@@ -146,28 +150,31 @@ export function IssueRelations({
           <li className="text-muted">No relations yet.</li>
         ) : null}
       </ul>
-      <form className="mt-3 flex flex-wrap gap-2" onSubmit={add}>
-        <select
-          className="rounded-lg border border-separator bg-background px-2 py-1.5 text-sm"
+      <Form className="mt-3 flex flex-wrap items-end gap-2" onSubmit={add}>
+        <SelectField
+          label="Relation"
+          options={[
+            { id: "RELATED", label: "Related" },
+            { id: "BLOCKS", label: "Blocks" },
+            { id: "BLOCKED_BY", label: "Blocked by" },
+            { id: "PARENT", label: "Parent" },
+            { id: "CHILD", label: "Child" },
+          ]}
           value={type}
-          onChange={(e) => setType(e.target.value)}
-        >
-          <option value="RELATED">Related</option>
-          <option value="BLOCKS">Blocks</option>
-          <option value="BLOCKED_BY">Blocked by</option>
-          <option value="PARENT">Parent</option>
-          <option value="CHILD">Child</option>
-        </select>
-        <input
-          className="w-28 rounded-lg border border-separator bg-background px-2 py-1.5 text-sm"
-          placeholder="Issue #"
-          value={targetNumber}
-          onChange={(e) => setTargetNumber(e.target.value)}
+          onChange={(key) => setType(key ?? "RELATED")}
         />
+        <TextField
+          name="targetNumber"
+          value={targetNumber}
+          onChange={setTargetNumber}
+        >
+          <Label>Issue #</Label>
+          <Input placeholder="42" />
+        </TextField>
         <Button size="sm" type="submit" variant="tertiary">
           Add
         </Button>
-      </form>
+      </Form>
       {error ? <p className="mt-1 text-xs text-danger">{error}</p> : null}
     </section>
   );

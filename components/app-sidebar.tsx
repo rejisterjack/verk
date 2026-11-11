@@ -17,6 +17,7 @@ import NextLink from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { InstallPrompt } from "@/components/pwa/install-prompt";
+import { SelectField } from "@/components/ui/select-field";
 import { VerkLogo } from "@/components/verk-logo";
 import { logoutAction } from "@/lib/actions/auth";
 
@@ -144,25 +145,17 @@ export function AppSidebar({
         </NextLink>
       ) : null}
 
-      <label className="flex flex-col gap-1 px-1 text-sm">
-        <span className="text-muted text-[10px] uppercase tracking-wide">
-          Team
-        </span>
-        <select
+      <div className="px-1">
+        <SelectField
           aria-label="Switch team"
-          className="rounded-md border border-separator bg-background px-2 py-1.5 text-sm"
+          label="Team"
+          options={teams.map((t) => ({ id: t.slug, label: t.name }))}
           value={teamSlug}
-          onChange={(e) => {
-            router.push(`/t/${e.target.value}/issues`);
+          onChange={(key) => {
+            if (key != null) router.push(`/t/${String(key)}/issues`);
           }}
-        >
-          {teams.map((t) => (
-            <option key={t.slug} value={t.slug}>
-              {t.name}
-            </option>
-          ))}
-        </select>
-      </label>
+        />
+      </div>
 
       <nav className="flex flex-col gap-0.5">
         {links.map((link) => {

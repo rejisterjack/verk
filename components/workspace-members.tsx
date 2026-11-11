@@ -1,8 +1,10 @@
 "use client";
 
+import { Form, Input, Label, TextField } from "@heroui/react";
 import { useState } from "react";
 
 import { SubmitButton as Button } from "@/components/submit-button";
+import { SelectField } from "@/components/ui/select-field";
 import {
   inviteWorkspaceMemberAction,
   removeWorkspaceMemberAction,
@@ -50,8 +52,8 @@ export function WorkspaceMembers({
   return (
     <div className="mb-6 space-y-4">
       {canAdmin ? (
-        <form
-          className="flex flex-wrap gap-2"
+        <Form
+          className="flex flex-wrap items-end gap-2"
           onSubmit={async (event) => {
             event.preventDefault();
             const form = event.currentTarget;
@@ -79,33 +81,38 @@ export function WorkspaceMembers({
             form.reset();
           }}
         >
-          <input
-            required
-            className="min-w-48 flex-1 rounded-lg border border-separator px-3 py-2 text-sm"
+          <TextField
+            isRequired
+            className="min-w-48 flex-1"
             name="email"
-            placeholder="teammate@company.com"
             type="email"
-          />
-          <select
-            className="rounded-lg border border-separator bg-background px-3 py-2 text-sm"
-            defaultValue="MEMBER"
-            name="role"
           >
-            <option value="MEMBER">Member</option>
-            <option value="ADMIN">Admin</option>
-            <option value="GUEST">Guest</option>
-          </select>
+            <Label>Email</Label>
+            <Input placeholder="teammate@company.com" />
+          </TextField>
+          <SelectField
+            defaultValue="MEMBER"
+            label="Role"
+            name="role"
+            options={[
+              { id: "MEMBER", label: "Member" },
+              { id: "ADMIN", label: "Admin" },
+              { id: "GUEST", label: "Guest" },
+            ]}
+          />
           <Button type="submit">Invite</Button>
-        </form>
+        </Form>
       ) : null}
       {message ? <p className="text-sm text-muted">{message}</p> : null}
       {inviteUrl ? (
-        <input
-          readOnly
+        <TextField
+          isReadOnly
           aria-label="Workspace invite link"
-          className="w-full rounded-lg border border-separator bg-background px-3 py-2 text-xs"
           value={inviteUrl}
-        />
+        >
+          <Label>Invite link</Label>
+          <Input />
+        </TextField>
       ) : null}
       <ul className="divide-y divide-separator rounded-xl border border-separator text-sm">
         {members.map((member) => {
@@ -135,19 +142,17 @@ export function WorkspaceMembers({
                       "error" in result && result.error ? result.error : null,
                     );
                   }}
-                  className="flex items-center gap-2"
+                  className="flex items-end gap-2"
                 >
-                  <select
-                    className="rounded border border-separator bg-background px-2 py-1"
+                  <SelectField
                     defaultValue={member.role}
+                    label="Role"
                     name="role"
-                  >
-                    {roleOptions.map((role) => (
-                      <option key={role} value={role}>
-                        {ROLE_LABELS[role]}
-                      </option>
-                    ))}
-                  </select>
+                    options={roleOptions.map((role) => ({
+                      id: role,
+                      label: ROLE_LABELS[role],
+                    }))}
+                  />
                   <Button size="sm" type="submit" variant="ghost">
                     Save role
                   </Button>

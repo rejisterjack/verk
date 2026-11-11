@@ -1,18 +1,24 @@
 "use client";
 
+import type { Key } from "@heroui/react";
+
 import {
   Button,
+  DateField,
   FieldError,
   Form,
   Input,
   Label,
+  Modal,
   TextArea,
   TextField,
+  useOverlayState,
 } from "@heroui/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { LabelChecklist } from "@/components/label-checklist";
+import { SelectField } from "@/components/ui/select-field";
 import { createIssueAction } from "@/lib/actions/issues";
 import { ESTIMATE_LABELS, PRIORITY_LABELS, STATUS_LABELS } from "@/lib/labels";
 import { isOfflineEnabled } from "@/lib/offline/feature";
@@ -58,268 +64,250 @@ export function CreateIssueForm({
   templates?: TemplateOpt[];
 }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const modal = useOverlayState();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const [templateId, setTemplateId] = useState("");
-  const template = templates.find((item) => item.id === templateId);
+  const [templateId, setTemplateId] = useState<Key | null>(null);
+  const template = templates.find(
+    (item) => item.id === String(templateId ?? ""),
+  );
 
   useEffect(() => {
-    const openHandler = () => setOpen(true);
+    const openHandler = () => modal.open();
 
     window.addEventListener("verk:create-issue", openHandler);
 
     return () => window.removeEventListener("verk:create-issue", openHandler);
-  }, []);
-
-  if (!open) {
-    return <Button onPress={() => setOpen(true)}>New issue</Button>;
-  }
+  }, [modal]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-xl border border-separator bg-background p-6 shadow-xl">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Create issue</h2>
-          <Button size="sm" variant="ghost" onPress={() => setOpen(false)}>
-            Close
-          </Button>
-        </div>
-        <Form
-          className="flex flex-col gap-3"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            setPending(true);
-            setError(null);
-            const form = e.currentTarget;
-            const formData = new FormData(form);
-            const named = (name: string) => {
-              const fromData = formData.get(name);
+    <Modal state={modal}>
+      <Button onPress={modal.open}>New issue</Button>
+      <Modal.Backdrop>
+        <Modal.Container scroll="inside" size="lg">
+          <Modal.Dialog>
+            {({ close }) => (
+              <>
+                <Modal.CloseTrigger />
+                <Modal.Header>
+                  <Modal.Heading>Create issue</Modal.Heading>
+                </Modal.Header>
+                <Modal.Body>
+                  <Form
+                    className="flex flex-col gap-3"
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      setPending(true);
+                      setError(null);
+                      const form = e.currentTarget;
+                      const formData = new FormData(form);
+                      const named = (name: string) => {
+                        const fromData = formData.get(name);
 
-              if (fromData != null && String(fromData).length > 0) {
-                return String(fromData);
-              }
-              const el = form.elements.namedItem(name);
+                        if (fromData != null && String(fromData).length > 0) {
+                          return String(fromData);
+                        }
 
-              if (el && el instanceof HTMLSelectElement) return el.value;
-              if (el && el instanceof HTMLInputElement) return el.value;
+                        return "";
+                      };
 
-              return "";
-            };
+                      const goOffline =
+                        isOfflineEnabled() &&
+                        typeof navigator !== "undefined" &&
+                        !navigator.onLine;
 
-            const goOffline =
-              isOfflineEnabled() &&
-              typeof navigator !== "undefined" &&
-              !navigator.onLine;
+                      if (goOffline) {
+                        const dueRaw = named("dueDate");
+                        const local = await createIssueLocal(teamId, {
+                          title:
+                            named("title") ||
+                            String(formData.get("title") ?? ""),
+                          description: named("description"),
+                          status: named("status") || "BACKLOG",
+                          priority: named("priority") || "NONE",
+                          estimate: named("estimate") || "NONE",
+                          dueDate: dueRaw || null,
+                          assigneeId: named("assigneeId") || null,
+                          cycleId: named("cycleId") || null,
+                          projectId: named("projectId") || null,
+                          labelIds: formData
+                            .getAll("labelIds")
+                            .map(String)
+                            .filter(Boolean),
+                        });
 
-            if (goOffline) {
-              const dueRaw = named("dueDate");
-              const local = await createIssueLocal(teamId, {
-                title: named("title") || String(formData.get("title") ?? ""),
-                description: named("description"),
-                status: named("status") || "BACKLOG",
-                priority: named("priority") || "NONE",
-                estimate: named("estimate") || "NONE",
-                dueDate: dueRaw || null,
-                assigneeId: named("assigneeId") || null,
-                cycleId: named("cycleId") || null,
-                projectId: named("projectId") || null,
-                labelIds: formData
-                  .getAll("labelIds")
-                  .map(String)
-                  .filter(Boolean),
-              });
+                        close();
+                        setPending(false);
+                        const href =
+                          local.number != null
+                            ? `/t/${teamSlug}/issues/${local.number}`
+                            : `/t/${teamSlug}/issues/tmp/${local.id}`;
 
-              setOpen(false);
-              setPending(false);
-              const href =
-                local.number != null
-                  ? `/t/${teamSlug}/issues/${local.number}`
-                  : `/t/${teamSlug}/issues/tmp/${local.id}`;
+                        router.push(href);
+                        router.refresh();
 
-              router.push(href);
-              router.refresh();
+                        return;
+                      }
 
-              return;
-            }
+                      const result = await createIssueAction(
+                        teamSlug,
+                        formData,
+                      );
 
-            const result = await createIssueAction(teamSlug, formData);
-
-            if (result?.error) {
-              setError(result.error);
-              setPending(false);
-            }
-          }}
-        >
-          {templates.length > 0 ? (
-            <label className="flex flex-col gap-1 text-sm">
-              <span>Template</span>
-              <select
-                className="rounded-lg border border-separator bg-background px-3 py-2"
-                value={templateId}
-                onChange={(event) => setTemplateId(event.target.value)}
-              >
-                <option value="">None</option>
-                {templates.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
-          <TextField key={`${templateId}-title`} isRequired name="title">
-            <Label>Title</Label>
-            <Input
-              defaultValue={template?.title ?? ""}
-              placeholder="Ship MCP docs"
-            />
-            <FieldError />
-          </TextField>
-          <TextField key={`${templateId}-description`} name="description">
-            <Label>Description</Label>
-            <TextArea
-              defaultValue={template?.description ?? ""}
-              placeholder="Optional details…"
-              rows={3}
-            />
-          </TextField>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="flex flex-col gap-1 text-sm">
-              <span>Status</span>
-              <select
-                className="rounded-lg border border-separator bg-background px-3 py-2"
-                defaultValue={workflows[0]?.id ?? "BACKLOG"}
-                name={workflows.length ? "workflowStatusId" : "status"}
-              >
-                {workflows.length
-                  ? workflows.map((workflow) => (
-                      <option key={workflow.id} value={workflow.id}>
-                        {workflow.name}
-                      </option>
-                    ))
-                  : Object.entries(STATUS_LABELS).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              <span>Priority</span>
-              <select
-                key={`${templateId}-priority`}
-                className="rounded-lg border border-separator bg-background px-3 py-2"
-                defaultValue={template?.priority ?? "NONE"}
-                name="priority"
-              >
-                {Object.entries(PRIORITY_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              <span>Estimate</span>
-              <select
-                key={`${templateId}-estimate`}
-                className="rounded-lg border border-separator bg-background px-3 py-2"
-                defaultValue={template?.estimate ?? "NONE"}
-                name="estimate"
-              >
-                {Object.entries(ESTIMATE_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              <span>Due date</span>
-              <input
-                className="rounded-lg border border-separator bg-background px-3 py-2"
-                name="dueDate"
-                type="date"
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              <span>Assignee</span>
-              <select
-                className="rounded-lg border border-separator bg-background px-3 py-2"
-                defaultValue=""
-                name="assigneeId"
-              >
-                <option value="">Unassigned</option>
-                {members.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name ?? m.email}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              <span>Cycle</span>
-              <select
-                className="rounded-lg border border-separator bg-background px-3 py-2"
-                defaultValue=""
-                name="cycleId"
-              >
-                <option value="">No cycle</option>
-                {cycles.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-              <span>Project</span>
-              <select
-                className="rounded-lg border border-separator bg-background px-3 py-2"
-                defaultValue=""
-                name="projectId"
-              >
-                <option value="">No project</option>
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-              <span>Milestone</span>
-              <select
-                className="rounded-lg border border-separator bg-background px-3 py-2"
-                name="milestoneId"
-              >
-                <option value="">No milestone</option>
-                {milestones.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          {labels.length ? (
-            <fieldset className="text-sm">
-              <legend className="mb-1">Labels</legend>
-              <LabelChecklist labels={labels} name="labelIds" />
-            </fieldset>
-          ) : null}
-          {error ? <p className="text-danger text-sm">{error}</p> : null}
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="tertiary" onPress={() => setOpen(false)}>
-              Cancel
-            </Button>
-            <Button isDisabled={pending} type="submit">
-              {pending ? "Creating…" : "Create"}
-            </Button>
-          </div>
-        </Form>
-      </div>
-    </div>
+                      if (result?.error) {
+                        setError(result.error);
+                        setPending(false);
+                      }
+                    }}
+                  >
+                    {templates.length > 0 ? (
+                      <SelectField
+                        clearable
+                        label="Template"
+                        options={[
+                          ...templates.map((item) => ({
+                            id: item.id,
+                            label: item.name,
+                          })),
+                        ]}
+                        placeholder="None"
+                        value={templateId}
+                        onChange={setTemplateId}
+                      />
+                    ) : null}
+                    <TextField
+                      key={`${String(templateId)}-title`}
+                      isRequired
+                      defaultValue={template?.title ?? ""}
+                      name="title"
+                    >
+                      <Label>Title</Label>
+                      <Input placeholder="Ship MCP docs" />
+                      <FieldError />
+                    </TextField>
+                    <TextField
+                      key={`${String(templateId)}-description`}
+                      name="description"
+                    >
+                      <Label>Description</Label>
+                      <TextArea
+                        defaultValue={template?.description ?? ""}
+                        placeholder="Optional details…"
+                        rows={3}
+                      />
+                    </TextField>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <SelectField
+                        isRequired
+                        defaultValue={workflows[0]?.id ?? "BACKLOG"}
+                        label="Status"
+                        name={workflows.length ? "workflowStatusId" : "status"}
+                        options={
+                          workflows.length
+                            ? workflows.map((workflow) => ({
+                                id: workflow.id,
+                                label: workflow.name,
+                              }))
+                            : Object.entries(STATUS_LABELS).map(
+                                ([id, label]) => ({ id, label }),
+                              )
+                        }
+                      />
+                      <SelectField
+                        key={`${String(templateId)}-priority`}
+                        isRequired
+                        defaultValue={template?.priority ?? "NONE"}
+                        label="Priority"
+                        name="priority"
+                        options={Object.entries(PRIORITY_LABELS).map(
+                          ([id, label]) => ({ id, label }),
+                        )}
+                      />
+                      <SelectField
+                        key={`${String(templateId)}-estimate`}
+                        defaultValue={template?.estimate ?? "NONE"}
+                        label="Estimate"
+                        name="estimate"
+                        options={Object.entries(ESTIMATE_LABELS).map(
+                          ([id, label]) => ({ id, label }),
+                        )}
+                      />
+                      <DateField defaultValue={null} name="dueDate">
+                        <Label>Due date</Label>
+                        <DateField.Group>
+                          <DateField.Input>
+                            {(segment) => (
+                              <DateField.Segment segment={segment} />
+                            )}
+                          </DateField.Input>
+                        </DateField.Group>
+                      </DateField>
+                      <SelectField
+                        clearable
+                        label="Assignee"
+                        name="assigneeId"
+                        options={members.map((m) => ({
+                          id: m.id,
+                          label: m.name ?? m.email,
+                        }))}
+                        placeholder="Unassigned"
+                      />
+                      <SelectField
+                        clearable
+                        label="Cycle"
+                        name="cycleId"
+                        options={cycles.map((c) => ({
+                          id: c.id,
+                          label: c.name,
+                        }))}
+                        placeholder="No cycle"
+                      />
+                      <div className="sm:col-span-2">
+                        <SelectField
+                          clearable
+                          label="Project"
+                          name="projectId"
+                          options={projects.map((p) => ({
+                            id: p.id,
+                            label: p.name,
+                          }))}
+                          placeholder="No project"
+                        />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <SelectField
+                          clearable
+                          label="Milestone"
+                          name="milestoneId"
+                          options={milestones.map((m) => ({
+                            id: m.id,
+                            label: m.name,
+                          }))}
+                          placeholder="No milestone"
+                        />
+                      </div>
+                    </div>
+                    {labels.length ? (
+                      <LabelChecklist labels={labels} name="labelIds" />
+                    ) : null}
+                    {error ? (
+                      <p className="text-danger text-sm">{error}</p>
+                    ) : null}
+                    <div className="flex justify-end gap-2 pt-2">
+                      <Button slot="close" variant="tertiary">
+                        Cancel
+                      </Button>
+                      <Button isDisabled={pending} type="submit">
+                        {pending ? "Creating…" : "Create"}
+                      </Button>
+                    </div>
+                  </Form>
+                </Modal.Body>
+              </>
+            )}
+          </Modal.Dialog>
+        </Modal.Container>
+      </Modal.Backdrop>
+    </Modal>
   );
 }
