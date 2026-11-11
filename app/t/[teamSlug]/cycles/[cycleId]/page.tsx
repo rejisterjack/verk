@@ -37,7 +37,7 @@ export default async function CycleDetailPage({
         title={cycle.name}
       />
       <div className="h-2 overflow-hidden rounded-full bg-default">
-        <svg className="h-16 w-full" viewBox="0 0 80 40" role="img">
+        <svg className="h-16 w-full" role="img" viewBox="0 0 80 40">
           <title>Issues completed by day</title>
           {Array.from({ length: 8 }).map((_, index) => {
             const day = new Date(cycle.endDate);

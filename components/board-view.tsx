@@ -31,7 +31,11 @@ import { useEffect, useMemo, useState } from "react";
 import { IssuePeek } from "@/components/app/issue-peek";
 import { ConflictModal } from "@/components/pwa/conflict-modal";
 import { PriorityChip } from "@/components/status-chip";
-import { BOARD_COLUMNS, STATUS_LABELS } from "@/lib/labels";
+import {
+  BOARD_COLUMNS,
+  STATUS_LABELS,
+  statusToWorkflowKey,
+} from "@/lib/labels";
 import { slaBreached, type SlaWindow } from "@/lib/sla";
 import {
   getLocalIssue,
@@ -218,6 +222,7 @@ export function BoardView({
   columnWorkflowIds,
   groupBy = "status",
   workflows = [],
+  filters,
   slaHours,
   slaWindow,
 }: {
@@ -231,6 +236,12 @@ export function BoardView({
   columnWorkflowIds?: Record<string, string>;
   groupBy?: "status" | "priority" | "assignee" | "project";
   workflows?: { id: string; name: string }[];
+  filters?: {
+    cycleId?: string;
+    priority?: string;
+    search?: string;
+    labelIds?: string[];
+  };
   slaHours?: unknown;
   slaWindow?: SlaWindow;
 }) {
@@ -249,31 +260,28 @@ export function BoardView({
     if (!isOfflineEnabled()) return;
 
     void upsertTeam({ id: teamId, slug: teamSlug, name: teamName });
-    void hydrateIssuesFromServer(
-      teamId,
-      initialIssues.map(
-        (i) =>
-          ({
-            ...i,
-            number: i.number ?? 0,
-            teamId,
-          }) as ServerIssue,
-      ),
-    );
-
+    let ready = false;
     const refresh = () => {
-      void listLocalIssues(teamId).then((rows) => {
+      if (!ready) return;
+      void listLocalIssues(teamId, filters).then((rows) => {
+        const columnsById = new Map(
+          initialIssues.map((issue) => [issue.id, issue.columnKey]),
+        );
+
         setIssues(
-          rows.map((r) => ({
-            id: r.id,
-            number: r.number,
-            title: r.title,
-            status: r.status as IssueStatus,
-            priority: r.priority as Priority,
-            order: r.order,
-            revision: r.revision,
-            syncStatus: r.syncStatus,
-            assignee: r.assignee ?? null,
+          rows.map((row) => ({
+            id: row.id,
+            number: row.number,
+            title: row.title,
+            status: row.status as IssueStatus,
+            columnKey:
+              columnsById.get(row.id) ??
+              statusToWorkflowKey(row.status as IssueStatus),
+            priority: row.priority as Priority,
+            order: row.order,
+            revision: row.revision,
+            syncStatus: row.syncStatus,
+            assignee: row.assignee ?? null,
           })),
         );
       });
@@ -281,10 +289,25 @@ export function BoardView({
 
     const unsub = subscribeIssues(refresh);
 
-    refresh();
-    void pullDelta(teamId);
+    void hydrateIssuesFromServer(
+      teamId,
+      initialIssues.map(
+        (issue) =>
+          ({
+            ...issue,
+            number: issue.number ?? 0,
+            teamId,
+          }) as ServerIssue,
+      ),
+    ).then(() => {
+      ready = true;
+      refresh();
+      void pullDelta(teamId);
+    });
 
-    const onFocus = () => void pullDelta(teamId);
+    const onFocus = () => {
+      if (ready) void pullDelta(teamId);
+    };
 
     window.addEventListener("focus", onFocus);
     const interval = window.setInterval(() => {
@@ -296,7 +319,7 @@ export function BoardView({
       window.removeEventListener("focus", onFocus);
       window.clearInterval(interval);
     };
-  }, [teamId, teamSlug, teamName, initialIssues]);
+  }, [teamId, teamSlug, teamName, initialIssues, filters]);
 
   const byStatus = useMemo(() => {
     const map = Object.fromEntries(
@@ -345,9 +368,7 @@ export function BoardView({
         setPeekOpen(false);
       } else if (e.key === "Enter" && flatIssues[focusIndex]?.number != null) {
         e.preventDefault();
-        router.push(
-          `/t/${teamSlug}/issues/${flatIssues[focusIndex]!.number}`,
-        );
+        router.push(`/t/${teamSlug}/issues/${flatIssues[focusIndex]!.number}`);
       }
     }
 
@@ -384,7 +405,8 @@ export function BoardView({
       const overId = String(over.id);
       const nextKey = columnIds.includes(overId)
         ? overId
-        : (issues.find((item) => item.id === overId)?.columnKey ?? issue.columnKey);
+        : (issues.find((item) => item.id === overId)?.columnKey ??
+          issue.columnKey);
       const field =
         groupBy === "assignee"
           ? "assigneeId"
@@ -395,7 +417,9 @@ export function BoardView({
 
       setIssues((curr) =>
         curr.map((item) =>
-          item.id === issueId ? { ...item, columnKey: nextKey ?? item.columnKey } : item,
+          item.id === issueId
+            ? { ...item, columnKey: nextKey ?? item.columnKey }
+            : item,
         ),
       );
       await fetch(`/api/teams/${teamId}/issues/${issueId}`, {
@@ -421,9 +445,7 @@ export function BoardView({
 
     const nextStatus = columnStatus?.[nextKey] ?? (nextKey as IssueStatus);
     const columnIssues = issues
-      .filter(
-        (i) => (i.columnKey ?? i.status) === nextKey && i.id !== issueId,
-      )
+      .filter((i) => (i.columnKey ?? i.status) === nextKey && i.id !== issueId)
       .sort((a, b) => a.order - b.order);
 
     let insertAt = columnIssues.length;

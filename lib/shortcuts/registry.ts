@@ -55,6 +55,12 @@ export const SHORTCUTS: ShortcutDef[] = [
     group: "navigation",
   },
   {
+    id: "go-initiatives",
+    keys: "G then N",
+    description: "Go to Initiatives",
+    group: "navigation",
+  },
+  {
     id: "go-my",
     keys: "G then M",
     description: "Go to My issues",

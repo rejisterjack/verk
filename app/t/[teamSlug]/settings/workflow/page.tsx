@@ -122,7 +122,12 @@ export default async function WorkflowSettingsPage({
               <form action={move}>
                 <input name="id" type="hidden" value={s.id} />
                 <input name="direction" type="hidden" value="up" />
-                <Button isDisabled={i === 0} size="sm" type="submit" variant="ghost">
+                <Button
+                  isDisabled={i === 0}
+                  size="sm"
+                  type="submit"
+                  variant="ghost"
+                >
                   Up
                 </Button>
               </form>

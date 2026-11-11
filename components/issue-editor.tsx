@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { IssueActivityList } from "@/components/issue-activity";
+import { LabelChecklist } from "@/components/label-checklist";
 import { IssueAttachments } from "@/components/issue-attachments";
 import { IssueLinks } from "@/components/issue-links";
 import { MarkdownField } from "@/components/markdown-field";
@@ -31,7 +32,12 @@ import { issueKey } from "@/lib/utils";
 
 type Member = { id: string; name: string | null; email: string };
 type Opt = { id: string; name: string };
-type LabelOpt = { id: string; name: string; color: string };
+type LabelOpt = {
+  id: string;
+  name: string;
+  color: string;
+  group?: string | null;
+};
 type WorkflowOpt = { id: string; name: string };
 
 export function IssueEditor({
@@ -244,9 +250,7 @@ export function IssueEditor({
     }
   }
 
-  const dueValue = issue.dueDate
-    ? issue.dueDate.slice(0, 10)
-    : "";
+  const dueValue = issue.dueDate ? issue.dueDate.slice(0, 10) : "";
 
   return (
     <div className="max-w-3xl">
@@ -286,11 +290,11 @@ export function IssueEditor({
             name="title"
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
+        <div className="flex flex-col gap-1 text-sm">
           <span className="text-muted">Description</span>
           <MarkdownField defaultValue={issue.description} name="description" />
           <MarkdownBody text={issue.description} />
-        </label>
+        </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="flex flex-col gap-1 text-sm">
             <span className="text-muted">Status</span>
@@ -415,34 +419,20 @@ export function IssueEditor({
         {labels.length ? (
           <fieldset className="text-sm">
             <legend className="mb-1 text-muted">Labels</legend>
-            <div className="flex flex-wrap gap-2">
-              {labels.map((l) => (
-                <label
-                  key={l.id}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-separator px-2 py-1"
-                >
-                  <input
-                    checked={selectedLabels.has(l.id)}
-                    type="checkbox"
-                    onChange={(e) => {
-                      setSelectedLabels((prev) => {
-                        const next = new Set(prev);
+            <LabelChecklist
+              labels={labels}
+              selected={selectedLabels}
+              onToggle={(id, checked) => {
+                setSelectedLabels((prev) => {
+                  const next = new Set(prev);
 
-                        if (e.target.checked) next.add(l.id);
-                        else next.delete(l.id);
+                  if (checked) next.add(id);
+                  else next.delete(id);
 
-                        return next;
-                      });
-                    }}
-                  />
-                  <span
-                    className="size-2 rounded-full"
-                    style={{ background: l.color }}
-                  />
-                  {l.name}
-                </label>
-              ))}
-            </div>
+                  return next;
+                });
+              }}
+            />
           </fieldset>
         ) : null}
         {error ? <p className="text-sm text-danger">{error}</p> : null}

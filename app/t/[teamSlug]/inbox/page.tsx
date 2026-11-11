@@ -84,7 +84,10 @@ export default async function InboxPage({
                     const user = await auth();
 
                     if (!user?.user?.id) return;
-                    await notifications.markNotificationRead(user.user.id, n.id);
+                    await notifications.markNotificationRead(
+                      user.user.id,
+                      n.id,
+                    );
                   }}
                 >
                   <Button size="sm" type="submit" variant="ghost">

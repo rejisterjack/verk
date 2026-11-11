@@ -28,14 +28,15 @@ export default async function TriagePage({
   }
 
   const { team } = teamCtx;
-  const [{ issues }, cycles, members, projects, labels, templates] = await Promise.all([
-    issuesService.listIssues(team.id, { triage: true, take: 100 }),
-    cyclesService.listCycles(team.id),
-    membersService.listMembers(team.id),
-    projectsService.listProjects(team.id),
-    labelsService.listLabels(team.id),
-    listTemplates(team.id),
-  ]);
+  const [{ issues }, cycles, members, projects, labels, templates] =
+    await Promise.all([
+      issuesService.listIssues(team.id, { triage: true, take: 100 }),
+      cyclesService.listCycles(team.id),
+      membersService.listMembers(team.id),
+      projectsService.listProjects(team.id),
+      labelsService.listLabels(team.id),
+      listTemplates(team.id),
+    ]);
 
   return (
     <div>
@@ -47,6 +48,7 @@ export default async function TriagePage({
               id: l.id,
               name: l.name,
               color: l.color,
+              group: l.group,
             }))}
             members={members.map((m) => m.user)}
             projects={projects.map((p) => ({ id: p.id, name: p.name }))}
@@ -78,17 +80,38 @@ export default async function TriagePage({
                 <span className="flex-1">
                   #{issue.number} {issue.title}
                 </span>
-                <form action={triageIssueAction.bind(null, teamSlug, issue.id, "accept")}>
+                <form
+                  action={triageIssueAction.bind(
+                    null,
+                    teamSlug,
+                    issue.id,
+                    "accept",
+                  )}
+                >
                   <Button size="sm" type="submit">
                     Accept
                   </Button>
                 </form>
-                <form action={triageIssueAction.bind(null, teamSlug, issue.id, "decline")}>
+                <form
+                  action={triageIssueAction.bind(
+                    null,
+                    teamSlug,
+                    issue.id,
+                    "decline",
+                  )}
+                >
                   <Button size="sm" type="submit" variant="danger">
                     Decline
                   </Button>
                 </form>
-                <form action={triageIssueAction.bind(null, teamSlug, issue.id, "snooze")}>
+                <form
+                  action={triageIssueAction.bind(
+                    null,
+                    teamSlug,
+                    issue.id,
+                    "snooze",
+                  )}
+                >
                   <Button size="sm" type="submit" variant="secondary">
                     Snooze 1h
                   </Button>
@@ -96,21 +119,21 @@ export default async function TriagePage({
               </li>
             ))}
           </ul>
-        <IssuesListClient
-          filters={{}}
-          initialIssues={issues.map((issue) => ({
-            id: issue.id,
-            number: issue.number,
-            title: issue.title,
-            status: issue.status,
-            priority: issue.priority,
-            assignee: issue.assignee,
-            cycle: issue.cycle,
-          }))}
-          teamId={team.id}
-          teamName={team.name}
-          teamSlug={teamSlug}
-        />
+          <IssuesListClient
+            filters={{}}
+            initialIssues={issues.map((issue) => ({
+              id: issue.id,
+              number: issue.number,
+              title: issue.title,
+              status: issue.status,
+              priority: issue.priority,
+              assignee: issue.assignee,
+              cycle: issue.cycle,
+            }))}
+            teamId={team.id}
+            teamName={team.name}
+            teamSlug={teamSlug}
+          />
         </>
       )}
     </div>

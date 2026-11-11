@@ -53,10 +53,7 @@ export async function createAttachment(
   });
 }
 
-export async function deleteAttachment(
-  teamId: string,
-  attachmentId: string,
-) {
+export async function deleteAttachment(teamId: string, attachmentId: string) {
   const existing = await prisma.attachment.findFirst({
     where: { id: attachmentId },
     include: { issue: true },

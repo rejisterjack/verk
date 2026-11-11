@@ -7,8 +7,6 @@ const INVERSE: Partial<Record<RelationType, RelationType>> = {
   CHILD: "PARENT",
 };
 
-export function inverseRelation(
-  type: RelationType,
-): RelationType | null {
+export function inverseRelation(type: RelationType): RelationType | null {
   return INVERSE[type] ?? null;
 }

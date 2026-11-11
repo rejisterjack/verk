@@ -20,12 +20,21 @@ export default async function LabelsSettingsPage({
   }
 
   const teamId = teamCtx.team.id;
-  const labels = await labelsService.listLabels(teamId);
+  const labels = (await labelsService.listLabels(teamId)).sort((a, b) => {
+    const group = (a.group ?? "").localeCompare(b.group ?? "");
+
+    if (group !== 0) return group;
+
+    return a.name.localeCompare(b.name);
+  });
 
   async function rename(formData: FormData) {
     "use server";
+    const group = String(formData.get("group") ?? "").trim();
+
     await labelsService.updateLabel(teamId, String(formData.get("id")), {
       name: String(formData.get("name") ?? ""),
+      group: group || null,
     });
     redirect(`/t/${teamSlug}/settings/labels`);
   }
@@ -85,6 +94,12 @@ export default async function LabelsSettingsPage({
                 className="flex-1 rounded-lg border border-separator bg-background px-2 py-1"
                 defaultValue={l.name}
                 name="name"
+              />
+              <input
+                className="w-28 rounded-lg border border-separator bg-background px-2 py-1"
+                defaultValue={l.group ?? ""}
+                name="group"
+                placeholder="group"
               />
               <Button size="sm" type="submit" variant="ghost">
                 Rename

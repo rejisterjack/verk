@@ -21,7 +21,6 @@ import {
   WORKFLOW_TYPE_TO_STATUS,
   statusToWorkflowKey,
 } from "@/lib/labels";
-import { slaBreached } from "@/lib/sla";
 import { listTemplates } from "@/lib/services/surface";
 
 export default async function IssuesPage({
@@ -39,6 +38,7 @@ export default async function IssuesPage({
     view?: string;
     group?: string;
     workflowStatusId?: string;
+    labelGroup?: string;
   }>;
 }) {
   const { teamSlug } = await params;
@@ -59,12 +59,14 @@ export default async function IssuesPage({
     search?: string;
     assigneeId?: string;
     workflowStatusId?: string;
+    labelGroup?: string;
   } = {
     status: query.status as IssueStatus | undefined,
     priority: query.priority as Priority | undefined,
     cycleId: query.cycleId,
     search: query.search,
     workflowStatusId: query.workflowStatusId,
+    labelGroup: query.labelGroup?.trim() || undefined,
   };
 
   if (query.view) {
@@ -86,30 +88,39 @@ export default async function IssuesPage({
   const isBoard = query.layout === "board";
   const mine = query.assignee === "me";
 
-  const [listResult, boardIssues, cycles, members, projects, labels, workflows, templates] =
-    await Promise.all([
-      isBoard
-        ? Promise.resolve({
-            issues: [] as Awaited<
-              ReturnType<typeof issuesService.listIssues>
-            >["issues"],
-            nextCursor: undefined as string | undefined,
-          })
-        : issuesService.listIssues(team.id, { ...filters, take: 100 }),
-      isBoard
-        ? issuesService.getBoardIssues(team.id, {
-            cycleId: filters.cycleId,
-            priority: filters.priority,
-            search: filters.search,
-          })
-        : Promise.resolve([]),
-      cyclesService.listCycles(team.id),
-      membersService.listMembers(team.id),
-      projectsService.listProjects(team.id),
-      labelsService.listLabels(team.id),
-      workspacesService.listWorkflowStatuses(team.id),
-      listTemplates(team.id),
-    ]);
+  const [
+    listResult,
+    boardIssues,
+    cycles,
+    members,
+    projects,
+    labels,
+    workflows,
+    templates,
+  ] = await Promise.all([
+    isBoard
+      ? Promise.resolve({
+          issues: [] as Awaited<
+            ReturnType<typeof issuesService.listIssues>
+          >["issues"],
+          nextCursor: undefined as string | undefined,
+        })
+      : issuesService.listIssues(team.id, { ...filters, take: 100 }),
+    isBoard
+      ? issuesService.getBoardIssues(team.id, {
+          cycleId: filters.cycleId,
+          priority: filters.priority,
+          search: filters.search,
+          labelGroup: filters.labelGroup,
+        })
+      : Promise.resolve([]),
+    cyclesService.listCycles(team.id),
+    membersService.listMembers(team.id),
+    projectsService.listProjects(team.id),
+    labelsService.listLabels(team.id),
+    workspacesService.listWorkflowStatuses(team.id),
+    listTemplates(team.id),
+  ]);
 
   const visibleWorkflows = workflows.filter((w) => w.type !== "canceled");
   const boardColumns = visibleWorkflows.map((w) => w.key);
@@ -137,7 +148,20 @@ export default async function IssuesPage({
     id: l.id,
     name: l.name,
     color: l.color,
+    group: l.group,
   }));
+  const labelGroups = [
+    ...new Set(
+      labels.flatMap((label) =>
+        label.group?.trim() ? [label.group.trim()] : [],
+      ),
+    ),
+  ].sort();
+  const groupLabelIds = filters.labelGroup
+    ? labels
+        .filter((label) => label.group?.trim() === filters.labelGroup)
+        .map((label) => label.id)
+    : undefined;
   const cycleOpts = cycles.map((c) => ({ id: c.id, name: c.name }));
   const memberOpts = members.map((m) => m.user);
 
@@ -168,10 +192,16 @@ export default async function IssuesPage({
               >
                 Board
               </NextLink>
-              <NextLink className="px-3 py-1.5 text-muted" href={`/t/${teamSlug}/issues?layout=board&group=priority`}>
+              <NextLink
+                className="px-3 py-1.5 text-muted"
+                href={`/t/${teamSlug}/issues?layout=board&group=priority`}
+              >
                 By priority
               </NextLink>
-              <NextLink className="px-3 py-1.5 text-muted" href={`/t/${teamSlug}/issues?layout=board&group=project`}>
+              <NextLink
+                className="px-3 py-1.5 text-muted"
+                href={`/t/${teamSlug}/issues?layout=board&group=project`}
+              >
                 By project
               </NextLink>
             </div>
@@ -206,73 +236,98 @@ export default async function IssuesPage({
         title={title}
       />
 
-      {!isBoard ? (
-        <div className="mb-4 flex flex-wrap items-end gap-2">
-          <form className="flex flex-wrap items-end gap-2" method="get">
-            {mine ? <input name="assignee" type="hidden" value="me" /> : null}
-            <input
-              className="rounded-lg border border-separator bg-background px-3 py-2 text-sm"
-              defaultValue={query.search}
-              name="search"
-              placeholder="Search…"
-            />
-            <select
-              className="rounded-lg border border-separator bg-background px-3 py-2 text-sm"
-              defaultValue={query.workflowStatusId ?? ""}
-              name="workflowStatusId"
-            >
-              <option value="">All workflow statuses</option>
-              {workflows.map((workflow) => (
-                <option key={workflow.id} value={workflow.id}>
-                  {workflow.name}
-                </option>
-              ))}
-            </select>
-            <select
-              className="rounded-lg border border-separator bg-background px-3 py-2 text-sm"
-              defaultValue={query.priority ?? ""}
-              name="priority"
-            >
-              <option value="">All priorities</option>
-              <option value="URGENT">Urgent</option>
-              <option value="HIGH">High</option>
-              <option value="MEDIUM">Medium</option>
-              <option value="LOW">Low</option>
-              <option value="NONE">No priority</option>
-            </select>
-            <select
-              className="rounded-lg border border-separator bg-background px-3 py-2 text-sm"
-              defaultValue={query.cycleId ?? ""}
-              name="cycleId"
-            >
-              <option value="">All cycles</option>
-              {activeCycle ? (
-                <option value={activeCycle.id}>Active cycle</option>
-              ) : null}
-              {cycles.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-            <button
-              className="rounded-lg bg-accent px-3 py-2 text-sm text-accent-foreground"
-              type="submit"
-            >
-              Filter
-            </button>
-          </form>
-          <SaveViewButton
-            filters={{
-              status: query.status,
-              cycleId: query.cycleId,
-              search: query.search,
-              assigneeId: mine ? user.id : undefined,
-            }}
-            teamId={team.id}
+      <div className="mb-4 flex flex-wrap items-end gap-2">
+        <form
+          data-issue-filters
+          className="flex flex-wrap items-end gap-2"
+          method="get"
+        >
+          {mine ? <input name="assignee" type="hidden" value="me" /> : null}
+          {isBoard ? <input name="layout" type="hidden" value="board" /> : null}
+          {query.view ? (
+            <input name="view" type="hidden" value={query.view} />
+          ) : null}
+          {query.group ? (
+            <input name="group" type="hidden" value={query.group} />
+          ) : null}
+          <input
+            className="rounded-lg border border-separator bg-background px-3 py-2 text-sm"
+            defaultValue={query.search}
+            id="issue-filter-search"
+            name="search"
+            placeholder="Search…"
           />
-        </div>
-      ) : null}
+          <select
+            className="rounded-lg border border-separator bg-background px-3 py-2 text-sm"
+            defaultValue={query.workflowStatusId ?? ""}
+            name="workflowStatusId"
+          >
+            <option value="">All workflow statuses</option>
+            {workflows.map((workflow) => (
+              <option key={workflow.id} value={workflow.id}>
+                {workflow.name}
+              </option>
+            ))}
+          </select>
+          <select
+            className="rounded-lg border border-separator bg-background px-3 py-2 text-sm"
+            defaultValue={query.priority ?? ""}
+            name="priority"
+          >
+            <option value="">All priorities</option>
+            <option value="URGENT">Urgent</option>
+            <option value="HIGH">High</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="LOW">Low</option>
+            <option value="NONE">No priority</option>
+          </select>
+          <select
+            className="rounded-lg border border-separator bg-background px-3 py-2 text-sm"
+            defaultValue={query.cycleId ?? ""}
+            name="cycleId"
+          >
+            <option value="">All cycles</option>
+            {activeCycle ? (
+              <option value={activeCycle.id}>Active cycle</option>
+            ) : null}
+            {cycles.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+          {labelGroups.length ? (
+            <select
+              className="rounded-lg border border-separator bg-background px-3 py-2 text-sm"
+              defaultValue={filters.labelGroup ?? ""}
+              name="labelGroup"
+            >
+              <option value="">All label groups</option>
+              {labelGroups.map((group) => (
+                <option key={group} value={group}>
+                  {group}
+                </option>
+              ))}
+            </select>
+          ) : null}
+          <button
+            className="rounded-lg bg-accent px-3 py-2 text-sm text-accent-foreground"
+            type="submit"
+          >
+            Filter
+          </button>
+        </form>
+        <SaveViewButton
+          filters={{
+            status: query.status,
+            cycleId: query.cycleId,
+            search: query.search,
+            labelGroup: filters.labelGroup,
+            assigneeId: mine ? user.id : undefined,
+          }}
+          teamId={team.id}
+        />
+      </div>
 
       {issues.length === 0 ? (
         <EmptyState
@@ -316,22 +371,17 @@ export default async function IssuesPage({
                   ? boardColumns
                   : (["backlog", "todo", "in_progress", "done"] as string[])
           }
+          filters={{
+            cycleId: filters.cycleId,
+            priority: filters.priority,
+            search: filters.search,
+            labelIds: groupLabelIds,
+          }}
           groupBy={
             query.group === "priority" || query.group === "project"
               ? query.group
               : "status"
           }
-          slaHours={team.slaHours}
-          slaWindow={{
-            timezone: team.timezone,
-            startHour: team.slaStartHour,
-            endHour: team.slaEndHour,
-            weekdays: team.slaWeekdays,
-          }}
-          workflows={workflows.map((workflow) => ({
-            id: workflow.id,
-            name: workflow.name,
-          }))}
           initialIssues={issues.map((i) => ({
             ...i,
             number: i.number,
@@ -339,17 +389,28 @@ export default async function IssuesPage({
               query.group === "priority"
                 ? i.priority
                 : query.group === "project"
-                  ? i.projectId ?? "none"
+                  ? (i.projectId ?? "none")
                   : ("workflowStatusId" in i &&
-                    typeof i.workflowStatusId === "string" &&
-                    workflowById.get(i.workflowStatusId)) ||
+                      typeof i.workflowStatusId === "string" &&
+                      workflowById.get(i.workflowStatusId)) ||
                     statusToWorkflowKey(i.status),
             revision:
               "revision" in i ? (i as { revision?: number }).revision : 0,
           }))}
+          slaHours={team.slaHours}
+          slaWindow={{
+            timezone: team.timezone,
+            startHour: team.slaStartHour,
+            endHour: team.slaEndHour,
+            weekdays: team.slaWeekdays,
+          }}
           teamId={team.id}
           teamName={team.name}
           teamSlug={teamSlug}
+          workflows={workflows.map((workflow) => ({
+            id: workflow.id,
+            name: workflow.name,
+          }))}
         />
       ) : (
         <IssuesListClient
@@ -358,19 +419,9 @@ export default async function IssuesPage({
             priority: filters.priority,
             cycleId: filters.cycleId,
             search: filters.search,
+            labelIds: groupLabelIds,
           }}
           initialCursor={listResult.nextCursor}
-          slaHours={team.slaHours}
-          slaWindow={{
-            timezone: team.timezone,
-            startHour: team.slaStartHour,
-            endHour: team.slaEndHour,
-            weekdays: team.slaWeekdays,
-          }}
-          workflows={workflows.map((workflow) => ({
-            id: workflow.id,
-            name: workflow.name,
-          }))}
           initialIssues={listResult.issues.map((issue) => ({
             createdAt: issue.createdAt.toISOString(),
             id: issue.id,
@@ -381,10 +432,22 @@ export default async function IssuesPage({
             priority: issue.priority,
             assignee: issue.assignee,
             cycle: issue.cycle,
+            labelIds: issue.labels.map((row) => row.labelId),
           }))}
+          slaHours={team.slaHours}
+          slaWindow={{
+            timezone: team.timezone,
+            startHour: team.slaStartHour,
+            endHour: team.slaEndHour,
+            weekdays: team.slaWeekdays,
+          }}
           teamId={team.id}
           teamName={team.name}
           teamSlug={teamSlug}
+          workflows={workflows.map((workflow) => ({
+            id: workflow.id,
+            name: workflow.name,
+          }))}
         />
       )}
     </div>

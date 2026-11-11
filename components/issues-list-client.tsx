@@ -31,6 +31,7 @@ type ListIssue = {
   cycle?: { name: string } | null;
   createdAt?: string;
   syncStatus?: string;
+  labelIds?: string[];
 };
 
 function isTypingTarget(target: EventTarget | null) {
@@ -69,6 +70,7 @@ export function IssuesListClient({
     priority?: string;
     cycleId?: string;
     search?: string;
+    labelIds?: string[];
   };
 }) {
   const router = useRouter();
@@ -87,30 +89,7 @@ export function IssuesListClient({
     if (!isOfflineEnabled()) return;
 
     void upsertTeam({ id: teamId, slug: teamSlug, name: teamName });
-    void hydrateIssuesFromServer(
-      teamId,
-      initialIssues.map(
-        (i) =>
-          ({
-            id: i.id,
-            number: i.number ?? 0,
-            title: i.title,
-            status: i.status,
-            priority: i.priority,
-            order: 0,
-            teamId,
-            assignee: i.assignee
-              ? {
-                  id: "",
-                  name: i.assignee.name,
-                  email: i.assignee.email,
-                  image: null,
-                }
-              : null,
-          }) as ServerIssue,
-      ),
-    );
-
+    let cancelled = false;
     const refresh = () => {
       void listLocalIssues(teamId, filters).then((rows) => {
         setIssues(
@@ -131,10 +110,39 @@ export function IssuesListClient({
 
     const unsub = subscribeIssues(refresh);
 
-    refresh();
+    void (async () => {
+      await hydrateIssuesFromServer(
+        teamId,
+        initialIssues.map(
+          (issue) =>
+            ({
+              id: issue.id,
+              number: issue.number ?? 0,
+              title: issue.title,
+              status: issue.status,
+              priority: issue.priority,
+              order: 0,
+              teamId,
+              labels: (issue.labelIds ?? []).map((id) => ({ labelId: id })),
+              assignee: issue.assignee
+                ? {
+                    id: "",
+                    name: issue.assignee.name,
+                    email: issue.assignee.email,
+                    image: null,
+                  }
+                : null,
+            }) as ServerIssue,
+        ),
+      );
+      if (!cancelled) refresh();
+    })();
     void pullDelta(teamId);
 
-    return unsub;
+    return () => {
+      cancelled = true;
+      unsub();
+    };
   }, [teamId, teamSlug, teamName, initialIssues, filters]);
 
   useEffect(() => {

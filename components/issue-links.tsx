@@ -37,7 +37,12 @@ export function IssueLinks({
         {links.map((link) => (
           <li key={link.id} className="flex items-center gap-2">
             <span className="text-muted">{link.kind}</span>{" "}
-            <a className="text-accent" href={link.url} rel="noreferrer" target="_blank">
+            <a
+              className="text-accent"
+              href={link.url}
+              rel="noreferrer"
+              target="_blank"
+            >
               {link.url}
             </a>
             <button
@@ -72,13 +77,27 @@ export function IssueLinks({
           });
         }}
       >
-        <select className="rounded-lg border border-separator px-2 py-1 text-sm" value={kind} onChange={(event) => setKind(event.target.value)}>
+        <select
+          className="rounded-lg border border-separator px-2 py-1 text-sm"
+          value={kind}
+          onChange={(event) => setKind(event.target.value)}
+        >
           <option value="figma">Figma</option>
           <option value="sentry">Sentry</option>
           <option value="link">Link</option>
         </select>
-        <input className="min-w-48 flex-1 rounded-lg border border-separator px-2 py-1 text-sm" placeholder="https://" value={url} onChange={(event) => setUrl(event.target.value)} />
-        <button className="rounded-lg border border-separator px-2 py-1 text-sm" type="submit">Add</button>
+        <input
+          className="min-w-48 flex-1 rounded-lg border border-separator px-2 py-1 text-sm"
+          placeholder="https://"
+          value={url}
+          onChange={(event) => setUrl(event.target.value)}
+        />
+        <button
+          className="rounded-lg border border-separator px-2 py-1 text-sm"
+          type="submit"
+        >
+          Add
+        </button>
       </form>
     </section>
   );

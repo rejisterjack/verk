@@ -180,6 +180,7 @@ export async function listLocalIssues(
     priority?: string;
     cycleId?: string;
     search?: string;
+    labelIds?: string[];
   },
 ): Promise<LocalIssue[]> {
   const db = getOfflineDb();
@@ -199,6 +200,13 @@ export async function listLocalIssues(
   }
   if (filters?.cycleId) {
     rows = rows.filter((i) => i.cycleId === filters.cycleId);
+  }
+  if (filters?.labelIds) {
+    const set = new Set(filters.labelIds);
+
+    rows = rows.filter((issue) =>
+      (issue.labelIds ?? []).some((id) => set.has(id)),
+    );
   }
   if (filters?.search) {
     const q = filters.search.toLowerCase();

@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 import { authenticateRequest, jsonError } from "@/lib/api-auth";
 import {
   createInitiative,
+  deleteInitiative,
   listInitiatives,
   updateInitiative,
 } from "@/lib/services/projects";
@@ -60,6 +61,27 @@ export async function PATCH(
     const { id, ...patch } = body;
 
     return Response.json(await updateInitiative(teamId, id, patch));
+  } catch (error) {
+    return jsonError(error);
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ teamId: string }> },
+) {
+  try {
+    const { teamId } = await context.params;
+
+    await authenticateRequest(request, teamId, "MEMBER");
+    const id = new URL(request.url).searchParams.get("id");
+
+    if (!id) {
+      return Response.json({ error: "id required" }, { status: 400 });
+    }
+    await deleteInitiative(teamId, id);
+
+    return new Response(null, { status: 204 });
   } catch (error) {
     return jsonError(error);
   }

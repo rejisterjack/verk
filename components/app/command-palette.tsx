@@ -54,9 +54,7 @@ export function CommandPalette({
       .then((data) => {
         if (data?.members) {
           setMembers(
-            data.members.map(
-              (m: { user: Member }) => m.user ?? m,
-            ) as Member[],
+            data.members.map((m: { user: Member }) => m.user ?? m) as Member[],
           );
         }
       })
@@ -232,10 +230,7 @@ export function CommandPalette({
           ) : (
             <>
               {issues.length ? (
-                <Command.Group
-                  className="text-xs text-muted"
-                  heading="Issues"
-                >
+                <Command.Group className="text-xs text-muted" heading="Issues">
                   {issues.map((issue) => (
                     <Command.Item
                       key={issue.id}
@@ -302,6 +297,12 @@ export function CommandPalette({
                   onSelect={() => go(`${base}/projects`)}
                 >
                   Go to Projects
+                </Command.Item>
+                <Command.Item
+                  className="flex cursor-pointer items-center rounded-lg px-3 py-2 aria-selected:bg-accent/15"
+                  onSelect={() => go(`${base}/initiatives`)}
+                >
+                  Go to Initiatives
                 </Command.Item>
                 <Command.Item
                   className="flex cursor-pointer items-center rounded-lg px-3 py-2 aria-selected:bg-accent/15"

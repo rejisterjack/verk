@@ -3,6 +3,7 @@
 import {
   CalendarDaysIcon,
   Cog6ToothIcon,
+  FlagIcon,
   FolderIcon,
   FunnelIcon,
   InboxIcon,
@@ -84,6 +85,11 @@ export function AppSidebar({
       href: `${base}/projects`,
       label: "Projects",
       icon: FolderIcon,
+    },
+    {
+      href: `${base}/initiatives`,
+      label: "Initiatives",
+      icon: FlagIcon,
     },
     {
       href: `${base}/cycles`,

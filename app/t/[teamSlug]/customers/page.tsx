@@ -47,15 +47,30 @@ export default async function CustomersPage({
 
   return (
     <div className="max-w-xl space-y-4">
-      <PageHeader description="Link requests to issues from the API" title="Customers" />
+      <PageHeader
+        description="Link requests to issues from the API"
+        title="Customers"
+      />
       <form action={create} className="flex gap-2">
-        <input required className="rounded-lg border border-separator px-3 py-2 text-sm" name="name" placeholder="Name" />
-        <input className="rounded-lg border border-separator px-3 py-2 text-sm" name="domain" placeholder="domain.com" />
+        <input
+          required
+          className="rounded-lg border border-separator px-3 py-2 text-sm"
+          name="name"
+          placeholder="Name"
+        />
+        <input
+          className="rounded-lg border border-separator px-3 py-2 text-sm"
+          name="domain"
+          placeholder="domain.com"
+        />
         <Button type="submit">Add</Button>
       </form>
       <ul className="text-sm">
         {customers.map((customer) => (
-          <li key={customer.id} className="space-y-2 border-b border-separator py-2">
+          <li
+            key={customer.id}
+            className="space-y-2 border-b border-separator py-2"
+          >
             <p>
               {customer.name} · {customer._count.requests} requests
             </p>
@@ -70,7 +85,9 @@ export default async function CustomersPage({
                       redirect(`/t/${teamSlug}/customers`);
                     }}
                   >
-                    <Button size="sm" type="submit" variant="danger">Remove</Button>
+                    <Button size="sm" type="submit" variant="danger">
+                      Remove
+                    </Button>
                   </form>
                 </li>
               ))}
@@ -90,8 +107,16 @@ export default async function CustomersPage({
               }}
               className="flex gap-2"
             >
-              <input className="flex-1 rounded border border-separator px-2 py-1" name="body" placeholder="Request" required />
-              <select className="rounded border border-separator px-2 py-1" name="issueNumber">
+              <input
+                required
+                className="flex-1 rounded border border-separator px-2 py-1"
+                name="body"
+                placeholder="Request"
+              />
+              <select
+                className="rounded border border-separator px-2 py-1"
+                name="issueNumber"
+              >
                 <option value="">No issue</option>
                 {issues.map((issue) => (
                   <option key={issue.number} value={issue.number}>
@@ -99,7 +124,9 @@ export default async function CustomersPage({
                   </option>
                 ))}
               </select>
-              <Button size="sm" type="submit">Link</Button>
+              <Button size="sm" type="submit">
+                Link
+              </Button>
             </form>
             <form
               action={async () => {
@@ -108,7 +135,9 @@ export default async function CustomersPage({
                 redirect(`/t/${teamSlug}/customers`);
               }}
             >
-              <Button size="sm" type="submit" variant="danger">Delete customer</Button>
+              <Button size="sm" type="submit" variant="danger">
+                Delete customer
+              </Button>
             </form>
           </li>
         ))}

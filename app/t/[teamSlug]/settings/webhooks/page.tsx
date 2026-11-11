@@ -48,9 +48,7 @@ export default async function WebhooksPage({
         <div className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
           <p className="font-medium">Copy your signing secret now</p>
           <p className="mt-1 break-all font-mono text-xs">{query.secret}</p>
-          <p className="mt-2 text-xs text-muted">
-            It will not be shown again.
-          </p>
+          <p className="mt-2 text-xs text-muted">It will not be shown again.</p>
         </div>
       ) : null}
       <form action={create} className="mb-6 flex gap-2">
@@ -72,8 +70,7 @@ export default async function WebhooksPage({
             <div>
               <p className="font-mono text-xs">{h.url}</p>
               <p className="text-xs text-muted">
-                {h.disabledAt ? "Disabled" : "Active"} ·{" "}
-                {h.events.join(", ")}
+                {h.disabledAt ? "Disabled" : "Active"} · {h.events.join(", ")}
               </p>
             </div>
             <div className="flex gap-1">

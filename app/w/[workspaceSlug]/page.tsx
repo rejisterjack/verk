@@ -3,9 +3,14 @@ import { notFound, redirect } from "next/navigation";
 
 import { PageHeader } from "@/components/page-header";
 import { SubmitButton as Button } from "@/components/submit-button";
+import { WorkspaceMembers } from "@/components/workspace-members";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { createTeamInWorkspace } from "@/lib/services/workspaces";
+import { roleAtLeast } from "@/lib/roles";
+import {
+  createTeamInWorkspace,
+  listWorkspaceInvites,
+} from "@/lib/services/workspaces";
 
 export default async function WorkspacePage({
   params,
@@ -50,10 +55,15 @@ export default async function WorkspacePage({
     redirect(`/w/${workspaceSlug}`);
   }
 
-  const members = await prisma.workspaceMember.findMany({
-    where: { workspaceId },
-    include: { user: { select: { name: true, email: true } } },
-  });
+  const [members, invites] = await Promise.all([
+    prisma.workspaceMember.findMany({
+      where: { workspaceId },
+      include: { user: { select: { name: true, email: true } } },
+      orderBy: { createdAt: "asc" },
+    }),
+    listWorkspaceInvites(workspaceId),
+  ]);
+  const canAdmin = roleAtLeast(membership.role, "ADMIN");
 
   return (
     <div className="mx-auto max-w-xl px-6 py-16">
@@ -62,16 +72,31 @@ export default async function WorkspacePage({
         title={membership.workspace.name}
       />
       <form action={rename} className="mb-4 flex gap-2">
-        <input className="flex-1 rounded-lg border border-separator px-3 py-2 text-sm" defaultValue={membership.workspace.name} name="name" />
+        <input
+          className="flex-1 rounded-lg border border-separator px-3 py-2 text-sm"
+          defaultValue={membership.workspace.name}
+          name="name"
+        />
         <Button type="submit">Rename</Button>
       </form>
-      <ul className="mb-6 text-sm text-muted">
-        {members.map((member) => (
-          <li key={member.id}>
-            {member.user.name ?? member.user.email} · {member.role}
-          </li>
-        ))}
-      </ul>
+      <WorkspaceMembers
+        actorRole={membership.role}
+        canAdmin={canAdmin}
+        invites={invites.map((invite) => ({
+          id: invite.id,
+          email: invite.email,
+          role: invite.role,
+        }))}
+        members={members.map((member) => ({
+          id: member.id,
+          role: member.role,
+          user: {
+            name: member.user.name,
+            email: member.user.email,
+          },
+        }))}
+        workspaceSlug={workspaceSlug}
+      />
       <form
         action={async (formData) => {
           "use server";

@@ -12,14 +12,19 @@ export function nextTriageAt(
 
   if (status !== "BACKLOG" || assignee) return null;
 
-  const leftTriage = existing.status !== "BACKLOG" || Boolean(existing.assigneeId);
+  const leftTriage =
+    existing.status !== "BACKLOG" || Boolean(existing.assigneeId);
 
   if (leftTriage) return new Date();
 
   return undefined;
 }
 
-export async function snoozeTriage(teamId: string, issueId: string, until: Date) {
+export async function snoozeTriage(
+  teamId: string,
+  issueId: string,
+  until: Date,
+) {
   const { prisma } = await import("@/lib/db");
   const { AuthError } = await import("@/lib/errors");
   const existing = await prisma.issue.findFirst({

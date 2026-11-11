@@ -39,7 +39,9 @@ export default async function ImportPage({
 
     if (!(file instanceof File)) return;
     if (!rateLimit(`import:${teamId}`).ok) {
-      redirect(`/t/${teamSlug}/settings/import?errors=${encodeURIComponent("Too many requests")}`);
+      redirect(
+        `/t/${teamSlug}/settings/import?errors=${encodeURIComponent("Too many requests")}`,
+      );
     }
     const text = await file.text();
     const result = await importService.importLinearCsv(teamId, userId, text);
@@ -61,7 +63,9 @@ export default async function ImportPage({
 
     if (!apiKey) return;
     if (!rateLimit(`import:${teamId}`).ok) {
-      redirect(`/t/${teamSlug}/settings/import?errors=${encodeURIComponent("Too many requests")}`);
+      redirect(
+        `/t/${teamSlug}/settings/import?errors=${encodeURIComponent("Too many requests")}`,
+      );
     }
     try {
       const result = await importService.importFromLinearApi(

@@ -48,9 +48,8 @@ export function IssueComments({
     const { isOfflineEnabled } = await import("@/lib/offline/feature");
 
     if (isOfflineEnabled() && !navigator.onLine) {
-      const { queueCommentLocal } = await import(
-        "@/lib/offline/issue-repository"
-      );
+      const { queueCommentLocal } =
+        await import("@/lib/offline/issue-repository");
 
       await queueCommentLocal(teamId, issueId, body);
       setComments((prev) => [

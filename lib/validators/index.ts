@@ -51,7 +51,10 @@ export const updateTeamSchema = z.object({
     .regex(/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/)
     .nullable()
     .optional(),
-  slaHours: z.record(z.string(), z.number().nonnegative()).nullable().optional(),
+  slaHours: z
+    .record(z.string(), z.number().nonnegative())
+    .nullable()
+    .optional(),
   cycleCooldownDays: z.number().int().min(0).max(30).optional(),
   triageOwnerId: z.string().cuid().nullable().optional(),
   slackWebhookUrl: z.string().url().nullable().optional(),
@@ -165,6 +168,7 @@ export const listIssuesQuerySchema = z.object({
   assigneeId: z.string().cuid().optional(),
   projectId: z.string().cuid().optional(),
   workflowStatusId: z.string().cuid().optional(),
+  labelGroup: z.string().max(40).optional(),
   number: z.coerce.number().int().positive().optional(),
   triage: z.coerce.boolean().optional(),
   search: z.string().max(200).optional(),

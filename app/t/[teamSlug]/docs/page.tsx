@@ -4,7 +4,11 @@ import { MarkdownBody } from "@/components/markdown-body";
 import { PageHeader } from "@/components/page-header";
 import { SubmitButton as Button } from "@/components/submit-button";
 import { requireTeamBySlug } from "@/lib/rbac";
-import { deleteDocument, listDocuments, saveDocument } from "@/lib/services/surface";
+import {
+  deleteDocument,
+  listDocuments,
+  saveDocument,
+} from "@/lib/services/surface";
 
 export default async function TeamDocsPage({
   params,
@@ -52,7 +56,10 @@ export default async function TeamDocsPage({
         </form>
       ) : null}
       {docs.map((doc) => (
-        <article key={doc.id} className="rounded-xl border border-separator p-4">
+        <article
+          key={doc.id}
+          className="rounded-xl border border-separator p-4"
+        >
           <h2 className="font-medium">{doc.title}</h2>
           <MarkdownBody text={doc.body} />
           {teamCtx.membership.role !== "GUEST" ? (
@@ -72,9 +79,20 @@ export default async function TeamDocsPage({
               }}
               className="mt-3 space-y-2"
             >
-              <input className="w-full rounded border border-separator px-2 py-1 text-sm" defaultValue={doc.title} name="title" required />
-              <textarea className="min-h-20 w-full rounded border border-separator px-2 py-1 text-sm" defaultValue={doc.body} name="body" />
-              <Button size="sm" type="submit">Update</Button>
+              <input
+                required
+                className="w-full rounded border border-separator px-2 py-1 text-sm"
+                defaultValue={doc.title}
+                name="title"
+              />
+              <textarea
+                className="min-h-20 w-full rounded border border-separator px-2 py-1 text-sm"
+                defaultValue={doc.body}
+                name="body"
+              />
+              <Button size="sm" type="submit">
+                Update
+              </Button>
             </form>
           ) : null}
           {teamCtx.membership.role !== "GUEST" ? (
@@ -86,7 +104,9 @@ export default async function TeamDocsPage({
               }}
               className="mt-2"
             >
-              <Button size="sm" type="submit" variant="danger">Delete</Button>
+              <Button size="sm" type="submit" variant="danger">
+                Delete
+              </Button>
             </form>
           ) : null}
         </article>

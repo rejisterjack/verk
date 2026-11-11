@@ -2,7 +2,6 @@ import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { AppSidebar } from "@/components/app-sidebar";
-import { InstallPrompt } from "@/components/pwa/install-prompt";
 import { KeyboardShell } from "@/components/app/keyboard-shell";
 import { auth } from "@/lib/auth";
 import { listUserTeams } from "@/lib/rbac";
@@ -43,6 +42,7 @@ export default async function TeamLayout({
     team.name,
     team.slug,
   ).catch(() => null);
+
   await seedDefaultWorkflowStatuses(team.id).catch(() => undefined);
 
   const [views, inboxCount] = await Promise.all([
@@ -64,7 +64,6 @@ export default async function TeamLayout({
           inboxCount={inboxCount}
           role={membership.role}
           teamSlug={teamSlug}
-          workspaceSlug={workspace?.slug}
           teams={memberships.map((m) => ({
             slug: m.team.slug,
             name: m.team.name,
@@ -72,6 +71,7 @@ export default async function TeamLayout({
           views={views
             .filter((v) => v.pinned)
             .map((v) => ({ id: v.id, name: v.name }))}
+          workspaceSlug={workspace?.slug}
         />
       </Suspense>
       <KeyboardShell teamId={team.id} teamSlug={teamSlug}>

@@ -49,13 +49,6 @@ export default async function IssueDetailPage({
       canDelete={canDelete}
       createdAt={issue.createdAt.toISOString()}
       currentUserId={user.id}
-      slaHours={team.slaHours}
-      slaWindow={{
-        timezone: team.timezone,
-        startHour: team.slaStartHour,
-        endHour: team.slaEndHour,
-        weekdays: team.slaWeekdays,
-      }}
       cycles={cycles.map((c) => ({ id: c.id, name: c.name }))}
       initialIssue={{
         id: issue.id,
@@ -79,18 +72,26 @@ export default async function IssueDetailPage({
         id: l.id,
         name: l.name,
         color: l.color,
+        group: l.group,
       }))}
       members={members.map((m) => m.user)}
       milestones={projects.flatMap((p) =>
         p.milestones.map((m) => ({ id: m.id, name: `${p.name}: ${m.name}` })),
       )}
       projects={projects.map((p) => ({ id: p.id, name: p.name }))}
+      slaHours={team.slaHours}
+      slaWindow={{
+        timezone: team.timezone,
+        startHour: team.slaStartHour,
+        endHour: team.slaEndHour,
+        weekdays: team.slaWeekdays,
+      }}
+      teamId={team.id}
+      teamSlug={teamSlug}
       workflows={workflows.map((workflow) => ({
         id: workflow.id,
         name: workflow.name,
       }))}
-      teamId={team.id}
-      teamSlug={teamSlug}
     />
   );
 }

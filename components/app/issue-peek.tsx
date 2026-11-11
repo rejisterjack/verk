@@ -59,32 +59,33 @@ export function IssuePeek({
         </div>
         {teamId ? (
           <div>
-          <label className="mt-3 block text-xs text-muted">
-            Status
-            <select
-              className="mt-1 w-full rounded-lg border border-separator bg-background px-2 py-1 text-sm text-foreground"
-              defaultValue={issue.status}
-              onChange={(event) => {
-                const value = event.target.value;
-                void fetch(`/api/teams/${teamId}/issues/${issue.id}`, {
-                  method: "PATCH",
-                  credentials: "same-origin",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify(
-                    workflows.length
-                      ? { workflowStatusId: value }
-                      : { status: value },
-                  ),
-                });
-              }}
-            >
-              {workflows.length
-                ? workflows.map((workflow) => (
+            <label className="mt-3 block text-xs text-muted">
+              Status
+              <select
+                className="mt-1 w-full rounded-lg border border-separator bg-background px-2 py-1 text-sm text-foreground"
+                defaultValue={issue.status}
+                onChange={(event) => {
+                  const value = event.target.value;
+
+                  void fetch(`/api/teams/${teamId}/issues/${issue.id}`, {
+                    method: "PATCH",
+                    credentials: "same-origin",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(
+                      workflows.length
+                        ? { workflowStatusId: value }
+                        : { status: value },
+                    ),
+                  });
+                }}
+              >
+                {workflows.length ? (
+                  workflows.map((workflow) => (
                     <option key={workflow.id} value={workflow.id}>
                       {workflow.name}
                     </option>
                   ))
-                : (
+                ) : (
                   <>
                     <option value="BACKLOG">Backlog</option>
                     <option value="TODO">Todo</option>
@@ -93,29 +94,29 @@ export function IssuePeek({
                     <option value="CANCELLED">Canceled</option>
                   </>
                 )}
-            </select>
-          </label>
-          <label className="mt-2 block text-xs text-muted">
-            Priority
-            <select
-              className="mt-1 w-full rounded-lg border border-separator bg-background px-2 py-1 text-sm text-foreground"
-              defaultValue={issue.priority}
-              onChange={(event) => {
-                void fetch(`/api/teams/${teamId}/issues/${issue.id}`, {
-                  method: "PATCH",
-                  credentials: "same-origin",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ priority: event.target.value }),
-                });
-              }}
-            >
-              <option value="NONE">No priority</option>
-              <option value="URGENT">Urgent</option>
-              <option value="HIGH">High</option>
-              <option value="MEDIUM">Medium</option>
-              <option value="LOW">Low</option>
-            </select>
-          </label>
+              </select>
+            </label>
+            <label className="mt-2 block text-xs text-muted">
+              Priority
+              <select
+                className="mt-1 w-full rounded-lg border border-separator bg-background px-2 py-1 text-sm text-foreground"
+                defaultValue={issue.priority}
+                onChange={(event) => {
+                  void fetch(`/api/teams/${teamId}/issues/${issue.id}`, {
+                    method: "PATCH",
+                    credentials: "same-origin",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ priority: event.target.value }),
+                  });
+                }}
+              >
+                <option value="NONE">No priority</option>
+                <option value="URGENT">Urgent</option>
+                <option value="HIGH">High</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="LOW">Low</option>
+              </select>
+            </label>
           </div>
         ) : null}
         <div className="mt-4">

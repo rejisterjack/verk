@@ -74,16 +74,31 @@ export default async function ViewsSettingsPage({
           <option value="IN_PROGRESS">In Progress</option>
           <option value="DONE">Done</option>
         </select>
-        <select className="w-full rounded-lg border border-separator bg-background px-3 py-2 text-sm" name="priority">
+        <select
+          className="w-full rounded-lg border border-separator bg-background px-3 py-2 text-sm"
+          name="priority"
+        >
           <option value="">Any priority</option>
           <option value="URGENT">Urgent</option>
           <option value="HIGH">High</option>
           <option value="MEDIUM">Medium</option>
           <option value="LOW">Low</option>
         </select>
-        <input className="w-full rounded-lg border border-separator bg-background px-3 py-2 text-sm" name="cycleId" placeholder="Cycle id (optional)" />
-        <input className="w-full rounded-lg border border-separator bg-background px-3 py-2 text-sm" name="assigneeId" placeholder="Assignee id (optional)" />
-        <input className="w-full rounded-lg border border-separator bg-background px-3 py-2 text-sm" name="projectId" placeholder="Project id (optional)" />
+        <input
+          className="w-full rounded-lg border border-separator bg-background px-3 py-2 text-sm"
+          name="cycleId"
+          placeholder="Cycle id (optional)"
+        />
+        <input
+          className="w-full rounded-lg border border-separator bg-background px-3 py-2 text-sm"
+          name="assigneeId"
+          placeholder="Assignee id (optional)"
+        />
+        <input
+          className="w-full rounded-lg border border-separator bg-background px-3 py-2 text-sm"
+          name="projectId"
+          placeholder="Project id (optional)"
+        />
         <select
           className="w-full rounded-lg border border-separator bg-background px-3 py-2 text-sm"
           name="layout"
@@ -132,7 +147,9 @@ export default async function ViewsSettingsPage({
               />
               <select
                 className="rounded-lg border border-separator bg-background px-2 py-1.5"
-                defaultValue={String((v.filterJson as { status?: string }).status ?? "")}
+                defaultValue={String(
+                  (v.filterJson as { status?: string }).status ?? "",
+                )}
                 name="status"
               >
                 <option value="">Any status</option>
@@ -144,7 +161,9 @@ export default async function ViewsSettingsPage({
               </select>
               <select
                 className="rounded-lg border border-separator bg-background px-2 py-1.5"
-                defaultValue={String((v.filterJson as { priority?: string }).priority ?? "")}
+                defaultValue={String(
+                  (v.filterJson as { priority?: string }).priority ?? "",
+                )}
                 name="priority"
               >
                 <option value="">Any priority</option>
@@ -155,19 +174,25 @@ export default async function ViewsSettingsPage({
               </select>
               <input
                 className="w-28 rounded-lg border border-separator bg-background px-2 py-1.5"
-                defaultValue={String((v.filterJson as { cycleId?: string }).cycleId ?? "")}
+                defaultValue={String(
+                  (v.filterJson as { cycleId?: string }).cycleId ?? "",
+                )}
                 name="cycleId"
                 placeholder="Cycle id"
               />
               <input
                 className="w-28 rounded-lg border border-separator bg-background px-2 py-1.5"
-                defaultValue={String((v.filterJson as { assigneeId?: string }).assigneeId ?? "")}
+                defaultValue={String(
+                  (v.filterJson as { assigneeId?: string }).assigneeId ?? "",
+                )}
                 name="assigneeId"
                 placeholder="Assignee id"
               />
               <input
                 className="w-28 rounded-lg border border-separator bg-background px-2 py-1.5"
-                defaultValue={String((v.filterJson as { projectId?: string }).projectId ?? "")}
+                defaultValue={String(
+                  (v.filterJson as { projectId?: string }).projectId ?? "",
+                )}
                 name="projectId"
                 placeholder="Project id"
               />

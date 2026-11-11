@@ -31,7 +31,9 @@ export default async function RoadmapPage({
   const list = await projects.listProjects(teamCtx.team.id);
   const dated = list.filter((project) => project.targetDate);
 
-  const months = [...new Set(dated.map((project) => monthKey(project.targetDate!)))].sort();
+  const months = [
+    ...new Set(dated.map((project) => monthKey(project.targetDate!))),
+  ].sort();
   const groups = new Map<string, { name: string; projects: typeof dated }>();
 
   for (const project of dated) {

@@ -33,6 +33,7 @@ export async function updateTeamAction(teamSlug: string, formData: FormData) {
   const slaKeys = ["NONE", "URGENT", "HIGH", "MEDIUM", "LOW"] as const;
   const slaHours: Record<string, number> = {};
   let hasSla = false;
+  const hasSlaFields = formData.has("sla_URGENT");
 
   for (const key of slaKeys) {
     const raw = String(formData.get(`sla_${key}`) ?? "");
@@ -58,7 +59,11 @@ export async function updateTeamAction(teamSlug: string, formData: FormData) {
         ...(githubRepoRaw !== undefined
           ? { githubRepo: githubRepoRaw || null }
           : {}),
-        ...(hasSla ? { slaHours } : {}),
+        ...(hasSlaFields
+          ? { slaHours: hasSla ? slaHours : null }
+          : hasSla
+            ? { slaHours }
+            : {}),
         ...(formData.has("cycleCooldownDays")
           ? {
               cycleCooldownDays: Number(formData.get("cycleCooldownDays") || 0),

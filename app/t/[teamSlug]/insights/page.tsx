@@ -9,7 +9,10 @@ function WeeklyBars({
 }: {
   weekly: { label: string; created: number; done: number }[];
 }) {
-  const max = Math.max(1, ...weekly.flatMap((week) => [week.created, week.done]));
+  const max = Math.max(
+    1,
+    ...weekly.flatMap((week) => [week.created, week.done]),
+  );
   const height = 120;
   const barWidth = 18;
   const gap = 10;
@@ -20,10 +23,12 @@ function WeeklyBars({
     <div className="overflow-x-auto rounded-xl border border-separator p-4">
       <div className="mb-3 flex items-center gap-4 text-xs text-muted">
         <span className="inline-flex items-center gap-1.5">
-          <span className="inline-block h-2.5 w-2.5 rounded-sm bg-accent" /> Created
+          <span className="inline-block h-2.5 w-2.5 rounded-sm bg-accent" />{" "}
+          Created
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="inline-block h-2.5 w-2.5 rounded-sm bg-accent/40" /> Completed
+          <span className="inline-block h-2.5 w-2.5 rounded-sm bg-accent/40" />{" "}
+          Completed
         </span>
       </div>
       <svg
@@ -90,10 +95,7 @@ export default async function InsightsPage({
 
   return (
     <div className="max-w-2xl space-y-6">
-      <PageHeader
-        description="Last 8 weeks"
-        title="Insights"
-      />
+      <PageHeader description="Last 8 weeks" title="Insights" />
       <p className="text-sm">
         Created {stats.created} · Completed {stats.done}
       </p>

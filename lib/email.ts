@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { Resend } from "resend";
 
 export async function sendInviteEmail(opts: {

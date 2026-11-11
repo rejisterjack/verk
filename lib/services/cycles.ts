@@ -134,7 +134,9 @@ export async function advanceDueCycles() {
     await advanceCycle(cycle.teamId, "OWNER");
     const { dispatchWebhooks } = await import("@/lib/services/webhooks");
 
-    await dispatchWebhooks(cycle.teamId, "cycle.advanced", { cycleId: cycle.id });
+    await dispatchWebhooks(cycle.teamId, "cycle.advanced", {
+      cycleId: cycle.id,
+    });
     advanced.push(cycle.teamId);
   }
 

@@ -12,6 +12,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { LabelChecklist } from "@/components/label-checklist";
 import { createIssueAction } from "@/lib/actions/issues";
 import { ESTIMATE_LABELS, PRIORITY_LABELS, STATUS_LABELS } from "@/lib/labels";
 import { isOfflineEnabled } from "@/lib/offline/feature";
@@ -19,7 +20,12 @@ import { createIssueLocal } from "@/lib/offline/issue-repository";
 
 type Opt = { id: string; name: string };
 type Member = { id: string; name: string | null; email: string };
-type LabelOpt = { id: string; name: string; color: string };
+type LabelOpt = {
+  id: string;
+  name: string;
+  color: string;
+  group?: string | null;
+};
 type WorkflowOpt = { id: string; name: string };
 type TemplateOpt = {
   id: string;
@@ -89,6 +95,7 @@ export function CreateIssueForm({
             const formData = new FormData(form);
             const named = (name: string) => {
               const fromData = formData.get(name);
+
               if (fromData != null && String(fromData).length > 0) {
                 return String(fromData);
               }
@@ -163,7 +170,10 @@ export function CreateIssueForm({
           ) : null}
           <TextField key={`${templateId}-title`} isRequired name="title">
             <Label>Title</Label>
-            <Input defaultValue={template?.title ?? ""} placeholder="Ship MCP docs" />
+            <Input
+              defaultValue={template?.title ?? ""}
+              placeholder="Ship MCP docs"
+            />
             <FieldError />
           </TextField>
           <TextField key={`${templateId}-description`} name="description">
@@ -296,21 +306,7 @@ export function CreateIssueForm({
           {labels.length ? (
             <fieldset className="text-sm">
               <legend className="mb-1">Labels</legend>
-              <div className="flex flex-wrap gap-2">
-                {labels.map((l) => (
-                  <label
-                    key={l.id}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-separator px-2 py-1"
-                  >
-                    <input name="labelIds" type="checkbox" value={l.id} />
-                    <span
-                      className="size-2 rounded-full"
-                      style={{ background: l.color }}
-                    />
-                    {l.name}
-                  </label>
-                ))}
-              </div>
+              <LabelChecklist labels={labels} name="labelIds" />
             </fieldset>
           ) : null}
           {error ? <p className="text-danger text-sm">{error}</p> : null}
