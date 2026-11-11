@@ -1,6 +1,10 @@
 import NextLink from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import {
+  CreateInitiativeForm,
+  EditInitiativeForm,
+} from "@/components/initiative-forms";
 import { PageHeader } from "@/components/page-header";
 import { SubmitButton as Button } from "@/components/submit-button";
 import { requireTeamBySlug } from "@/lib/rbac";
@@ -64,23 +68,10 @@ export default async function InitiativesPage({
       {!isGuest ? (
         <section className="rounded-xl border border-separator bg-surface p-4">
           <h2 className="mb-3 text-sm font-semibold">New initiative</h2>
-          <form
+          <CreateInitiativeForm
             action={createInitiative}
-            className="flex flex-wrap items-center gap-2"
-          >
-            <input
-              required
-              className="min-w-[240px] flex-1 rounded-lg border border-separator bg-background px-3 py-2 text-sm"
-              name="name"
-              placeholder="e.g. Q4 Mobile App Launch"
-            />
-            <input
-              className="rounded-lg border border-separator bg-background px-3 py-2 text-sm"
-              name="targetDate"
-              type="date"
-            />
-            <Button type="submit">Create initiative</Button>
-          </form>
+            submitLabel="Create initiative"
+          />
         </section>
       ) : null}
 
@@ -147,7 +138,7 @@ export default async function InitiativesPage({
 
                   {!isGuest ? (
                     <div className="flex flex-wrap items-center gap-2">
-                      <form
+                      <EditInitiativeForm
                         action={async (formData) => {
                           "use server";
                           const name = String(
@@ -173,37 +164,10 @@ export default async function InitiativesPage({
                           );
                           redirect(`/t/${teamSlug}/initiatives`);
                         }}
-                        className="flex flex-wrap items-center gap-2 text-xs"
-                      >
-                        <input
-                          required
-                          className="w-36 rounded border border-separator bg-background px-2 py-1 sm:w-44"
-                          defaultValue={initiative.name}
-                          name="name"
-                        />
-                        <input
-                          className="rounded border border-separator bg-background px-2 py-1"
-                          defaultValue={
-                            initiative.targetDate
-                              ? initiative.targetDate.toISOString().slice(0, 10)
-                              : ""
-                          }
-                          name="targetDate"
-                          type="date"
-                        />
-                        <select
-                          className="rounded border border-separator bg-background px-2 py-1"
-                          defaultValue={initiative.health}
-                          name="health"
-                        >
-                          <option value="ON_TRACK">On track</option>
-                          <option value="AT_RISK">At risk</option>
-                          <option value="OFF_TRACK">Off track</option>
-                        </select>
-                        <Button size="sm" type="submit" variant="ghost">
-                          Update
-                        </Button>
-                      </form>
+                        health={initiative.health}
+                        name={initiative.name}
+                        targetDate={initiative.targetDate}
+                      />
                       <form
                         action={async () => {
                           "use server";

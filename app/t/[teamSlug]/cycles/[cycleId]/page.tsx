@@ -1,6 +1,7 @@
 import NextLink from "next/link";
 import { notFound } from "next/navigation";
 
+import { UpdateCycleForm } from "@/components/cycle-forms";
 import { SubmitButton as Button } from "@/components/submit-button";
 import { PageHeader } from "@/components/page-header";
 import { PriorityChip, StatusChip } from "@/components/status-chip";
@@ -80,51 +81,13 @@ export default async function CycleDetailPage({
           .join(" · ") || "No issues"}
       </p>
 
-      <form
+      <UpdateCycleForm
         action={async (formData) => {
           "use server";
           await updateCycleAction(teamSlug, cycleId, formData);
         }}
-        className="grid gap-3 rounded-xl border border-separator p-4 sm:grid-cols-2"
-      >
-        <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-          <span className="text-muted">Name</span>
-          <input
-            className="rounded-lg border border-separator bg-background px-3 py-2"
-            defaultValue={cycle.name}
-            name="name"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-muted">Start</span>
-          <input
-            className="rounded-lg border border-separator bg-background px-3 py-2"
-            defaultValue={cycle.startDate.toISOString().slice(0, 10)}
-            name="startDate"
-            type="date"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-muted">End</span>
-          <input
-            className="rounded-lg border border-separator bg-background px-3 py-2"
-            defaultValue={cycle.endDate.toISOString().slice(0, 10)}
-            name="endDate"
-            type="date"
-          />
-        </label>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            defaultChecked={cycle.isActive}
-            name="isActive"
-            type="checkbox"
-          />
-          Active cycle
-        </label>
-        <div>
-          <Button type="submit">Save</Button>
-        </div>
-      </form>
+        cycle={cycle}
+      />
 
       <div className="overflow-x-auto rounded-xl border border-separator">
         <table className="w-full text-sm">

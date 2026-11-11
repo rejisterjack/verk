@@ -2,6 +2,11 @@ import NextLink from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { PageHeader } from "@/components/page-header";
+import {
+  AddMilestoneForm,
+  PostProjectUpdateForm,
+  ProjectSettingsForm,
+} from "@/components/project-detail-forms";
 import { StatusChip } from "@/components/status-chip";
 import { SubmitButton as Button } from "@/components/submit-button";
 import { requireTeamBySlug } from "@/lib/rbac";
@@ -101,68 +106,12 @@ export default async function ProjectDetailPage({
         description={`${project.status} · ${percent}% complete · ${project.issues.length} issues`}
         title={project.name}
       />
-      <form
+      <ProjectSettingsForm
         action={saveProject}
-        className="mb-8 space-y-2 rounded-xl border border-separator p-4"
-      >
-        <input
-          required
-          className="w-full rounded-lg border border-separator px-3 py-2 text-sm"
-          defaultValue={project.name}
-          name="name"
-        />
-        <textarea
-          className="min-h-16 w-full rounded-lg border border-separator px-3 py-2 text-sm"
-          defaultValue={project.summary}
-          name="summary"
-        />
-        <select
-          className="rounded-lg border border-separator px-2 py-1 text-sm"
-          defaultValue={project.status}
-          name="status"
-        >
-          <option value="BACKLOG">Backlog</option>
-          <option value="PLANNED">Planned</option>
-          <option value="IN_PROGRESS">In progress</option>
-          <option value="COMPLETED">Completed</option>
-          <option value="CANCELLED">Cancelled</option>
-        </select>
-        <select
-          className="rounded-lg border border-separator px-2 py-1 text-sm"
-          defaultValue={project.leadId ?? ""}
-          name="leadId"
-        >
-          <option value="">No lead</option>
-          {members.map((member) => (
-            <option key={member.user.id} value={member.user.id}>
-              {member.user.name ?? member.user.email}
-            </option>
-          ))}
-        </select>
-        <select
-          className="rounded-lg border border-separator px-2 py-1 text-sm"
-          defaultValue={project.initiativeId ?? ""}
-          name="initiativeId"
-        >
-          <option value="">No initiative</option>
-          {initiatives.map((initiative) => (
-            <option key={initiative.id} value={initiative.id}>
-              {initiative.name}
-            </option>
-          ))}
-        </select>
-        <input
-          className="rounded-lg border border-separator px-3 py-2 text-sm"
-          defaultValue={
-            project.targetDate
-              ? project.targetDate.toISOString().slice(0, 10)
-              : ""
-          }
-          name="targetDate"
-          type="date"
-        />
-        <Button type="submit">Save project</Button>
-      </form>
+        initiatives={initiatives}
+        members={members}
+        project={project}
+      />
 
       <section className="mb-8">
         <h2 className="text-sm font-semibold">Milestones</h2>
@@ -184,42 +133,12 @@ export default async function ProjectDetailPage({
             </li>
           ))}
         </ul>
-        <form action={addMilestone} className="mt-3 flex gap-2">
-          <input
-            className="flex-1 rounded-lg border border-separator bg-background px-3 py-2 text-sm"
-            name="name"
-            placeholder="New milestone"
-          />
-          <input
-            className="rounded-lg border border-separator bg-background px-3 py-2 text-sm"
-            name="targetDate"
-            type="date"
-          />
-          <Button size="sm" type="submit" variant="tertiary">
-            Add
-          </Button>
-        </form>
+        <AddMilestoneForm action={addMilestone} />
       </section>
 
       <section>
         <h2 className="text-sm font-semibold">Updates</h2>
-        <form action={postUpdate} className="mt-2 space-y-2">
-          <textarea
-            required
-            className="min-h-16 w-full rounded-lg border border-separator px-3 py-2 text-sm"
-            name="body"
-          />
-          <select
-            className="rounded-lg border border-separator px-2 py-1 text-sm"
-            defaultValue="ON_TRACK"
-            name="health"
-          >
-            <option value="ON_TRACK">On track</option>
-            <option value="AT_RISK">At risk</option>
-            <option value="OFF_TRACK">Off track</option>
-          </select>
-          <Button type="submit">Post update</Button>
-        </form>
+        <PostProjectUpdateForm action={postUpdate} />
         <ul className="mt-3 space-y-2 text-sm">
           {updates.map((update) => (
             <li key={update.id}>

@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { PageHeader } from "@/components/page-header";
 import { SubmitButton as Button } from "@/components/submit-button";
+import { CreateWebhookForm } from "@/components/webhooks-form";
 import { requireTeamBySlug } from "@/lib/rbac";
 import * as webhooksService from "@/lib/services/webhooks";
 
@@ -51,16 +52,7 @@ export default async function WebhooksPage({
           <p className="mt-2 text-xs text-muted">It will not be shown again.</p>
         </div>
       ) : null}
-      <form action={create} className="mb-6 flex gap-2">
-        <input
-          required
-          className="flex-1 rounded-lg border border-separator bg-background px-3 py-2 text-sm"
-          name="url"
-          placeholder="https://example.com/hooks/verk"
-          type="url"
-        />
-        <Button type="submit">Add</Button>
-      </form>
+      <CreateWebhookForm action={create} />
       <ul className="space-y-2 text-sm">
         {hooks.map((h) => (
           <li

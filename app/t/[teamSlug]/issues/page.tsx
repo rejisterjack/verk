@@ -5,6 +5,10 @@ import NextLink from "next/link";
 
 import { BoardView } from "@/components/board-view";
 import { CreateIssueForm } from "@/components/create-issue-form";
+import {
+  IssueFiltersForm,
+  SaveViewForm,
+} from "@/components/issue-filters-form";
 import { EmptyState } from "@/components/empty-state";
 import { IssuesListClient } from "@/components/issues-list-client";
 import { PageHeader } from "@/components/page-header";
@@ -237,86 +241,26 @@ export default async function IssuesPage({
       />
 
       <div className="mb-4 flex flex-wrap items-end gap-2">
-        <form
-          data-issue-filters
-          className="flex flex-wrap items-end gap-2"
-          method="get"
-        >
-          {mine ? <input name="assignee" type="hidden" value="me" /> : null}
-          {isBoard ? <input name="layout" type="hidden" value="board" /> : null}
-          {query.view ? (
-            <input name="view" type="hidden" value={query.view} />
-          ) : null}
-          {query.group ? (
-            <input name="group" type="hidden" value={query.group} />
-          ) : null}
-          <input
-            className="rounded-lg border border-separator bg-background px-3 py-2 text-sm"
-            defaultValue={query.search}
-            id="issue-filter-search"
-            name="search"
-            placeholder="Search…"
-          />
-          <select
-            className="rounded-lg border border-separator bg-background px-3 py-2 text-sm"
-            defaultValue={query.workflowStatusId ?? ""}
-            name="workflowStatusId"
-          >
-            <option value="">All workflow statuses</option>
-            {workflows.map((workflow) => (
-              <option key={workflow.id} value={workflow.id}>
-                {workflow.name}
-              </option>
-            ))}
-          </select>
-          <select
-            className="rounded-lg border border-separator bg-background px-3 py-2 text-sm"
-            defaultValue={query.priority ?? ""}
-            name="priority"
-          >
-            <option value="">All priorities</option>
-            <option value="URGENT">Urgent</option>
-            <option value="HIGH">High</option>
-            <option value="MEDIUM">Medium</option>
-            <option value="LOW">Low</option>
-            <option value="NONE">No priority</option>
-          </select>
-          <select
-            className="rounded-lg border border-separator bg-background px-3 py-2 text-sm"
-            defaultValue={query.cycleId ?? ""}
-            name="cycleId"
-          >
-            <option value="">All cycles</option>
-            {activeCycle ? (
-              <option value={activeCycle.id}>Active cycle</option>
-            ) : null}
-            {cycles.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-          {labelGroups.length ? (
-            <select
-              className="rounded-lg border border-separator bg-background px-3 py-2 text-sm"
-              defaultValue={filters.labelGroup ?? ""}
-              name="labelGroup"
-            >
-              <option value="">All label groups</option>
-              {labelGroups.map((group) => (
-                <option key={group} value={group}>
-                  {group}
-                </option>
-              ))}
-            </select>
-          ) : null}
-          <button
-            className="rounded-lg bg-accent px-3 py-2 text-sm text-accent-foreground"
-            type="submit"
-          >
-            Filter
-          </button>
-        </form>
+        <IssueFiltersForm
+          activeCycleId={activeCycle?.id}
+          cycles={cycles.map((c) => ({ id: c.id, name: c.name }))}
+          cycleId={query.cycleId}
+          hidden={{
+            assignee: mine ? "me" : undefined,
+            layout: isBoard ? "board" : undefined,
+            view: query.view,
+            group: query.group,
+          }}
+          labelGroup={filters.labelGroup}
+          labelGroups={labelGroups}
+          priority={query.priority}
+          search={query.search}
+          workflowStatusId={query.workflowStatusId}
+          workflows={workflows.map((workflow) => ({
+            id: workflow.id,
+            name: workflow.name,
+          }))}
+        />
         <SaveViewButton
           filters={{
             status: query.status,
@@ -479,19 +423,5 @@ function SaveViewButton({
     });
   }
 
-  return (
-    <form action={saveView} className="flex gap-1">
-      <input
-        className="w-36 rounded-lg border border-separator bg-background px-2 py-2 text-sm"
-        name="name"
-        placeholder="Save as view…"
-      />
-      <button
-        className="rounded-lg border border-separator px-2 py-2 text-xs text-muted hover:text-foreground"
-        type="submit"
-      >
-        Save
-      </button>
-    </form>
-  );
+  return <SaveViewForm action={saveView} />;
 }

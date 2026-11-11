@@ -1,5 +1,9 @@
 import { notFound, redirect } from "next/navigation";
 
+import {
+  CreateCustomerForm,
+  LinkCustomerRequestForm,
+} from "@/components/customers-forms";
 import { PageHeader } from "@/components/page-header";
 import { SubmitButton as Button } from "@/components/submit-button";
 import { requireTeamBySlug } from "@/lib/rbac";
@@ -51,20 +55,7 @@ export default async function CustomersPage({
         description="Link requests to issues from the API"
         title="Customers"
       />
-      <form action={create} className="flex gap-2">
-        <input
-          required
-          className="rounded-lg border border-separator px-3 py-2 text-sm"
-          name="name"
-          placeholder="Name"
-        />
-        <input
-          className="rounded-lg border border-separator px-3 py-2 text-sm"
-          name="domain"
-          placeholder="domain.com"
-        />
-        <Button type="submit">Add</Button>
-      </form>
+      <CreateCustomerForm action={create} />
       <ul className="text-sm">
         {customers.map((customer) => (
           <li
@@ -92,7 +83,7 @@ export default async function CustomersPage({
                 </li>
               ))}
             </ul>
-            <form
+            <LinkCustomerRequestForm
               action={async (formData) => {
                 "use server";
                 const issueNumber = Number(formData.get("issueNumber"));
@@ -105,29 +96,8 @@ export default async function CustomersPage({
                 });
                 redirect(`/t/${teamSlug}/customers`);
               }}
-              className="flex gap-2"
-            >
-              <input
-                required
-                className="flex-1 rounded border border-separator px-2 py-1"
-                name="body"
-                placeholder="Request"
-              />
-              <select
-                className="rounded border border-separator px-2 py-1"
-                name="issueNumber"
-              >
-                <option value="">No issue</option>
-                {issues.map((issue) => (
-                  <option key={issue.number} value={issue.number}>
-                    #{issue.number} {issue.title}
-                  </option>
-                ))}
-              </select>
-              <Button size="sm" type="submit">
-                Link
-              </Button>
-            </form>
+              issues={issues}
+            />
             <form
               action={async () => {
                 "use server";

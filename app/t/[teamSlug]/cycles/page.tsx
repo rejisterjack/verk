@@ -1,6 +1,7 @@
 import NextLink from "next/link";
 import { notFound } from "next/navigation";
 
+import { CreateCycleForm } from "@/components/cycle-forms";
 import { SubmitButton as Button } from "@/components/submit-button";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
@@ -51,48 +52,12 @@ export default async function CyclesPage({
         title="Cycles"
       />
 
-      <form
+      <CreateCycleForm
         action={async (formData) => {
           "use server";
           await createCycleAction(teamSlug, formData);
         }}
-        className="grid gap-3 rounded-xl border border-separator p-4 sm:grid-cols-2 lg:grid-cols-5"
-      >
-        <label className="flex flex-col gap-1 text-sm lg:col-span-2">
-          <span className="text-muted">Name</span>
-          <input
-            required
-            className="rounded-lg border border-separator bg-background px-3 py-2"
-            name="name"
-            placeholder="Cycle 2"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-muted">Start</span>
-          <input
-            required
-            className="rounded-lg border border-separator bg-background px-3 py-2"
-            name="startDate"
-            type="date"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-muted">End</span>
-          <input
-            required
-            className="rounded-lg border border-separator bg-background px-3 py-2"
-            name="endDate"
-            type="date"
-          />
-        </label>
-        <div className="flex items-end gap-3">
-          <label className="flex items-center gap-2 text-sm">
-            <input name="isActive" type="checkbox" />
-            Active
-          </label>
-          <Button type="submit">Create</Button>
-        </div>
-      </form>
+      />
 
       {cycles.length === 0 ? (
         <EmptyState

@@ -2,6 +2,10 @@ import { notFound, redirect } from "next/navigation";
 
 import { PageHeader } from "@/components/page-header";
 import { SubmitButton as Button } from "@/components/submit-button";
+import {
+  CreateViewForm,
+  UpdateViewForm,
+} from "@/components/views-settings-forms";
 import { requireTeamBySlug } from "@/lib/rbac";
 import * as viewsService from "@/lib/services/views";
 
@@ -54,67 +58,14 @@ export default async function ViewsSettingsPage({
         description="Saved filters pinned in the sidebar"
         title="Views"
       />
-      <form
-        action={create}
-        className="mb-6 space-y-2 rounded-xl border border-separator p-4"
-      >
-        <input
-          required
-          className="w-full rounded-lg border border-separator bg-background px-3 py-2 text-sm"
-          name="name"
-          placeholder="View name"
-        />
-        <select
-          className="w-full rounded-lg border border-separator bg-background px-3 py-2 text-sm"
-          name="status"
-        >
-          <option value="">Any status</option>
-          <option value="BACKLOG">Backlog</option>
-          <option value="TODO">Todo</option>
-          <option value="IN_PROGRESS">In Progress</option>
-          <option value="DONE">Done</option>
-        </select>
-        <select
-          className="w-full rounded-lg border border-separator bg-background px-3 py-2 text-sm"
-          name="priority"
-        >
-          <option value="">Any priority</option>
-          <option value="URGENT">Urgent</option>
-          <option value="HIGH">High</option>
-          <option value="MEDIUM">Medium</option>
-          <option value="LOW">Low</option>
-        </select>
-        <input
-          className="w-full rounded-lg border border-separator bg-background px-3 py-2 text-sm"
-          name="cycleId"
-          placeholder="Cycle id (optional)"
-        />
-        <input
-          className="w-full rounded-lg border border-separator bg-background px-3 py-2 text-sm"
-          name="assigneeId"
-          placeholder="Assignee id (optional)"
-        />
-        <input
-          className="w-full rounded-lg border border-separator bg-background px-3 py-2 text-sm"
-          name="projectId"
-          placeholder="Project id (optional)"
-        />
-        <select
-          className="w-full rounded-lg border border-separator bg-background px-3 py-2 text-sm"
-          name="layout"
-        >
-          <option value="LIST">List</option>
-          <option value="BOARD">Board</option>
-        </select>
-        <Button type="submit">Save view</Button>
-      </form>
+      <CreateViewForm action={create} />
       <ul className="space-y-2 text-sm">
         {views.map((v) => (
           <li
             key={v.id}
             className="space-y-2 rounded-lg border border-separator px-3 py-3"
           >
-            <form
+            <UpdateViewForm
               action={async (formData) => {
                 "use server";
                 const filterJson: Record<string, string> = {};
@@ -138,84 +89,8 @@ export default async function ViewsSettingsPage({
                 });
                 redirect(`/t/${teamSlug}/settings/views`);
               }}
-              className="flex flex-wrap items-end gap-2"
-            >
-              <input
-                className="flex-1 rounded-lg border border-separator bg-background px-2 py-1.5"
-                defaultValue={v.name}
-                name="name"
-              />
-              <select
-                className="rounded-lg border border-separator bg-background px-2 py-1.5"
-                defaultValue={String(
-                  (v.filterJson as { status?: string }).status ?? "",
-                )}
-                name="status"
-              >
-                <option value="">Any status</option>
-                <option value="BACKLOG">Backlog</option>
-                <option value="TODO">Todo</option>
-                <option value="IN_PROGRESS">In progress</option>
-                <option value="DONE">Done</option>
-                <option value="CANCELLED">Cancelled</option>
-              </select>
-              <select
-                className="rounded-lg border border-separator bg-background px-2 py-1.5"
-                defaultValue={String(
-                  (v.filterJson as { priority?: string }).priority ?? "",
-                )}
-                name="priority"
-              >
-                <option value="">Any priority</option>
-                <option value="URGENT">Urgent</option>
-                <option value="HIGH">High</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="LOW">Low</option>
-              </select>
-              <input
-                className="w-28 rounded-lg border border-separator bg-background px-2 py-1.5"
-                defaultValue={String(
-                  (v.filterJson as { cycleId?: string }).cycleId ?? "",
-                )}
-                name="cycleId"
-                placeholder="Cycle id"
-              />
-              <input
-                className="w-28 rounded-lg border border-separator bg-background px-2 py-1.5"
-                defaultValue={String(
-                  (v.filterJson as { assigneeId?: string }).assigneeId ?? "",
-                )}
-                name="assigneeId"
-                placeholder="Assignee id"
-              />
-              <input
-                className="w-28 rounded-lg border border-separator bg-background px-2 py-1.5"
-                defaultValue={String(
-                  (v.filterJson as { projectId?: string }).projectId ?? "",
-                )}
-                name="projectId"
-                placeholder="Project id"
-              />
-              <select
-                className="rounded-lg border border-separator bg-background px-2 py-1.5"
-                defaultValue={v.layout}
-                name="layout"
-              >
-                <option value="LIST">List</option>
-                <option value="BOARD">Board</option>
-              </select>
-              <label className="flex items-center gap-1 text-xs">
-                <input
-                  defaultChecked={v.pinned}
-                  name="pinned"
-                  type="checkbox"
-                />
-                Pinned
-              </label>
-              <Button size="sm" type="submit">
-                Update
-              </Button>
-            </form>
+              view={v}
+            />
             <form
               action={async () => {
                 "use server";

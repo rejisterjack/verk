@@ -1,5 +1,9 @@
 import { notFound, redirect } from "next/navigation";
 
+import {
+  CreateDocumentForm,
+  UpdateDocumentForm,
+} from "@/components/docs-forms";
 import { MarkdownBody } from "@/components/markdown-body";
 import { PageHeader } from "@/components/page-header";
 import { SubmitButton as Button } from "@/components/submit-button";
@@ -40,20 +44,7 @@ export default async function TeamDocsPage({
     <div className="max-w-2xl space-y-6">
       <PageHeader title="Documents" />
       {teamCtx.membership.role !== "GUEST" ? (
-        <form action={create} className="space-y-2">
-          <input
-            required
-            className="w-full rounded-lg border border-separator px-3 py-2 text-sm"
-            name="title"
-            placeholder="Title"
-          />
-          <textarea
-            className="min-h-24 w-full rounded-lg border border-separator px-3 py-2 text-sm"
-            name="body"
-            placeholder="Markdown"
-          />
-          <Button type="submit">Save document</Button>
-        </form>
+        <CreateDocumentForm action={create} />
       ) : null}
       {docs.map((doc) => (
         <article
@@ -63,7 +54,7 @@ export default async function TeamDocsPage({
           <h2 className="font-medium">{doc.title}</h2>
           <MarkdownBody text={doc.body} />
           {teamCtx.membership.role !== "GUEST" ? (
-            <form
+            <UpdateDocumentForm
               action={async (formData) => {
                 "use server";
                 await saveDocument(
@@ -77,23 +68,9 @@ export default async function TeamDocsPage({
                 );
                 redirect(`/t/${teamSlug}/docs`);
               }}
-              className="mt-3 space-y-2"
-            >
-              <input
-                required
-                className="w-full rounded border border-separator px-2 py-1 text-sm"
-                defaultValue={doc.title}
-                name="title"
-              />
-              <textarea
-                className="min-h-20 w-full rounded border border-separator px-2 py-1 text-sm"
-                defaultValue={doc.body}
-                name="body"
-              />
-              <Button size="sm" type="submit">
-                Update
-              </Button>
-            </form>
+              body={doc.body}
+              title={doc.title}
+            />
           ) : null}
           {teamCtx.membership.role !== "GUEST" ? (
             <form

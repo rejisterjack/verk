@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 
+import { ImportApiForm } from "@/components/import-settings-forms";
 import { PageHeader } from "@/components/page-header";
 import { SubmitButton as Button } from "@/components/submit-button";
 import { rateLimit } from "@/lib/rate-limit";
@@ -140,23 +141,7 @@ export default async function ImportPage({
           Paste a Linear personal API key. Imports up to 2,000 issues (Linear
           API cap for this launch). Keys are used once and not stored.
         </p>
-        <form action={importApi} className="space-y-3">
-          <input
-            required
-            className="w-full rounded-lg border border-separator bg-background px-3 py-2 text-sm"
-            name="apiKey"
-            placeholder="lin_api_…"
-            type="password"
-          />
-          <input
-            className="w-full rounded-lg border border-separator bg-background px-3 py-2 text-sm"
-            name="teamKey"
-            placeholder="Optional Linear team key filter (e.g. ENG)"
-          />
-          <Button type="submit" variant="secondary">
-            Import from API
-          </Button>
-        </form>
+        <ImportApiForm action={importApi} />
       </section>
     </div>
   );

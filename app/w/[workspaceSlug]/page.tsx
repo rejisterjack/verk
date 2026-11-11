@@ -2,7 +2,10 @@ import NextLink from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { PageHeader } from "@/components/page-header";
-import { SubmitButton as Button } from "@/components/submit-button";
+import {
+  AddWorkspaceTeamForm,
+  RenameWorkspaceForm,
+} from "@/components/workspace-forms";
 import { WorkspaceMembers } from "@/components/workspace-members";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -71,14 +74,10 @@ export default async function WorkspacePage({
         description="Teams in this workspace"
         title={membership.workspace.name}
       />
-      <form action={rename} className="mb-4 flex gap-2">
-        <input
-          className="flex-1 rounded-lg border border-separator px-3 py-2 text-sm"
-          defaultValue={membership.workspace.name}
-          name="name"
-        />
-        <Button type="submit">Rename</Button>
-      </form>
+      <RenameWorkspaceForm
+        action={rename}
+        name={membership.workspace.name}
+      />
       <WorkspaceMembers
         actorRole={membership.role}
         canAdmin={canAdmin}
@@ -97,7 +96,7 @@ export default async function WorkspacePage({
         }))}
         workspaceSlug={workspaceSlug}
       />
-      <form
+      <AddWorkspaceTeamForm
         action={async (formData) => {
           "use server";
           const name = String(formData.get("name") ?? "").trim();
@@ -107,16 +106,7 @@ export default async function WorkspacePage({
 
           redirect(`/t/${team.slug}/issues`);
         }}
-        className="mb-6 flex gap-2"
-      >
-        <input
-          required
-          className="flex-1 rounded-lg border border-separator px-3 py-2 text-sm"
-          name="name"
-          placeholder="New team name"
-        />
-        <Button type="submit">Add team</Button>
-      </form>
+      />
       <ul className="divide-y divide-separator rounded-xl border border-separator">
         {membership.workspace.teams.map((team) => (
           <li key={team.id}>

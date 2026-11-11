@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@heroui/react";
+import { Button, Form, Input, Label, TextField } from "@heroui/react";
 import { useState } from "react";
 
 import { createApiKeyAction, revokeApiKeyAction } from "@/lib/actions/api-keys";
@@ -33,8 +33,8 @@ export function ApiKeysSettings({
 
   return (
     <div className="space-y-6">
-      <form
-        className="flex flex-wrap gap-2 rounded-xl border border-separator p-4"
+      <Form
+        className="flex flex-wrap items-end gap-2 rounded-xl border border-separator p-4"
         onSubmit={async (e) => {
           e.preventDefault();
           setError(null);
@@ -51,12 +51,10 @@ export function ApiKeysSettings({
           e.currentTarget.reset();
         }}
       >
-        <input
-          required
-          className="min-w-56 flex-1 rounded-lg border border-separator bg-background px-3 py-2 text-sm"
-          name="name"
-          placeholder="Cursor agent"
-        />
+        <TextField isRequired className="min-w-56 flex-1" name="name">
+          <Label>Name</Label>
+          <Input placeholder="Cursor agent" />
+        </TextField>
         <Button type="submit">Create key</Button>
         {error ? <p className="w-full text-sm text-danger">{error}</p> : null}
         {plaintext ? (
@@ -80,7 +78,7 @@ export function ApiKeysSettings({
             </div>
           </div>
         ) : null}
-      </form>
+      </Form>
 
       <div className="overflow-x-auto rounded-xl border border-separator">
         <table className="w-full text-sm">
