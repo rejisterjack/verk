@@ -161,18 +161,24 @@ export const createApiKeySchema = z.object({
   name: z.string().min(1).max(80),
 });
 
+/** HTML GET forms / clearable Selects submit "" for unset fields. */
+const emptyToUndef = <T extends z.ZodTypeAny>(schema: T) =>
+  z.preprocess((v) => (v === "" || v === null ? undefined : v), schema);
+
 export const listIssuesQuerySchema = z.object({
-  status: z.union([issueStatusSchema, z.array(issueStatusSchema)]).optional(),
-  priority: prioritySchema.optional(),
-  cycleId: z.string().cuid().optional(),
-  assigneeId: z.string().cuid().optional(),
-  projectId: z.string().cuid().optional(),
-  workflowStatusId: z.string().cuid().optional(),
-  labelGroup: z.string().max(40).optional(),
+  status: emptyToUndef(
+    z.union([issueStatusSchema, z.array(issueStatusSchema)]).optional(),
+  ),
+  priority: emptyToUndef(prioritySchema.optional()),
+  cycleId: emptyToUndef(z.string().cuid().optional()),
+  assigneeId: emptyToUndef(z.string().cuid().optional()),
+  projectId: emptyToUndef(z.string().cuid().optional()),
+  workflowStatusId: emptyToUndef(z.string().cuid().optional()),
+  labelGroup: emptyToUndef(z.string().max(40).optional()),
   number: z.coerce.number().int().positive().optional(),
   triage: z.coerce.boolean().optional(),
-  search: z.string().max(200).optional(),
-  cursor: z.string().cuid().optional(),
+  search: emptyToUndef(z.string().max(200).optional()),
+  cursor: emptyToUndef(z.string().cuid().optional()),
   take: z.coerce.number().int().min(1).max(200).optional().default(50),
 });
 

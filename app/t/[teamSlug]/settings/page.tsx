@@ -1,11 +1,10 @@
 import { notFound } from "next/navigation";
 
-import { PageHeader } from "@/components/page-header";
+import { ViewToolbar } from "@/components/page-header";
 import {
   TeamDeleteForm,
   TeamSettingsForm,
 } from "@/components/team-settings-form";
-import { SettingsNav } from "@/components/settings-nav";
 import { deleteTeamAction, updateTeamAction } from "@/lib/actions/teams";
 import { isDemoMode } from "@/lib/utils";
 import { requireTeamBySlug } from "@/lib/rbac";
@@ -29,10 +28,8 @@ export default async function SettingsPage({
   const members = canAdmin ? await listMembers(team.id) : [];
 
   return (
-    <div className="max-w-2xl space-y-8">
-      <PageHeader title="Team settings" />
-
-      <SettingsNav canAdmin={canAdmin} teamSlug={teamSlug} />
+    <div className="px-4 py-3 max-w-2xl space-y-8">
+      <ViewToolbar title="Team settings" />
 
       {canAdmin ? (
         <TeamSettingsForm

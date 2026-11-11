@@ -6,9 +6,12 @@ import { Button, Link } from "@heroui/react";
 import NextLink from "next/link";
 
 import { MarkdownBody } from "@/components/markdown-body";
-import { PriorityChip, StatusChip } from "@/components/status-chip";
 import { SelectField } from "@/components/ui/select-field";
-import { PRIORITY_LABELS, STATUS_LABELS } from "@/lib/labels";
+import {
+  PRIORITY_LABELS,
+  STATUS_LABELS,
+  statusToWorkflowKey,
+} from "@/lib/labels";
 import { issueKey } from "@/lib/utils";
 
 export type PeekIssue = {
@@ -18,7 +21,10 @@ export type PeekIssue = {
   description?: string;
   status: IssueStatus;
   priority: Priority;
+  workflowStatusId?: string | null;
 };
+
+type PeekWorkflow = { id: string; name: string; key?: string };
 
 export function IssuePeek({
   issue,
@@ -30,7 +36,7 @@ export function IssuePeek({
   issue: PeekIssue | null;
   teamSlug: string;
   teamId?: string;
-  workflows?: { id: string; name: string }[];
+  workflows?: PeekWorkflow[];
   onClose: () => void;
 }) {
   if (!issue) return null;
@@ -40,30 +46,64 @@ export function IssuePeek({
       ? `/t/${teamSlug}/issues/${issue.number}`
       : `/t/${teamSlug}/issues/tmp/${issue.id}`;
 
+  const statusDefault = (() => {
+    if (!workflows.length) return issue.status;
+    if (
+      issue.workflowStatusId &&
+      workflows.some((workflow) => workflow.id === issue.workflowStatusId)
+    ) {
+      return issue.workflowStatusId;
+    }
+    const key = statusToWorkflowKey(issue.status);
+
+    return (
+      workflows.find((workflow) => workflow.key === key)?.id ??
+      workflows[0]?.id ??
+      issue.status
+    );
+  })();
+
   return (
-    <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-separator bg-background shadow-xl animate-in slide-in-from-right duration-150">
-      <div className="flex items-center justify-between border-b border-separator px-4 py-3">
-        <span className="text-xs text-muted">
-          {issueKey(teamSlug, issue.number)}
-        </span>
-        <Button size="sm" variant="ghost" onPress={onClose}>
-          Esc
-        </Button>
-      </div>
-      <div className="flex-1 overflow-auto p-4">
-        <h2 className="text-lg font-semibold leading-snug">{issue.title}</h2>
-        <div className="mt-3 flex gap-2">
-          <StatusChip status={issue.status} />
-          <PriorityChip priority={issue.priority} />
+    <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-xl border-l border-separator bg-background shadow-xl animate-in slide-in-from-right duration-150">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex h-10 items-center justify-between border-b border-separator px-4">
+          <span className="font-mono text-[12px] text-muted">
+            {issueKey(teamSlug, issue.number)}
+          </span>
+          <Button size="sm" variant="ghost" onPress={onClose}>
+            Esc
+          </Button>
         </div>
-        {teamId ? (
-          <div className="mt-3 flex flex-col gap-3">
+        <div className="flex-1 overflow-auto px-4 py-4">
+          <h2 className="text-[17px] font-semibold leading-snug tracking-tight">
+            {issue.title}
+          </h2>
+          <div className="mt-4 text-[13px] text-foreground/90">
+            <MarkdownBody text={issue.description || ""} />
+          </div>
+        </div>
+        <div className="border-t border-separator px-4 py-3">
+          <Link
+            render={(domProps) => (
+              <NextLink
+                {...domProps}
+                ref={domProps.ref as React.Ref<HTMLAnchorElement>}
+                href={href}
+              />
+            )}
+          >
+            Open full issue
+          </Link>
+        </div>
+      </div>
+      {teamId ? (
+        <aside className="w-52 shrink-0 border-l border-separator bg-surface/40 px-3 py-3">
+          <p className="mb-3 text-[11px] font-medium uppercase tracking-wide text-muted">
+            Properties
+          </p>
+          <div className="flex flex-col gap-3">
             <SelectField
-              defaultValue={
-                workflows.length
-                  ? (workflows[0]?.id ?? issue.status)
-                  : issue.status
-              }
+              defaultValue={statusDefault}
               label="Status"
               options={
                 workflows.length
@@ -76,6 +116,7 @@ export function IssuePeek({
                       label,
                     }))
               }
+              size="sm"
               onChange={(key) => {
                 if (key == null) return;
                 const value = String(key);
@@ -99,6 +140,7 @@ export function IssuePeek({
                 id,
                 label,
               }))}
+              size="sm"
               onChange={(key) => {
                 if (key == null) return;
                 void fetch(`/api/teams/${teamId}/issues/${issue.id}`, {
@@ -110,24 +152,8 @@ export function IssuePeek({
               }}
             />
           </div>
-        ) : null}
-        <div className="mt-4">
-          <MarkdownBody text={issue.description || ""} />
-        </div>
-      </div>
-      <div className="border-t border-separator p-4">
-        <Link
-          render={(domProps) => (
-            <NextLink
-              {...domProps}
-              ref={domProps.ref as React.Ref<HTMLAnchorElement>}
-              href={href}
-            />
-          )}
-        >
-          Open full issue
-        </Link>
-      </div>
+        </aside>
+      ) : null}
     </div>
   );
 }

@@ -39,10 +39,12 @@ export default async function IssueDetailPage({
     workspacesService.listWorkflowStatuses(team.id),
   ]);
 
+  const isGuest = membership.role === "GUEST";
   const canDelete =
-    membership.role === "ADMIN" ||
-    membership.role === "OWNER" ||
-    issue.creatorId === user.id;
+    !isGuest &&
+    (membership.role === "ADMIN" ||
+      membership.role === "OWNER" ||
+      issue.creatorId === user.id);
 
   return (
     <IssueEditor
@@ -79,6 +81,7 @@ export default async function IssueDetailPage({
         p.milestones.map((m) => ({ id: m.id, name: `${p.name}: ${m.name}` })),
       )}
       projects={projects.map((p) => ({ id: p.id, name: p.name }))}
+      readOnly={isGuest}
       slaHours={team.slaHours}
       slaWindow={{
         timezone: team.timezone,

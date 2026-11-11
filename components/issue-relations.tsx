@@ -2,7 +2,7 @@
 
 import type { Key } from "@heroui/react";
 
-import { Button, Form, Input, Label, TextField } from "@heroui/react";
+import { Button, Input, Label, TextField } from "@heroui/react";
 import { useEffect, useState } from "react";
 
 import { SelectField } from "@/components/ui/select-field";
@@ -44,8 +44,7 @@ export function IssueRelations({
     void load();
   }, [teamId, issueId]);
 
-  async function add(e: React.FormEvent) {
-    e.preventDefault();
+  async function add() {
     setError(null);
     const num = Number(targetNumber);
 
@@ -154,10 +153,7 @@ export function IssueRelations({
             <li className="text-muted">No relations yet.</li>
           ) : null}
         </ul>
-        <Form
-          className="mt-3 grid grid-cols-[minmax(9rem,12rem)_6rem_auto] items-end gap-2"
-          onSubmit={add}
-        >
+        <div className="mt-3 grid grid-cols-[minmax(9rem,12rem)_6rem_auto] items-end gap-2">
           <SelectField
             fullWidth
             label="Relation"
@@ -180,10 +176,15 @@ export function IssueRelations({
             <Label>Issue #</Label>
             <Input placeholder="42" />
           </TextField>
-          <Button size="sm" type="submit" variant="tertiary">
+          <Button
+            size="sm"
+            type="button"
+            variant="tertiary"
+            onPress={() => void add()}
+          >
             Add
           </Button>
-        </Form>
+        </div>
         {error ? <p className="mt-1 text-xs text-danger">{error}</p> : null}
       </div>
     </section>

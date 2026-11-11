@@ -14,6 +14,7 @@ export const authConfig = {
       const isProtected =
         pathname === "/t" ||
         pathname.startsWith("/t/") ||
+        pathname.startsWith("/w/") ||
         pathname.startsWith("/onboarding") ||
         pathname.startsWith("/account");
 

@@ -1,6 +1,6 @@
-import { ESTIMATE_LABELS, PRIORITY_LABELS, STATUS_LABELS } from "@/lib/labels";
-
 import type { SelectOption } from "@/components/ui/select-field";
+
+import { ESTIMATE_LABELS, PRIORITY_LABELS, STATUS_LABELS } from "@/lib/labels";
 
 export const INITIATIVE_HEALTH_OPTIONS: SelectOption[] = [
   { id: "ON_TRACK", label: "On track" },

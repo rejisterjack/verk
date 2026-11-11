@@ -1,8 +1,7 @@
-import NextLink from "next/link";
 import { notFound } from "next/navigation";
 
 import { ApiKeysSettings } from "@/components/api-keys-settings";
-import { PageHeader } from "@/components/page-header";
+import { ViewToolbar } from "@/components/page-header";
 import { requireTeamBySlug } from "@/lib/rbac";
 import * as apiKeysService from "@/lib/services/api-keys";
 
@@ -28,31 +27,11 @@ export default async function ApiKeysPage({
     : [];
 
   return (
-    <div className="max-w-3xl space-y-6">
-      <PageHeader
+    <div className="px-4 py-3 max-w-3xl space-y-6">
+      <ViewToolbar
         description="Use Bearer keys with /api/mcp and the JSON API"
         title="API keys"
       />
-      <nav className="flex gap-3 text-sm">
-        <NextLink
-          className="text-muted hover:text-foreground"
-          href={`/t/${teamSlug}/settings`}
-        >
-          General
-        </NextLink>
-        <NextLink
-          className="text-muted hover:text-foreground"
-          href={`/t/${teamSlug}/settings/members`}
-        >
-          Members
-        </NextLink>
-        <NextLink
-          className="text-accent"
-          href={`/t/${teamSlug}/settings/api-keys`}
-        >
-          API keys
-        </NextLink>
-      </nav>
       <ApiKeysSettings canAdmin={canAdmin} keys={keys} teamSlug={teamSlug} />
     </div>
   );

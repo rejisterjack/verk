@@ -1,5 +1,6 @@
 import type { IssueStatus, Priority } from "@/lib/generated/prisma/client";
 
+import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 import NextLink from "next/link";
 
@@ -12,7 +13,7 @@ import {
 import { EmptyState } from "@/components/empty-state";
 import { IssuesLayoutToggle } from "@/components/issues-layout-toggle";
 import { IssuesListClient } from "@/components/issues-list-client";
-import { PageHeader } from "@/components/page-header";
+import { ViewToolbar } from "@/components/page-header";
 import { requireTeamBySlug } from "@/lib/rbac";
 import * as issuesService from "@/lib/services/issues";
 import * as cyclesService from "@/lib/services/cycles";
@@ -55,7 +56,8 @@ export default async function IssuesPage({
   } catch {
     notFound();
   }
-  const { team, user } = teamCtx;
+  const { team, user, membership } = teamCtx;
+  const isGuest = membership.role === "GUEST";
 
   let filters: {
     status?: IssueStatus;
@@ -66,11 +68,11 @@ export default async function IssuesPage({
     workflowStatusId?: string;
     labelGroup?: string;
   } = {
-    status: query.status as IssueStatus | undefined,
-    priority: query.priority as Priority | undefined,
-    cycleId: query.cycleId,
-    search: query.search,
-    workflowStatusId: query.workflowStatusId,
+    status: (query.status || undefined) as IssueStatus | undefined,
+    priority: (query.priority || undefined) as Priority | undefined,
+    cycleId: query.cycleId || undefined,
+    search: query.search || undefined,
+    workflowStatusId: query.workflowStatusId || undefined,
     labelGroup: query.labelGroup?.trim() || undefined,
   };
 
@@ -178,110 +180,132 @@ export default async function IssuesPage({
 
   const activeCycle = cycles.find((c) => c.isActive);
   const title = mine ? "My issues" : isBoard ? "Board" : "Issues";
+  const hasActiveFilters = Boolean(
+    query.search ||
+    query.priority ||
+    query.cycleId ||
+    query.workflowStatusId ||
+    query.status ||
+    query.labelGroup ||
+    query.view,
+  );
+  const clearFiltersHref = (() => {
+    const params = new URLSearchParams();
+
+    if (mine) params.set("assignee", "me");
+    if (isBoard) params.set("layout", "board");
+    if (query.group) params.set("group", query.group);
+    const qs = params.toString();
+
+    return `/t/${teamSlug}/issues${qs ? `?${qs}` : ""}`;
+  })();
 
   return (
-    <div>
-      <PageHeader
+    <div className="flex min-h-full flex-col">
+      <ViewToolbar
         actions={
-          <div className="flex items-center gap-2">
-            <IssuesLayoutToggle
-              group={query.group}
-              layout={isBoard ? "board" : "list"}
-              mine={mine}
-              teamSlug={teamSlug}
-            />
-            <CreateIssueForm
-              cycles={cycleOpts}
-              labels={labelOpts}
-              members={memberOpts}
-              milestones={milestoneOpts}
-              projects={projectOpts}
-              teamId={team.id}
-              teamSlug={teamSlug}
-              templates={templates.map((template) => ({
-                id: template.id,
-                name: template.name,
-                title: template.title,
-                description: template.description,
-                priority: template.priority,
-                estimate: template.estimate,
-              }))}
+          <IssuesLayoutToggle
+            group={query.group}
+            layout={isBoard ? "board" : "list"}
+            mine={mine}
+            teamSlug={teamSlug}
+          />
+        }
+        description={
+          activeCycle ? `Active cycle: ${activeCycle.name}` : undefined
+        }
+        filters={
+          <>
+            <IssueFiltersForm
+              activeCycleId={activeCycle?.id}
+              cycleId={query.cycleId}
+              cycles={cycles.map((c) => ({ id: c.id, name: c.name }))}
+              hidden={{
+                assignee: mine ? "me" : undefined,
+                layout: isBoard ? "board" : undefined,
+                view: query.view,
+                group: query.group,
+              }}
+              labelGroup={filters.labelGroup}
+              labelGroups={labelGroups}
+              priority={query.priority}
+              search={query.search}
+              workflowStatusId={query.workflowStatusId}
               workflows={workflows.map((workflow) => ({
                 id: workflow.id,
                 name: workflow.name,
               }))}
             />
-          </div>
-        }
-        description={
-          activeCycle
-            ? `Active cycle: ${activeCycle.name} · Press C to create · ⌘K for commands`
-            : "Press C to create · ⌘K for commands"
+            {!isGuest ? (
+              <SaveViewButton
+                filters={{
+                  status: query.status,
+                  priority: query.priority,
+                  cycleId: query.cycleId,
+                  search: query.search,
+                  workflowStatusId: query.workflowStatusId,
+                  labelGroup: filters.labelGroup,
+                  assigneeId: mine ? user.id : undefined,
+                }}
+                layout={isBoard ? "BOARD" : "LIST"}
+                teamId={team.id}
+                teamSlug={teamSlug}
+              />
+            ) : null}
+          </>
         }
         title={title}
       />
 
-      <div className="mb-4 flex flex-wrap items-end gap-2">
-        <IssueFiltersForm
-          activeCycleId={activeCycle?.id}
-          cycles={cycles.map((c) => ({ id: c.id, name: c.name }))}
-          cycleId={query.cycleId}
-          hidden={{
-            assignee: mine ? "me" : undefined,
-            layout: isBoard ? "board" : undefined,
-            view: query.view,
-            group: query.group,
-          }}
-          labelGroup={filters.labelGroup}
-          labelGroups={labelGroups}
-          priority={query.priority}
-          search={query.search}
-          workflowStatusId={query.workflowStatusId}
-          workflows={workflows.map((workflow) => ({
-            id: workflow.id,
-            name: workflow.name,
-          }))}
-        />
-        <SaveViewButton
-          filters={{
-            status: query.status,
-            cycleId: query.cycleId,
-            search: query.search,
-            labelGroup: filters.labelGroup,
-            assigneeId: mine ? user.id : undefined,
-          }}
-          teamId={team.id}
-        />
-      </div>
-
       {issues.length === 0 ? (
-        <EmptyState
-          action={
-            <CreateIssueForm
-              cycles={cycleOpts}
-              labels={labelOpts}
-              members={memberOpts}
-              milestones={milestoneOpts}
-              projects={projectOpts}
-              teamId={team.id}
-              teamSlug={teamSlug}
-              templates={templates.map((template) => ({
-                id: template.id,
-                name: template.name,
-                title: template.title,
-                description: template.description,
-                priority: template.priority,
-                estimate: template.estimate,
-              }))}
-              workflows={workflows.map((workflow) => ({
-                id: workflow.id,
-                name: workflow.name,
-              }))}
-            />
-          }
-          description="Create your first issue or import from Linear in Settings → Import."
-          title="No issues yet"
-        />
+        hasActiveFilters ? (
+          <EmptyState
+            action={
+              <NextLink
+                className="rounded-md bg-accent px-3 py-1.5 text-[13px] font-medium text-accent-foreground"
+                href={clearFiltersHref}
+              >
+                Clear filters
+              </NextLink>
+            }
+            description="Try adjusting search or filters, or clear them to see all issues."
+            title="No matching issues"
+          />
+        ) : (
+          <EmptyState
+            action={
+              !isGuest ? (
+                <CreateIssueForm
+                  cycles={cycleOpts}
+                  labels={labelOpts}
+                  members={memberOpts}
+                  milestones={milestoneOpts}
+                  projects={projectOpts}
+                  teamId={team.id}
+                  teamSlug={teamSlug}
+                  templates={templates.map((template) => ({
+                    id: template.id,
+                    name: template.name,
+                    title: template.title,
+                    description: template.description,
+                    priority: template.priority,
+                    estimate: template.estimate,
+                  }))}
+                  workflows={workflows.map((workflow) => ({
+                    id: workflow.id,
+                    name: workflow.name,
+                  }))}
+                />
+              ) : undefined
+            }
+            description={
+              isGuest
+                ? "No issues are visible in this team yet."
+                : "Create your first issue or import from Linear in Settings → Import."
+            }
+            title="No issues yet"
+          />
+        )
       ) : isBoard ? (
         <BoardView
           columnLabels={columnLabels}
@@ -322,6 +346,7 @@ export default async function IssuesPage({
             revision:
               "revision" in i ? (i as { revision?: number }).revision : 0,
           }))}
+          readOnly={isGuest}
           slaHours={team.slaHours}
           slaWindow={{
             timezone: team.timezone,
@@ -335,6 +360,7 @@ export default async function IssuesPage({
           workflows={workflows.map((workflow) => ({
             id: workflow.id,
             name: workflow.name,
+            key: workflow.key,
           }))}
         />
       ) : (
@@ -355,6 +381,7 @@ export default async function IssuesPage({
             description: issue.description,
             status: issue.status,
             priority: issue.priority,
+            workflowStatusId: issue.workflowStatusId,
             assignee: issue.assignee,
             cycle: issue.cycle,
             labelIds: issue.labels.map((row) => row.labelId),
@@ -372,6 +399,7 @@ export default async function IssuesPage({
           workflows={workflows.map((workflow) => ({
             id: workflow.id,
             name: workflow.name,
+            key: workflow.key,
           }))}
         />
       )}
@@ -381,10 +409,14 @@ export default async function IssuesPage({
 
 function SaveViewButton({
   teamId,
+  teamSlug,
   filters,
+  layout = "LIST",
 }: {
   teamId: string;
+  teamSlug: string;
   filters: Record<string, string | undefined>;
+  layout?: "LIST" | "BOARD";
 }) {
   async function saveView(formData: FormData) {
     "use server";
@@ -399,9 +431,10 @@ function SaveViewButton({
     await viewsService.createView(teamId, {
       name,
       filterJson,
-      layout: "LIST",
+      layout,
       pinned: true,
     });
+    revalidatePath(`/t/${teamSlug}`, "layout");
   }
 
   return <SaveViewForm action={saveView} />;

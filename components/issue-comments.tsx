@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Form, Label, TextArea, TextField } from "@heroui/react";
+import { Button, Label, TextArea, TextField } from "@heroui/react";
 import { useEffect, useState } from "react";
 
 const REACTIONS = ["👍", "👀", "🎉", "❤️", "🚀"] as const;
@@ -41,8 +41,7 @@ export function IssueComments({
     void load();
   }, [teamId, issueId]);
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  async function submit() {
     if (!body.trim()) return;
     setPending(true);
     const { isOfflineEnabled } = await import("@/lib/offline/feature");
@@ -150,17 +149,22 @@ export function IssueComments({
           <li className="text-sm text-muted">No comments yet.</li>
         ) : null}
       </ul>
-      <Form className="mt-4 flex flex-col gap-2" onSubmit={submit}>
+      <div className="mt-4 flex flex-col gap-2">
         <TextField name="body" value={body} onChange={setBody}>
           <Label>Comment</Label>
           <TextArea placeholder="Leave a comment…" rows={3} />
         </TextField>
         <div>
-          <Button isDisabled={pending} size="sm" type="submit">
+          <Button
+            isDisabled={pending}
+            size="sm"
+            type="button"
+            onPress={() => void submit()}
+          >
             {pending ? "Posting…" : "Comment"}
           </Button>
         </div>
-      </Form>
+      </div>
     </section>
   );
 }

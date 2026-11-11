@@ -97,10 +97,7 @@ export function TeamSettingsForm({
           </p>
         </div>
         <div className="space-y-3">
-          <TextField
-            defaultValue={team.githubRepo ?? ""}
-            name="githubRepo"
-          >
+          <TextField defaultValue={team.githubRepo ?? ""} name="githubRepo">
             <Label>GitHub repository (owner/repo)</Label>
             <Input placeholder="e.g. acme/web-app" />
           </TextField>
@@ -113,9 +110,7 @@ export function TeamSettingsForm({
               <Switch.Thumb />
             </Switch.Control>
             <Switch.Content>
-              <Label>
-                Auto-complete when a linked GitHub PR merges
-              </Label>
+              <Label>Auto-complete when a linked GitHub PR merges</Label>
             </Switch.Content>
           </Switch>
           <TextField
@@ -136,8 +131,8 @@ export function TeamSettingsForm({
         <div>
           <h2 className="font-semibold text-foreground">Triage & SLA</h2>
           <p className="text-xs text-muted">
-            Configure default triage ownership, operational windows, and priority
-            resolution targets
+            Configure default triage ownership, operational windows, and
+            priority resolution targets
           </p>
         </div>
         <div className="space-y-3">
@@ -170,10 +165,7 @@ export function TeamSettingsForm({
               <Label>Operating start hour (0-23)</Label>
               <Input max={23} min={0} type="number" />
             </TextField>
-            <TextField
-              defaultValue={String(team.slaEndHour)}
-              name="slaEndHour"
-            >
+            <TextField defaultValue={String(team.slaEndHour)} name="slaEndHour">
               <Label>Operating end hour (1-24)</Label>
               <Input max={24} min={1} type="number" />
             </TextField>

@@ -1,13 +1,12 @@
 import NextLink from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { Chip } from "@heroui/react";
-
 import {
   CreateInitiativeForm,
   EditInitiativeInlineForm,
 } from "@/components/initiative-forms";
-import { PageHeader } from "@/components/page-header";
+import { EmptyState } from "@/components/empty-state";
+import { ViewToolbar } from "@/components/page-header";
 import { CreateProjectForm } from "@/components/projects-page-forms";
 import { SubmitButton as Button } from "@/components/submit-button";
 import { requireTeamBySlug } from "@/lib/rbac";
@@ -58,13 +57,12 @@ export default async function ProjectsPage({
   }
 
   return (
-    <div>
-      <PageHeader
-        description="Group issues around a shared outcome"
-        title="Projects"
-      />
-      <section className="mb-6 space-y-4 rounded-xl border border-separator p-4">
-        <h2 className="text-sm font-semibold">Initiatives</h2>
+    <div className="flex min-h-full flex-col">
+      <ViewToolbar title="Projects" />
+      <section className="space-y-3 border-b border-separator px-4 py-3">
+        <h2 className="text-[12px] font-medium uppercase tracking-wide text-muted">
+          Initiatives
+        </h2>
         <CreateInitiativeForm
           action={createInitiative}
           submitLabel="Create initiative"
@@ -116,30 +114,39 @@ export default async function ProjectsPage({
           ))
         )}
       </section>
-      <CreateProjectForm action={createProject} />
-      <div className="grid gap-3 sm:grid-cols-2">
-        {projects.map((p) => (
-          <NextLink
-            key={p.id}
-            className="rounded-xl border border-separator p-4 transition-colors hover:border-accent/40"
-            href={`/t/${teamSlug}/projects/${p.id}`}
-          >
-            <div className="flex items-start justify-between gap-2">
-              <h3 className="font-medium">{p.name}</h3>
-              <Chip size="sm" variant="soft">
-                {p.status.replaceAll("_", " ")}
-              </Chip>
-            </div>
-            <p className="mt-1 line-clamp-2 text-sm text-muted">
-              {p.summary || "No summary"}
-            </p>
-            <p className="mt-3 text-xs text-muted">
-              {p._count.issues} issues · {p.milestones.length}{" "}
-              {p.milestones.length === 1 ? "milestone" : "milestones"}
-            </p>
-          </NextLink>
-        ))}
+      <div className="px-4 py-3">
+        <CreateProjectForm action={createProject} />
       </div>
+      {projects.length === 0 ? (
+        <EmptyState
+          description="Create a project to group related issues and track progress."
+          title="No projects yet"
+        />
+      ) : (
+        <ul className="divide-y divide-separator border-t border-separator">
+          {projects.map((p) => (
+            <li key={p.id}>
+              <NextLink
+                className="flex items-center gap-3 px-4 py-2 text-[13px] transition-colors hover:bg-default/40"
+                href={`/t/${teamSlug}/projects/${p.id}`}
+              >
+                <span className="min-w-0 flex-1 truncate font-medium">
+                  {p.name}
+                </span>
+                <span className="hidden truncate text-[12px] text-muted sm:inline">
+                  {p.summary || "No summary"}
+                </span>
+                <span className="shrink-0 text-[11px] text-muted">
+                  {p._count.issues} issues
+                </span>
+                <span className="shrink-0 rounded-md bg-default px-1.5 py-0.5 text-[11px] capitalize text-muted">
+                  {p.status.replaceAll("_", " ").toLowerCase()}
+                </span>
+              </NextLink>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

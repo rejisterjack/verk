@@ -2,7 +2,7 @@
 
 import type { Key } from "@heroui/react";
 
-import { Button, Form, Input, Label, TextField } from "@heroui/react";
+import { Button, Input, Label, TextField } from "@heroui/react";
 import { useEffect, useState } from "react";
 
 import { SelectField } from "@/components/ui/select-field";
@@ -67,21 +67,7 @@ export function IssueLinks({
           </li>
         ))}
       </ul>
-      <Form
-        className="mt-2 grid grid-cols-[minmax(7rem,9rem)_minmax(0,1fr)_auto] items-end gap-2"
-        onSubmit={(event) => {
-          event.preventDefault();
-          void fetch(`/api/teams/${teamId}/issues/${issueId}/links`, {
-            method: "POST",
-            credentials: "same-origin",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ kind: String(kind), url }),
-          }).then(() => {
-            setUrl("");
-            void load();
-          });
-        }}
-      >
+      <div className="mt-2 grid grid-cols-[minmax(7rem,9rem)_minmax(0,1fr)_auto] items-end gap-2">
         <SelectField
           fullWidth
           label="Kind"
@@ -97,10 +83,24 @@ export function IssueLinks({
           <Label>URL</Label>
           <Input placeholder="https://" />
         </TextField>
-        <Button size="sm" type="submit">
+        <Button
+          size="sm"
+          type="button"
+          onPress={() => {
+            void fetch(`/api/teams/${teamId}/issues/${issueId}/links`, {
+              method: "POST",
+              credentials: "same-origin",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ kind: String(kind), url }),
+            }).then(() => {
+              setUrl("");
+              void load();
+            });
+          }}
+        >
           Add
         </Button>
-      </Form>
+      </div>
     </section>
   );
 }

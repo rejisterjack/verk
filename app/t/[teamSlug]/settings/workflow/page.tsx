@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 
-import { PageHeader } from "@/components/page-header";
+import { ViewToolbar } from "@/components/page-header";
 import {
   AddWorkflowStatusForm,
   WorkflowStatusRow,
@@ -65,8 +65,8 @@ export default async function WorkflowSettingsPage({
   }
 
   return (
-    <div className="max-w-lg">
-      <PageHeader
+    <div className="px-4 py-3 max-w-lg">
+      <ViewToolbar
         description="Rename, reorder, or add a status. New statuses use a workflow key and map onto the nearest built-in column type."
         title="Workflow"
       />

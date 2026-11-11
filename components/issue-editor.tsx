@@ -1,6 +1,7 @@
 "use client";
 
 import type { LocalIssue } from "@/lib/offline/db";
+import type { IssueStatus } from "@/lib/generated/prisma/client";
 
 import { parseDate } from "@internationalized/date";
 import {
@@ -8,7 +9,6 @@ import {
   Calendar,
   DateField,
   DatePicker,
-  Form,
   Input,
   Label,
   Switch,
@@ -24,12 +24,10 @@ import { IssueLinks } from "@/components/issue-links";
 import { MarkdownField } from "@/components/markdown-field";
 import { IssueComments } from "@/components/issue-comments";
 import { IssueRelations } from "@/components/issue-relations";
-import { PageHeader } from "@/components/page-header";
+import { ViewToolbar } from "@/components/page-header";
 import { ConflictModal } from "@/components/pwa/conflict-modal";
 import { SelectField } from "@/components/ui/select-field";
 import { deleteIssueAction, updateIssueAction } from "@/lib/actions/issues";
-import type { IssueStatus } from "@/lib/generated/prisma/client";
-
 import {
   ESTIMATE_LABELS,
   PRIORITY_LABELS,
@@ -72,6 +70,7 @@ export function IssueEditor({
   workflows = [],
   initialLabelIds = [],
   canDelete,
+  readOnly = false,
   currentUserId,
   slaHours,
   slaWindow,
@@ -105,6 +104,7 @@ export function IssueEditor({
   workflows?: WorkflowOpt[];
   initialLabelIds?: string[];
   canDelete: boolean;
+  readOnly?: boolean;
   currentUserId?: string;
   slaHours?: unknown;
   slaWindow?: SlaWindow;
@@ -165,6 +165,7 @@ export function IssueEditor({
   }, [teamId, tmpId, issueNumber, initialIssue]);
 
   async function onSave(formData: FormData) {
+    if (readOnly || pending) return;
     setPending(true);
     setError(null);
     formData.set("labelsTouched", "1");
@@ -287,8 +288,29 @@ export function IssueEditor({
   })();
 
   return (
-    <div className="max-w-3xl">
-      <PageHeader
+    <div className="flex min-h-full flex-col">
+      <ViewToolbar
+        actions={
+          <div className="flex items-center gap-2">
+            {readOnly ? (
+              <span className="text-[12px] text-muted">View only</span>
+            ) : (
+              <span className="text-[12px] text-muted">
+                {pending ? "Saving…" : error ? "Error" : "Saved"}
+              </span>
+            )}
+            {canDelete && !readOnly ? (
+              <Button
+                size="sm"
+                type="button"
+                variant="danger"
+                onPress={onDelete}
+              >
+                Delete
+              </Button>
+            ) : null}
+          </div>
+        }
         description={`${issueKey(teamSlug, issue.number)}${
           createdAt &&
           slaBreached(
@@ -305,29 +327,77 @@ export function IssueEditor({
         title={issue.title}
       />
 
-      <Form
-        className="flex flex-col gap-6"
+      <form
+        className="grid flex-1 gap-0 lg:grid-cols-[minmax(0,1fr)_16rem]"
+        onBlur={(e) => {
+          if (readOnly) return;
+          const related = e.relatedTarget as Node | null;
+
+          if (related && e.currentTarget.contains(related)) return;
+          void onSave(new FormData(e.currentTarget));
+        }}
+        onChange={(e) => {
+          if (readOnly) return;
+          const target = e.target as HTMLElement;
+
+          if (
+            target.tagName === "SELECT" ||
+            target.getAttribute("role") === "combobox" ||
+            target.getAttribute("type") === "checkbox"
+          ) {
+            void onSave(new FormData(e.currentTarget));
+          }
+        }}
         onSubmit={async (e) => {
           e.preventDefault();
+          if (readOnly) return;
           await onSave(new FormData(e.currentTarget));
         }}
       >
         <input name="labelsTouched" type="hidden" value="1" />
         <input name="revision" type="hidden" value={issue.revision} />
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-4 border-separator px-4 py-4 lg:border-r">
           <TextField
             key={issue.title + issue.revision}
-            isRequired
             fullWidth
+            isRequired
             defaultValue={issue.title}
+            isReadOnly={readOnly}
             name="title"
           >
-            <Label>Title</Label>
-            <Input />
+            <Label className="sr-only">Title</Label>
+            <Input className="border-0 bg-transparent px-0 text-[17px] font-semibold shadow-none" />
           </TextField>
-          <MarkdownField defaultValue={issue.description} name="description" />
+          <MarkdownField
+            defaultValue={issue.description}
+            name="description"
+            readOnly={readOnly}
+          />
+          {error ? <p className="text-sm text-danger">{error}</p> : null}
+          {!readOnly ? (
+            <>
+              <IssueRelations
+                issueId={issue.id}
+                teamId={teamId}
+                teamSlug={teamSlug}
+              />
+              <IssueLinks issueId={issue.id} teamId={teamId} />
+              <IssueAttachments issueId={issue.id} teamId={teamId} />
+            </>
+          ) : null}
+          <IssueActivityList issueId={issue.id} teamId={teamId} />
+          <IssueComments
+            currentUserId={currentUserId}
+            issueId={issue.id}
+            teamId={teamId}
+          />
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
+
+        <aside
+          className={`flex flex-col gap-3 bg-surface/40 px-3 py-4 text-[13px] ${
+            readOnly ? "pointer-events-none opacity-80" : ""
+          }`}
+        >
           <SelectField
             key={"s" + statusDefault}
             isRequired
@@ -369,6 +439,7 @@ export function IssueEditor({
           <DatePicker
             className="w-full"
             defaultValue={dueValue ? parseDate(dueValue) : null}
+            isReadOnly={readOnly}
             name="dueDate"
           >
             <Label>Due date</Label>
@@ -421,7 +492,6 @@ export function IssueEditor({
           />
           <SelectField
             clearable
-            className="sm:col-span-2"
             defaultValue={issue.projectId ?? undefined}
             label="Project"
             name="projectId"
@@ -430,57 +500,34 @@ export function IssueEditor({
           />
           <SelectField
             clearable
-            className="sm:col-span-2"
             defaultValue={issue.milestoneId ?? undefined}
             label="Milestone"
             name="milestoneId"
             options={milestones.map((m) => ({ id: m.id, label: m.name }))}
             placeholder="No milestone"
           />
-        </div>
-        {labels.length ? (
-          <LabelChecklist
-            labels={labels}
-            selected={selectedLabels}
-            onToggle={(id, checked) => {
-              setSelectedLabels((prev) => {
-                const next = new Set(prev);
+          {labels.length ? (
+            <LabelChecklist
+              labels={labels}
+              selected={selectedLabels}
+              onToggle={(id, checked) => {
+                if (readOnly) return;
+                setSelectedLabels((prev) => {
+                  const next = new Set(prev);
 
-                if (checked) next.add(id);
-                else next.delete(id);
+                  if (checked) next.add(id);
+                  else next.delete(id);
 
-                return next;
-              });
-            }}
-          />
-        ) : null}
-        {error ? <p className="text-sm text-danger">{error}</p> : null}
-        <div className="flex gap-2">
-          <Button isDisabled={pending} type="submit">
-            {pending ? "Saving…" : "Save changes"}
-          </Button>
-        </div>
-      </Form>
-
-      <IssueRelations issueId={issue.id} teamId={teamId} teamSlug={teamSlug} />
-      <IssueLinks issueId={issue.id} teamId={teamId} />
-      <IssueActivityList issueId={issue.id} teamId={teamId} />
-      <IssueAttachments issueId={issue.id} teamId={teamId} />
-      <IssueComments
-        currentUserId={currentUserId}
-        issueId={issue.id}
-        teamId={teamId}
-      />
-
-      {canDelete ? (
-        <div className="mt-8 border-t border-separator pt-6">
-          <Button type="button" variant="danger" onPress={onDelete}>
-            Delete issue
-          </Button>
-        </div>
-      ) : null}
-
-      <SubscribeToggle issueId={issue.id} teamId={teamId} />
+                  return next;
+                });
+              }}
+            />
+          ) : null}
+          {!readOnly ? (
+            <SubscribeToggle issueId={issue.id} teamId={teamId} />
+          ) : null}
+        </aside>
+      </form>
 
       {conflict ? (
         <ConflictModal
@@ -553,7 +600,7 @@ function SubscribeToggle({
 
   return (
     <Switch
-      className="mt-6"
+      className="mt-2"
       isSelected={on}
       onChange={(selected) => {
         void fetch(`/api/teams/${teamId}/issues/${issueId}/subscription`, {

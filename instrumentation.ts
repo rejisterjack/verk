@@ -1,13 +1,24 @@
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     if (process.env.NODE_ENV === "production") {
-      if (!process.env.DATABASE_URL) {
+      const missing: string[] = [];
+
+      if (!process.env.DATABASE_URL) missing.push("DATABASE_URL");
+      if (!process.env.AUTH_SECRET) missing.push("AUTH_SECRET");
+      if (!process.env.AUTH_URL) missing.push("AUTH_URL");
+
+      if (missing.length) {
         // eslint-disable-next-line no-console
-        console.error("CRITICAL CONFIG: DATABASE_URL is not set.");
+        console.error(
+          `CRITICAL CONFIG: missing required env: ${missing.join(", ")}`,
+        );
       }
-      if (!process.env.AUTH_SECRET) {
+
+      if (process.env.DEMO_MODE === "true") {
         // eslint-disable-next-line no-console
-        console.error("CRITICAL CONFIG: AUTH_SECRET is not set.");
+        console.warn(
+          "DEMO_MODE=true: open registration/team deletion are locked; treat as shared playground.",
+        );
       }
     }
   }

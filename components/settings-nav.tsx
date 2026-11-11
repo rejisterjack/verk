@@ -1,7 +1,8 @@
 "use client";
 
-import { Tabs } from "@heroui/react";
-import { usePathname, useRouter } from "next/navigation";
+import clsx from "clsx";
+import NextLink from "next/link";
+import { usePathname } from "next/navigation";
 
 type SettingsLink = {
   key: string;
@@ -16,7 +17,7 @@ const LINKS: SettingsLink[] = [
   { key: "labels", path: "/labels", label: "Labels" },
   { key: "templates", path: "/templates", label: "Templates" },
   { key: "views", path: "/views", label: "Views" },
-  { key: "workflow", path: "/workflow", label: "Workflow" },
+  { key: "workflow", path: "/workflow", label: "Workflow", adminOnly: true },
   { key: "import", path: "/import", label: "Import" },
   { key: "api-keys", path: "/api-keys", label: "API keys" },
   { key: "webhooks", path: "/webhooks", label: "Webhooks", adminOnly: true },
@@ -30,36 +31,36 @@ export function SettingsNav({
   canAdmin?: boolean;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
   const base = `/t/${teamSlug}/settings`;
   const links = LINKS.filter((link) => !link.adminOnly || canAdmin);
 
-  const selected =
-    links.find((link) =>
-      link.path === ""
-        ? pathname === base || pathname === `${base}/`
-        : pathname.startsWith(`${base}${link.path}`),
-    )?.key ?? "general";
-
   return (
-    <Tabs
-      selectedKey={selected}
-      onSelectionChange={(key) => {
-        const link = links.find((item) => item.key === String(key));
-
-        if (link) router.push(`${base}${link.path}`);
-      }}
+    <nav
+      aria-label="Settings sections"
+      className="z-10 flex flex-wrap gap-0.5 border-b border-separator bg-background px-4 py-1.5"
     >
-      <Tabs.ListContainer>
-        <Tabs.List aria-label="Settings sections">
-          {links.map((link) => (
-            <Tabs.Tab key={link.key} id={link.key}>
-              {link.label}
-              <Tabs.Indicator />
-            </Tabs.Tab>
-          ))}
-        </Tabs.List>
-      </Tabs.ListContainer>
-    </Tabs>
+      {links.map((link) => {
+        const href = `${base}${link.path}`;
+        const active =
+          link.path === ""
+            ? pathname === base || pathname === `${base}/`
+            : pathname.startsWith(`${base}${link.path}`);
+
+        return (
+          <NextLink
+            key={link.key}
+            className={clsx(
+              "rounded px-2 py-1 text-[12px] transition-colors",
+              active
+                ? "bg-accent/15 font-medium text-accent"
+                : "text-muted hover:bg-default hover:text-foreground",
+            )}
+            href={href}
+          >
+            {link.label}
+          </NextLink>
+        );
+      })}
+    </nav>
   );
 }

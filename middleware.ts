@@ -8,6 +8,8 @@ export const config = {
   matcher: [
     "/t",
     "/t/:path*",
+    "/w",
+    "/w/:path*",
     "/onboarding",
     "/account",
     "/account/:path*",

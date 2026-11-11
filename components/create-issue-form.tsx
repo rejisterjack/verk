@@ -52,6 +52,8 @@ export function CreateIssueForm({
   labels = [],
   workflows = [],
   templates = [],
+  hideTrigger = false,
+  triggerLabel = "New issue",
 }: {
   teamId: string;
   teamSlug: string;
@@ -62,6 +64,8 @@ export function CreateIssueForm({
   labels?: LabelOpt[];
   workflows?: WorkflowOpt[];
   templates?: TemplateOpt[];
+  hideTrigger?: boolean;
+  triggerLabel?: string;
 }) {
   const router = useRouter();
   const modal = useOverlayState();
@@ -82,7 +86,11 @@ export function CreateIssueForm({
 
   return (
     <Modal state={modal}>
-      <Button onPress={modal.open}>New issue</Button>
+      {hideTrigger ? null : (
+        <Button size="sm" onPress={modal.open}>
+          {triggerLabel}
+        </Button>
+      )}
       <Modal.Backdrop>
         <Modal.Container scroll="inside" size="lg">
           <Modal.Dialog>
@@ -90,7 +98,9 @@ export function CreateIssueForm({
               <>
                 <Modal.CloseTrigger />
                 <Modal.Header>
-                  <Modal.Heading>Create issue</Modal.Heading>
+                  <Modal.Heading className="text-[15px] font-semibold">
+                    New issue
+                  </Modal.Heading>
                 </Modal.Header>
                 <Modal.Body>
                   <Form
@@ -149,13 +159,32 @@ export function CreateIssueForm({
                         return;
                       }
 
-                      const result = await createIssueAction(
-                        teamSlug,
-                        formData,
-                      );
+                      try {
+                        const result = await createIssueAction(
+                          teamSlug,
+                          formData,
+                        );
 
-                      if (result?.error) {
-                        setError(result.error);
+                        if (result?.error) {
+                          setError(result.error);
+                          setPending(false);
+
+                          return;
+                        }
+
+                        close();
+                        setPending(false);
+
+                        if (result?.number != null) {
+                          router.push(`/t/${teamSlug}/issues/${result.number}`);
+                          router.refresh();
+                        }
+                      } catch (err) {
+                        setError(
+                          err instanceof Error
+                            ? err.message
+                            : "Failed to create issue",
+                        );
                         setPending(false);
                       }
                     }}
@@ -181,22 +210,28 @@ export function CreateIssueForm({
                       defaultValue={template?.title ?? ""}
                       name="title"
                     >
-                      <Label>Title</Label>
-                      <Input placeholder="Ship MCP docs" />
+                      <Label className="sr-only">Title</Label>
+                      <Input
+                        // eslint-disable-next-line jsx-a11y/no-autofocus -- focus title when create modal opens
+                        autoFocus
+                        className="border-0 bg-transparent px-0 text-[17px] font-semibold shadow-none"
+                        placeholder="Issue title"
+                      />
                       <FieldError />
                     </TextField>
                     <TextField
                       key={`${String(templateId)}-description`}
+                      defaultValue={template?.description ?? ""}
                       name="description"
                     >
-                      <Label>Description</Label>
+                      <Label className="sr-only">Description</Label>
                       <TextArea
-                        defaultValue={template?.description ?? ""}
-                        placeholder="Optional details…"
-                        rows={3}
+                        className="border-0 bg-transparent px-0 shadow-none"
+                        placeholder="Add description…"
+                        rows={4}
                       />
                     </TextField>
-                    <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="grid gap-2 border-t border-separator pt-3 sm:grid-cols-2">
                       <SelectField
                         isRequired
                         defaultValue={workflows[0]?.id ?? "BACKLOG"}

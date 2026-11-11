@@ -1,6 +1,7 @@
+import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 
-import { PageHeader } from "@/components/page-header";
+import { ViewToolbar } from "@/components/page-header";
 import { SubmitButton as Button } from "@/components/submit-button";
 import { CreateWebhookForm } from "@/components/webhooks-form";
 import { requireTeamBySlug } from "@/lib/rbac";
@@ -34,14 +35,15 @@ export default async function WebhooksPage({
       events: ["issue.created", "issue.updated", "comment.created"],
     });
 
+    revalidatePath(`/t/${teamSlug}/settings/webhooks`);
     redirect(
       `/t/${teamSlug}/settings/webhooks?created=${hook.id}&secret=${encodeURIComponent(hook.secret)}`,
     );
   }
 
   return (
-    <div className="max-w-lg">
-      <PageHeader
+    <div className="px-4 py-3 max-w-lg">
+      <ViewToolbar
         description="POST JSON to your endpoint on issue and comment events"
         title="Webhooks"
       />
@@ -74,6 +76,7 @@ export default async function WebhooksPage({
                     h.id,
                     !h.disabledAt,
                   );
+                  revalidatePath(`/t/${teamSlug}/settings/webhooks`);
                   redirect(`/t/${teamSlug}/settings/webhooks`);
                 }}
               >
@@ -85,6 +88,7 @@ export default async function WebhooksPage({
                 action={async () => {
                   "use server";
                   await webhooksService.deleteWebhook(teamId, h.id);
+                  revalidatePath(`/t/${teamSlug}/settings/webhooks`);
                   redirect(`/t/${teamSlug}/settings/webhooks`);
                 }}
               >

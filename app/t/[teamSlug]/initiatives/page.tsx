@@ -5,7 +5,7 @@ import {
   CreateInitiativeForm,
   EditInitiativeForm,
 } from "@/components/initiative-forms";
-import { PageHeader } from "@/components/page-header";
+import { ViewToolbar } from "@/components/page-header";
 import { SubmitButton as Button } from "@/components/submit-button";
 import { requireTeamBySlug } from "@/lib/rbac";
 import * as projectsService from "@/lib/services/projects";
@@ -25,7 +25,7 @@ const HEALTH_CONFIG = {
     label: "Off track",
     className: "bg-danger/10 text-danger border-danger/30",
   },
-};
+} as const;
 
 export default async function InitiativesPage({
   params,
@@ -33,10 +33,10 @@ export default async function InitiativesPage({
   params: Promise<{ teamSlug: string }>;
 }) {
   const { teamSlug } = await params;
-  let teamCtx: Awaited<ReturnType<typeof requireTeamBySlug>>;
+  let teamCtx;
 
   try {
-    teamCtx = await requireTeamBySlug(teamSlug);
+    teamCtx = await requireTeamBySlug(teamSlug, "GUEST");
   } catch {
     notFound();
   }
@@ -58,16 +58,39 @@ export default async function InitiativesPage({
     redirect(`/t/${teamSlug}/initiatives`);
   }
 
+  async function updateInitiative(formData: FormData) {
+    "use server";
+    const initiativeId = String(formData.get("initiativeId") ?? "");
+    const name = String(formData.get("name") ?? "").trim();
+    const targetRaw = String(formData.get("targetDate") ?? "");
+
+    if (!initiativeId || !name) return;
+    await projectsService.updateInitiative(teamId, initiativeId, {
+      name,
+      health: String(formData.get("health") ?? "ON_TRACK"),
+      targetDate: targetRaw ? new Date(targetRaw) : null,
+    });
+    redirect(`/t/${teamSlug}/initiatives`);
+  }
+
+  async function deleteInitiative(formData: FormData) {
+    "use server";
+    const initiativeId = String(formData.get("initiativeId") ?? "");
+
+    if (!initiativeId) return;
+    await projectsService.deleteInitiative(teamId, initiativeId);
+    redirect(`/t/${teamSlug}/initiatives`);
+  }
+
   return (
-    <div className="space-y-6">
-      <PageHeader
-        description="High-level strategic outcomes grouping projects together across teams"
+    <div className="flex min-h-full flex-col">
+      <ViewToolbar
+        description="Group projects toward shared outcomes"
         title="Initiatives"
       />
 
       {!isGuest ? (
-        <section className="rounded-xl border border-separator bg-surface p-4">
-          <h2 className="mb-3 text-sm font-semibold">New initiative</h2>
+        <section className="border-b border-separator px-4 py-3">
           <CreateInitiativeForm
             action={createInitiative}
             submitLabel="Create initiative"
@@ -75,25 +98,25 @@ export default async function InitiativesPage({
         </section>
       ) : null}
 
-      <section className="space-y-3">
+      <section>
         {initiatives.length === 0 ? (
-          <div className="rounded-xl border border-separator bg-surface/50 p-8 text-center text-sm text-muted">
+          <p className="px-4 py-8 text-center text-[13px] text-muted">
             No initiatives created yet.
-          </div>
+          </p>
         ) : (
-          <ul className="divide-y divide-separator rounded-xl border border-separator bg-surface">
+          <ul className="divide-y divide-separator">
             {initiatives.map((initiative) => {
-              const health = (
+              const healthKey = (
                 initiative.health in HEALTH_CONFIG
                   ? initiative.health
                   : "ON_TRACK"
               ) as keyof typeof HEALTH_CONFIG;
-              const healthStyle = HEALTH_CONFIG[health];
+              const healthStyle = HEALTH_CONFIG[healthKey];
 
               return (
                 <li
                   key={initiative.id}
-                  className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
+                  className="flex flex-col gap-2 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
@@ -124,14 +147,13 @@ export default async function InitiativesPage({
                       )}
                       <span>·</span>
                       <NextLink
-                        className="text-accent underline hover:text-accent/80"
+                        className="text-accent hover:underline"
                         href={`/t/${teamSlug}/roadmap`}
                       >
                         {initiative._count.projects}{" "}
                         {initiative._count.projects === 1
                           ? "project"
-                          : "projects"}{" "}
-                        (View on Roadmap)
+                          : "projects"}
                       </NextLink>
                     </div>
                   </div>
@@ -139,45 +161,18 @@ export default async function InitiativesPage({
                   {!isGuest ? (
                     <div className="flex flex-wrap items-center gap-2">
                       <EditInitiativeForm
-                        action={async (formData) => {
-                          "use server";
-                          const name = String(
-                            formData.get("name") ?? "",
-                          ).trim();
-                          const targetRaw = String(
-                            formData.get("targetDate") ?? "",
-                          );
-
-                          if (!name) return;
-                          await projectsService.updateInitiative(
-                            teamId,
-                            initiative.id,
-                            {
-                              name,
-                              health: String(
-                                formData.get("health") ?? "ON_TRACK",
-                              ),
-                              targetDate: targetRaw
-                                ? new Date(targetRaw)
-                                : null,
-                            },
-                          );
-                          redirect(`/t/${teamSlug}/initiatives`);
-                        }}
+                        action={updateInitiative}
                         health={initiative.health}
+                        initiativeId={initiative.id}
                         name={initiative.name}
                         targetDate={initiative.targetDate}
                       />
-                      <form
-                        action={async () => {
-                          "use server";
-                          await projectsService.deleteInitiative(
-                            teamId,
-                            initiative.id,
-                          );
-                          redirect(`/t/${teamSlug}/initiatives`);
-                        }}
-                      >
+                      <form action={deleteInitiative}>
+                        <input
+                          name="initiativeId"
+                          type="hidden"
+                          value={initiative.id}
+                        />
                         <Button size="sm" type="submit" variant="danger">
                           Delete
                         </Button>

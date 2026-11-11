@@ -1,7 +1,7 @@
 import NextLink from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { PageHeader } from "@/components/page-header";
+import { ViewToolbar } from "@/components/page-header";
 import {
   AddMilestoneForm,
   PostProjectUpdateForm,
@@ -101,82 +101,98 @@ export default async function ProjectDetailPage({
   }
 
   return (
-    <div className="max-w-3xl">
-      <PageHeader
-        description={`${project.status} · ${percent}% complete · ${project.issues.length} issues`}
+    <div className="flex min-h-full flex-col">
+      <ViewToolbar
+        description={`${project.status.replaceAll("_", " ")} · ${percent}% · ${project.issues.length} issues`}
         title={project.name}
       />
-      <ProjectSettingsForm
-        action={saveProject}
-        initiatives={initiatives}
-        members={members}
-        project={project}
-      />
-
-      <section className="mb-8">
-        <h2 className="text-sm font-semibold">Milestones</h2>
-        <ul className="mt-2 space-y-1 text-sm">
-          {project.milestones.map((m) => (
-            <li key={m.id} className="flex items-center gap-2 text-muted">
-              <span>
-                {m.name}
-                {m.targetDate
-                  ? ` · ${m.targetDate.toISOString().slice(0, 10)}`
-                  : ""}
-              </span>
-              <form action={removeMilestone}>
-                <input name="id" type="hidden" value={m.id} />
-                <Button size="sm" type="submit" variant="danger">
-                  Delete
-                </Button>
-              </form>
-            </li>
-          ))}
-        </ul>
-        <AddMilestoneForm action={addMilestone} />
-      </section>
-
-      <section>
-        <h2 className="text-sm font-semibold">Updates</h2>
-        <PostProjectUpdateForm action={postUpdate} />
-        <ul className="mt-3 space-y-2 text-sm">
-          {updates.map((update) => (
-            <li key={update.id}>
-              {update.health}: {update.body}
-            </li>
-          ))}
-        </ul>
-      </section>
-      <section>
-        <h2 className="text-sm font-semibold">Issues</h2>
-        <div className="mt-2 divide-y divide-separator rounded-xl border border-separator">
-          {project.issues.map((issue) => (
-            <NextLink
-              key={issue.id}
-              className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-default/40"
-              href={`/t/${teamSlug}/issues/${issue.number}`}
-            >
-              <span className="w-16 shrink-0 text-xs text-muted">
-                {issueKey(teamSlug, issue.number)}
-              </span>
-              <span className="flex-1 font-medium">{issue.title}</span>
-              <StatusChip status={issue.status} />
-            </NextLink>
-          ))}
-          {project.issues.length === 0 ? (
-            <p className="px-4 py-6 text-sm text-muted">
-              No issues in this project yet. Set project on an issue to link it.
-            </p>
-          ) : null}
+      <div className="flex flex-1 flex-col lg:flex-row">
+        <div className="min-w-0 flex-1 border-b border-separator lg:border-b-0 lg:border-r">
+          <section className="border-b border-separator px-4 py-3">
+            <h2 className="mb-2 text-[12px] font-medium uppercase tracking-wide text-muted">
+              Issues
+            </h2>
+            <div className="divide-y divide-separator">
+              {project.issues.map((issue) => (
+                <NextLink
+                  key={issue.id}
+                  className="flex h-[var(--row-h)] items-center gap-3 text-[13px] hover:bg-default/40"
+                  href={`/t/${teamSlug}/issues/${issue.number}`}
+                >
+                  <span className="w-16 shrink-0 font-mono text-[11px] text-muted">
+                    {issueKey(teamSlug, issue.number)}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate font-medium">
+                    {issue.title}
+                  </span>
+                  <StatusChip status={issue.status} />
+                </NextLink>
+              ))}
+              {project.issues.length === 0 ? (
+                <p className="py-6 text-[13px] text-muted">
+                  No issues in this project yet.
+                </p>
+              ) : null}
+            </div>
+          </section>
+          <section className="border-b border-separator px-4 py-3">
+            <h2 className="mb-2 text-[12px] font-medium uppercase tracking-wide text-muted">
+              Updates
+            </h2>
+            <PostProjectUpdateForm action={postUpdate} />
+            <ul className="mt-2 space-y-1 text-[13px]">
+              {updates.map((update) => (
+                <li key={update.id} className="text-muted">
+                  <span className="text-foreground">{update.health}</span>:{" "}
+                  {update.body}
+                </li>
+              ))}
+            </ul>
+          </section>
+          <section className="px-4 py-3">
+            <h2 className="mb-2 text-[12px] font-medium uppercase tracking-wide text-muted">
+              Milestones
+            </h2>
+            <ul className="space-y-1 text-[13px]">
+              {project.milestones.map((m) => (
+                <li key={m.id} className="flex items-center gap-2 text-muted">
+                  <span className="flex-1">
+                    {m.name}
+                    {m.targetDate
+                      ? ` · ${m.targetDate.toISOString().slice(0, 10)}`
+                      : ""}
+                  </span>
+                  <form action={removeMilestone}>
+                    <input name="id" type="hidden" value={m.id} />
+                    <Button size="sm" type="submit" variant="danger">
+                      Delete
+                    </Button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+            <AddMilestoneForm action={addMilestone} />
+          </section>
         </div>
-      </section>
-      {canAdmin ? (
-        <form action={removeProject}>
-          <Button type="submit" variant="danger">
-            Delete project
-          </Button>
-        </form>
-      ) : null}
+        <aside className="w-full shrink-0 px-4 py-3 lg:w-72">
+          <p className="mb-3 text-[11px] font-medium uppercase tracking-wide text-muted">
+            Properties
+          </p>
+          <ProjectSettingsForm
+            action={saveProject}
+            initiatives={initiatives}
+            members={members}
+            project={project}
+          />
+          {canAdmin ? (
+            <form action={removeProject} className="mt-4">
+              <Button type="submit" variant="danger">
+                Delete project
+              </Button>
+            </form>
+          ) : null}
+        </aside>
+      </div>
     </div>
   );
 }

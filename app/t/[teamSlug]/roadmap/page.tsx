@@ -1,6 +1,7 @@
+import NextLink from "next/link";
 import { notFound } from "next/navigation";
 
-import { PageHeader } from "@/components/page-header";
+import { ViewToolbar } from "@/components/page-header";
 import { requireTeamBySlug } from "@/lib/rbac";
 import * as projects from "@/lib/services/projects";
 
@@ -46,22 +47,24 @@ export default async function RoadmapPage({
   }
 
   return (
-    <div className="max-w-5xl space-y-6">
-      <PageHeader
-        description="Projects on a monthly track by initiative."
+    <div className="flex min-h-full flex-col">
+      <ViewToolbar
+        description="Projects by initiative and month"
         title="Roadmap"
       />
       {dated.length === 0 ? (
-        <p className="text-sm text-muted">No projects with a target date.</p>
+        <p className="px-4 py-8 text-[13px] text-muted">
+          No projects with a target date.
+        </p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-separator">
+        <div className="overflow-x-auto">
           <div
-            className="min-w-[640px] grid gap-px bg-separator"
+            className="min-w-[640px] grid gap-px border-b border-separator bg-separator"
             style={{
               gridTemplateColumns: `10rem repeat(${months.length}, minmax(7rem, 1fr))`,
             }}
           >
-            <div className="bg-surface px-3 py-2 text-xs font-medium uppercase tracking-wide text-muted">
+            <div className="bg-surface px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-muted">
               Initiative
             </div>
             {months.map((month) => (
@@ -72,8 +75,8 @@ export default async function RoadmapPage({
                 {monthLabel(month)}
               </div>
             ))}
-            {[...groups.values()].map((group) => (
-              <div key={group.name} className="contents">
+            {[...groups.entries()].map(([groupKey, group]) => (
+              <div key={groupKey} className="contents">
                 <div className="bg-background px-3 py-3 text-sm font-medium">
                   {group.name}
                 </div>
@@ -84,17 +87,19 @@ export default async function RoadmapPage({
 
                   return (
                     <div
-                      key={`${group.name}-${month}`}
+                      key={`${groupKey}-${month}`}
                       className="relative min-h-16 bg-background px-2 py-2"
                     >
                       <div className="pointer-events-none absolute inset-y-3 left-1/2 w-px bg-separator/70" />
                       <ul className="relative space-y-1">
                         {cell.map((project) => (
-                          <li
-                            key={project.id}
-                            className="rounded-md border border-accent/30 bg-accent/10 px-2 py-1 text-xs font-medium text-foreground"
-                          >
-                            {project.name}
+                          <li key={project.id}>
+                            <NextLink
+                              className="block rounded-md border border-accent/30 bg-accent/10 px-2 py-1 text-xs font-medium text-foreground hover:bg-accent/20"
+                              href={`/t/${teamSlug}/projects/${project.id}`}
+                            >
+                              {project.name}
+                            </NextLink>
                           </li>
                         ))}
                       </ul>

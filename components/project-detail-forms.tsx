@@ -1,6 +1,13 @@
 "use client";
 
-import { DateField, Form, Input, Label, TextArea, TextField } from "@heroui/react";
+import {
+  DateField,
+  Form,
+  Input,
+  Label,
+  TextArea,
+  TextField,
+} from "@heroui/react";
 import { parseDate } from "@internationalized/date";
 
 import {
@@ -97,20 +104,32 @@ export function AddMilestoneForm({
   action: (formData: FormData) => void | Promise<void>;
 }) {
   return (
-    <Form action={action} className="mt-3 flex flex-wrap gap-2">
-      <TextField className="flex-1" name="name">
+    <Form
+      data-compact-form
+      action={action}
+      className="mt-3 flex flex-wrap items-center gap-2"
+    >
+      <TextField className="min-w-40 flex-1" name="name">
         <Label className="sr-only">Name</Label>
-        <Input placeholder="New milestone" />
+        <Input
+          className="!h-7 !min-h-7 !px-2.5 !py-0 text-[12px] leading-none"
+          placeholder="New milestone"
+        />
       </TextField>
       <DateField defaultValue={null} name="targetDate">
         <Label className="sr-only">Target date</Label>
-        <DateField.Group>
-          <DateField.Input>
+        <DateField.Group className="!h-7 !min-h-7 !max-h-7 !overflow-hidden !px-2.5 !py-0 text-[12px]">
+          <DateField.Input className="!h-7 !min-h-0 !py-0">
             {(segment) => <DateField.Segment segment={segment} />}
           </DateField.Input>
         </DateField.Group>
       </DateField>
-      <Button size="sm" type="submit" variant="tertiary">
+      <Button
+        className="h-7 px-2.5 text-[12px]"
+        size="sm"
+        type="submit"
+        variant="tertiary"
+      >
         Add
       </Button>
     </Form>

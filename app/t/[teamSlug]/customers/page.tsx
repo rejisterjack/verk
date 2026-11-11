@@ -4,7 +4,7 @@ import {
   CreateCustomerForm,
   LinkCustomerRequestForm,
 } from "@/components/customers-forms";
-import { PageHeader } from "@/components/page-header";
+import { ViewToolbar } from "@/components/page-header";
 import { SubmitButton as Button } from "@/components/submit-button";
 import { requireTeamBySlug } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
@@ -50,20 +50,19 @@ export default async function CustomersPage({
   }
 
   return (
-    <div className="max-w-xl space-y-4">
-      <PageHeader
-        description="Link requests to issues from the API"
-        title="Customers"
-      />
-      <CreateCustomerForm action={create} />
-      <ul className="text-sm">
+    <div className="flex min-h-full flex-col">
+      <ViewToolbar title="Customers" />
+      <div className="border-b border-separator px-4 py-3">
+        <CreateCustomerForm action={create} />
+      </div>
+      <ul className="divide-y divide-separator text-[13px]">
         {customers.map((customer) => (
-          <li
-            key={customer.id}
-            className="space-y-2 border-b border-separator py-2"
-          >
-            <p>
-              {customer.name} · {customer._count.requests} requests
+          <li key={customer.id} className="space-y-2 px-4 py-3">
+            <p className="font-medium">
+              {customer.name}{" "}
+              <span className="font-normal text-muted">
+                · {customer._count.requests} requests
+              </span>
             </p>
             <ul className="text-xs text-muted">
               {customer.requests.map((request) => (
@@ -76,7 +75,12 @@ export default async function CustomersPage({
                       redirect(`/t/${teamSlug}/customers`);
                     }}
                   >
-                    <Button size="sm" type="submit" variant="danger">
+                    <Button
+                      className="h-7 px-2 text-[12px]"
+                      size="sm"
+                      type="submit"
+                      variant="danger"
+                    >
                       Remove
                     </Button>
                   </form>
@@ -105,7 +109,12 @@ export default async function CustomersPage({
                 redirect(`/t/${teamSlug}/customers`);
               }}
             >
-              <Button size="sm" type="submit" variant="danger">
+              <Button
+                className="h-7 px-2 text-[12px]"
+                size="sm"
+                type="submit"
+                variant="danger"
+              >
                 Delete customer
               </Button>
             </form>

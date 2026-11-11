@@ -1,10 +1,11 @@
+import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 
 import {
   CreateLabelForm,
   RenameLabelForm,
 } from "@/components/labels-settings-forms";
-import { PageHeader } from "@/components/page-header";
+import { ViewToolbar } from "@/components/page-header";
 import { SubmitButton as Button } from "@/components/submit-button";
 import { requireTeamBySlug } from "@/lib/rbac";
 import * as labelsService from "@/lib/services/labels";
@@ -32,6 +33,8 @@ export default async function LabelsSettingsPage({
     return a.name.localeCompare(b.name);
   });
 
+  const labelsPath = `/t/${teamSlug}/settings/labels`;
+
   async function rename(formData: FormData) {
     "use server";
     const group = String(formData.get("group") ?? "").trim();
@@ -40,13 +43,15 @@ export default async function LabelsSettingsPage({
       name: String(formData.get("name") ?? ""),
       group: group || null,
     });
-    redirect(`/t/${teamSlug}/settings/labels`);
+    revalidatePath(labelsPath);
+    redirect(labelsPath);
   }
 
   async function remove(formData: FormData) {
     "use server";
     await labelsService.deleteLabel(teamId, String(formData.get("id")));
-    redirect(`/t/${teamSlug}/settings/labels`);
+    revalidatePath(labelsPath);
+    redirect(labelsPath);
   }
 
   async function create(formData: FormData) {
@@ -56,12 +61,13 @@ export default async function LabelsSettingsPage({
       color: String(formData.get("color") ?? "#0f766e"),
       group: String(formData.get("group") ?? "") || undefined,
     });
-    redirect(`/t/${teamSlug}/settings/labels`);
+    revalidatePath(labelsPath);
+    redirect(labelsPath);
   }
 
   return (
-    <div className="max-w-lg">
-      <PageHeader
+    <div className="px-4 py-3 max-w-lg">
+      <ViewToolbar
         description="Team-scoped labels for filtering"
         title="Labels"
       />

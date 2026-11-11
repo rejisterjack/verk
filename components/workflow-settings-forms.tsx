@@ -60,11 +60,7 @@ export function WorkflowStatusRow({
     <li className="rounded-xl border border-separator p-3 text-sm">
       <Form action={renameAction} className="flex flex-wrap items-end gap-2">
         <input name="id" type="hidden" value={status.id} />
-        <TextField
-          className="flex-1"
-          defaultValue={status.name}
-          name="name"
-        >
+        <TextField className="flex-1" defaultValue={status.name} name="name">
           <Label>
             {status.key} · {status.type}
           </Label>

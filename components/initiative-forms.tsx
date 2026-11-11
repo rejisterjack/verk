@@ -20,6 +20,8 @@ import { SubmitButton as Button } from "@/components/submit-button";
 
 type ButtonVariant = "primary" | "secondary" | "tertiary" | "ghost" | "danger";
 
+const compactInput = "!h-7 !min-h-7 !px-2.5 !py-0 text-[12px] leading-none";
+
 export function CreateInitiativeForm({
   action,
   className,
@@ -33,24 +35,27 @@ export function CreateInitiativeForm({
 }) {
   return (
     <Form
+      data-compact-form
       action={action}
       className={
-        className ??
-        "grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end"
+        className ?? "grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end"
       }
     >
-      <TextField isRequired fullWidth name="name">
-        <Label>Initiative</Label>
-        <Input placeholder="e.g. Q4 Mobile App Launch" />
+      <TextField fullWidth isRequired name="name">
+        <Label className="text-[12px] text-muted">Initiative</Label>
+        <Input
+          className={compactInput}
+          placeholder="e.g. Q4 Mobile App Launch"
+        />
       </TextField>
       <DatePicker defaultValue={null} name="targetDate">
-        <Label>Target date</Label>
-        <DateField.Group>
-          <DateField.Input>
+        <Label className="text-[12px] text-muted">Target date</Label>
+        <DateField.Group className="!h-7 !min-h-7 !max-h-7 !overflow-hidden !px-2.5 !py-0 text-[12px]">
+          <DateField.Input className="!h-7 !min-h-0 !py-0">
             {(segment) => <DateField.Segment segment={segment} />}
           </DateField.Input>
           <DateField.Suffix>
-            <DatePicker.Trigger>
+            <DatePicker.Trigger className="!size-5">
               <DatePicker.TriggerIndicator />
             </DatePicker.Trigger>
           </DateField.Suffix>
@@ -73,7 +78,12 @@ export function CreateInitiativeForm({
           </Calendar>
         </DatePicker.Popover>
       </DatePicker>
-      <Button type="submit" variant={variant}>
+      <Button
+        className="h-7 px-2.5 text-[12px]"
+        size="sm"
+        type="submit"
+        variant={variant}
+      >
         {submitLabel}
       </Button>
     </Form>
@@ -86,20 +96,26 @@ export function EditInitiativeForm({
   health,
   targetDate,
   className,
+  initiativeId,
 }: {
   action: (formData: FormData) => void | Promise<void>;
   name: string;
   health: string;
   targetDate: Date | null;
   className?: string;
+  initiativeId?: string;
 }) {
   const target = isoDateOnly(targetDate);
 
   return (
     <Form
+      data-compact-form
       action={action}
       className={className ?? "flex flex-wrap items-center gap-2 text-xs"}
     >
+      {initiativeId ? (
+        <input name="initiativeId" type="hidden" value={initiativeId} />
+      ) : null}
       <TextField
         isRequired
         className="w-36 sm:w-44"
@@ -107,26 +123,33 @@ export function EditInitiativeForm({
         name="name"
       >
         <Label className="sr-only">Name</Label>
-        <Input />
+        <Input className={compactInput} />
       </TextField>
       <DateField
         defaultValue={target ? parseDate(target) : null}
         name="targetDate"
       >
         <Label className="sr-only">Target date</Label>
-        <DateField.Group>
-          <DateField.Input>
+        <DateField.Group className="!h-7 !min-h-7 !max-h-7 !overflow-hidden !px-2.5 !py-0 text-[12px]">
+          <DateField.Input className="!h-7 !min-h-0 !py-0">
             {(segment) => <DateField.Segment segment={segment} />}
           </DateField.Input>
         </DateField.Group>
       </DateField>
       <SelectField
+        hideLabel
         defaultValue={health}
         label="Health"
         name="health"
         options={INITIATIVE_HEALTH_OPTIONS}
+        size="sm"
       />
-      <Button size="sm" type="submit" variant="ghost">
+      <Button
+        className="h-7 px-2 text-[12px]"
+        size="sm"
+        type="submit"
+        variant="ghost"
+      >
         Update
       </Button>
     </Form>
@@ -150,6 +173,7 @@ export function EditInitiativeInlineForm({
 
   return (
     <Form
+      data-compact-form
       action={action}
       className="flex flex-1 flex-wrap items-center gap-2 text-xs"
     >
@@ -160,29 +184,36 @@ export function EditInitiativeInlineForm({
         name="name"
       >
         <Label className="sr-only">Name</Label>
-        <Input />
+        <Input className={compactInput} />
       </TextField>
       <DateField
         defaultValue={target ? parseDate(target) : null}
         name="targetDate"
       >
         <Label className="sr-only">Target date</Label>
-        <DateField.Group>
-          <DateField.Input>
+        <DateField.Group className="!h-7 !min-h-7 !max-h-7 !overflow-hidden !px-2.5 !py-0 text-[12px]">
+          <DateField.Input className="!h-7 !min-h-0 !py-0">
             {(segment) => <DateField.Segment segment={segment} />}
           </DateField.Input>
         </DateField.Group>
       </DateField>
       <SelectField
+        hideLabel
         defaultValue={health}
         label="Health"
         name="health"
         options={INITIATIVE_HEALTH_OPTIONS}
+        size="sm"
       />
       <span className="text-muted">
         {projectCount} {projectCount === 1 ? "project" : "projects"}
       </span>
-      <Button size="sm" type="submit" variant="ghost">
+      <Button
+        className="h-7 px-2 text-[12px]"
+        size="sm"
+        type="submit"
+        variant="ghost"
+      >
         Save
       </Button>
     </Form>

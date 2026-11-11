@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 
 import { ImportApiForm } from "@/components/import-settings-forms";
-import { PageHeader } from "@/components/page-header";
+import { ViewToolbar } from "@/components/page-header";
 import { SubmitButton as Button } from "@/components/submit-button";
 import { rateLimit } from "@/lib/rate-limit";
 import { requireTeamBySlug } from "@/lib/rbac";
@@ -94,8 +94,8 @@ export default async function ImportPage({
   }
 
   return (
-    <div className="max-w-xl">
-      <PageHeader
+    <div className="px-4 py-3 max-w-xl">
+      <ViewToolbar
         description="Bring issues from Linear via CSV export or personal API key"
         title="Import from Linear"
       />

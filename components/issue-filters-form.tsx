@@ -47,10 +47,20 @@ export function IssueFiltersForm({
   ];
 
   return (
-    <Form
-      className="flex flex-wrap items-end gap-2"
+    <form
       data-issue-filters
+      className="flex flex-wrap items-center gap-1.5"
       method="get"
+      onChange={(event) => {
+        const target = event.target as HTMLElement;
+
+        if (
+          target.tagName === "SELECT" ||
+          target.getAttribute("role") === "combobox"
+        ) {
+          event.currentTarget.requestSubmit();
+        }
+      }}
     >
       {hidden.assignee ? (
         <input name="assignee" type="hidden" value={hidden.assignee} />
@@ -65,35 +75,40 @@ export function IssueFiltersForm({
         <input name="group" type="hidden" value={hidden.group} />
       ) : null}
       <TextField
-        className="w-44"
+        className="w-36"
         defaultValue={search ?? ""}
         id="issue-filter-search"
         name="search"
       >
-        <Label className="sr-only">Search</Label>
-        <Input placeholder="Search…" />
+        <Label className="sr-only">Filter</Label>
+        <Input
+          className="!h-7 !min-h-7 !px-2.5 !py-0 text-[12px] leading-none"
+          placeholder="Filter…"
+        />
       </TextField>
       <SelectField
         clearable
         hideLabel
-        className="w-40"
+        className="w-32"
         defaultValue={workflowStatusId ?? undefined}
         fullWidth={false}
         label="Status"
         name="workflowStatusId"
         options={workflows.map((w) => ({ id: w.id, label: w.name }))}
-        placeholder="All statuses"
+        placeholder="Status"
+        size="sm"
       />
       <SelectField
         clearable
         hideLabel
-        className="w-36"
+        className="w-32"
         defaultValue={priority ?? undefined}
         fullWidth={false}
         label="Priority"
         name="priority"
         options={ISSUE_FILTER_PRIORITY_OPTIONS.filter((o) => o.id !== "")}
-        placeholder="All priorities"
+        placeholder="Priority"
+        size="sm"
       />
       <SelectField
         clearable
@@ -104,23 +119,32 @@ export function IssueFiltersForm({
         label="Cycle"
         name="cycleId"
         options={cycleOptions}
-        placeholder="All cycles"
+        placeholder="Cycle"
+        size="sm"
       />
       {labelGroups.length ? (
         <SelectField
           clearable
           hideLabel
-          className="w-36"
+          className="w-32"
           defaultValue={labelGroup ?? undefined}
           fullWidth={false}
           label="Label group"
           name="labelGroup"
           options={labelGroups.map((group) => ({ id: group, label: group }))}
-          placeholder="All groups"
+          placeholder="Labels"
+          size="sm"
         />
       ) : null}
-      <Button type="submit">Filter</Button>
-    </Form>
+      <Button
+        className="h-7 px-2 text-[12px]"
+        size="sm"
+        type="submit"
+        variant="ghost"
+      >
+        Apply
+      </Button>
+    </form>
   );
 }
 
@@ -130,12 +154,20 @@ export function SaveViewForm({
   action: (formData: FormData) => void | Promise<void>;
 }) {
   return (
-    <Form action={action} className="flex items-end gap-1">
-      <TextField className="w-36" name="name">
+    <Form action={action} className="flex h-7 items-center gap-1">
+      <TextField className="w-32" name="name">
         <Label className="sr-only">View name</Label>
-        <Input placeholder="Save as view…" />
+        <Input
+          className="!h-7 !min-h-7 !px-2.5 !py-0 text-[12px] leading-none"
+          placeholder="Save view…"
+        />
       </TextField>
-      <Button size="sm" type="submit" variant="secondary">
+      <Button
+        className="h-7 px-2 text-[12px]"
+        size="sm"
+        type="submit"
+        variant="ghost"
+      >
         Save
       </Button>
     </Form>
