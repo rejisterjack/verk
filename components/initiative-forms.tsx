@@ -1,9 +1,20 @@
 "use client";
 
-import { DateField, Form, Input, Label, TextField } from "@heroui/react";
+import {
+  Calendar,
+  DateField,
+  DatePicker,
+  Form,
+  Input,
+  Label,
+  TextField,
+} from "@heroui/react";
 import { parseDate } from "@internationalized/date";
 
-import { INITIATIVE_HEALTH_OPTIONS, isoDateOnly } from "@/components/form-options";
+import {
+  INITIATIVE_HEALTH_OPTIONS,
+  isoDateOnly,
+} from "@/components/form-options";
 import { SelectField } from "@/components/ui/select-field";
 import { SubmitButton as Button } from "@/components/submit-button";
 
@@ -21,20 +32,48 @@ export function CreateInitiativeForm({
   variant?: ButtonVariant;
 }) {
   return (
-    <Form action={action} className={className ?? "flex flex-wrap items-center gap-2"}>
-      <TextField isRequired className="min-w-[240px] flex-1" name="name">
-        <Label className="sr-only">Name</Label>
+    <Form
+      action={action}
+      className={
+        className ??
+        "grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end"
+      }
+    >
+      <TextField isRequired fullWidth name="name">
+        <Label>Initiative</Label>
         <Input placeholder="e.g. Q4 Mobile App Launch" />
       </TextField>
-      <DateField defaultValue={null} name="targetDate">
-        <Label className="sr-only">Target date</Label>
+      <DatePicker defaultValue={null} name="targetDate">
+        <Label>Target date</Label>
         <DateField.Group>
           <DateField.Input>
             {(segment) => <DateField.Segment segment={segment} />}
           </DateField.Input>
+          <DateField.Suffix>
+            <DatePicker.Trigger>
+              <DatePicker.TriggerIndicator />
+            </DatePicker.Trigger>
+          </DateField.Suffix>
         </DateField.Group>
-      </DateField>
-      <Button size="sm" type="submit" variant={variant}>
+        <DatePicker.Popover>
+          <Calendar aria-label="Choose target date">
+            <Calendar.Header>
+              <Calendar.Heading />
+              <Calendar.NavButton slot="previous" />
+              <Calendar.NavButton slot="next" />
+            </Calendar.Header>
+            <Calendar.Grid>
+              <Calendar.GridHeader>
+                {(day) => <Calendar.HeaderCell>{day}</Calendar.HeaderCell>}
+              </Calendar.GridHeader>
+              <Calendar.GridBody>
+                {(date) => <Calendar.Cell date={date} />}
+              </Calendar.GridBody>
+            </Calendar.Grid>
+          </Calendar>
+        </DatePicker.Popover>
+      </DatePicker>
+      <Button type="submit" variant={variant}>
         {submitLabel}
       </Button>
     </Form>

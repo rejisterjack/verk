@@ -58,11 +58,14 @@ export function IssueFiltersForm({
       {hidden.layout ? (
         <input name="layout" type="hidden" value={hidden.layout} />
       ) : null}
-      {hidden.view ? <input name="view" type="hidden" value={hidden.view} /> : null}
+      {hidden.view ? (
+        <input name="view" type="hidden" value={hidden.view} />
+      ) : null}
       {hidden.group ? (
         <input name="group" type="hidden" value={hidden.group} />
       ) : null}
       <TextField
+        className="w-44"
         defaultValue={search ?? ""}
         id="issue-filter-search"
         name="search"
@@ -72,15 +75,21 @@ export function IssueFiltersForm({
       </TextField>
       <SelectField
         clearable
+        hideLabel
+        className="w-40"
         defaultValue={workflowStatusId ?? undefined}
-        label="Workflow status"
+        fullWidth={false}
+        label="Status"
         name="workflowStatusId"
         options={workflows.map((w) => ({ id: w.id, label: w.name }))}
-        placeholder="All workflow statuses"
+        placeholder="All statuses"
       />
       <SelectField
         clearable
+        hideLabel
+        className="w-36"
         defaultValue={priority ?? undefined}
+        fullWidth={false}
         label="Priority"
         name="priority"
         options={ISSUE_FILTER_PRIORITY_OPTIONS.filter((o) => o.id !== "")}
@@ -88,7 +97,10 @@ export function IssueFiltersForm({
       />
       <SelectField
         clearable
+        hideLabel
+        className="w-36"
         defaultValue={cycleId ?? undefined}
+        fullWidth={false}
         label="Cycle"
         name="cycleId"
         options={cycleOptions}
@@ -97,11 +109,14 @@ export function IssueFiltersForm({
       {labelGroups.length ? (
         <SelectField
           clearable
+          hideLabel
+          className="w-36"
           defaultValue={labelGroup ?? undefined}
+          fullWidth={false}
           label="Label group"
           name="labelGroup"
           options={labelGroups.map((group) => ({ id: group, label: group }))}
-          placeholder="All label groups"
+          placeholder="All groups"
         />
       ) : null}
       <Button type="submit">Filter</Button>
@@ -115,7 +130,7 @@ export function SaveViewForm({
   action: (formData: FormData) => void | Promise<void>;
 }) {
   return (
-    <Form action={action} className="flex gap-1">
+    <Form action={action} className="flex items-end gap-1">
       <TextField className="w-36" name="name">
         <Label className="sr-only">View name</Label>
         <Input placeholder="Save as view…" />

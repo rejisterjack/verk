@@ -16,6 +16,9 @@ type SelectFieldProps = {
   onChange?: (key: Key | null) => void;
   isRequired?: boolean;
   clearable?: boolean;
+  fullWidth?: boolean;
+  hideLabel?: boolean;
+  className?: string;
   "aria-label"?: string;
 };
 
@@ -30,6 +33,9 @@ export function SelectField({
   onChange,
   isRequired,
   clearable,
+  fullWidth = true,
+  hideLabel = false,
+  className,
   "aria-label": ariaLabel,
 }: SelectFieldProps) {
   const controlled = value !== undefined;
@@ -39,12 +45,14 @@ export function SelectField({
       {...(controlled
         ? { value: value ?? null, onChange }
         : { defaultValue: defaultValue ?? undefined, onChange })}
-      aria-label={ariaLabel}
+      aria-label={ariaLabel ?? (hideLabel ? label : undefined)}
+      className={className}
+      fullWidth={fullWidth}
       isRequired={isRequired}
       name={name}
       placeholder={placeholder}
     >
-      <Label>{label}</Label>
+      {hideLabel ? null : <Label>{label}</Label>}
       <Select.Trigger>
         <Select.Value />
         {clearable ? <Select.ClearButton /> : null}

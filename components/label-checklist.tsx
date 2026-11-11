@@ -36,6 +36,7 @@ export function LabelChecklist({
         return (
           <CheckboxGroup
             key={group.name || "all"}
+            className="gap-2"
             name={name}
             {...(controlled
               ? {
@@ -53,21 +54,23 @@ export function LabelChecklist({
               : {})}
           >
             <Label>{group.name || "Labels"}</Label>
-            {group.labels.map((label) => (
-              <Checkbox key={label.id} value={label.id}>
-                <Checkbox.Content>
-                  <Checkbox.Control>
-                    <Checkbox.Indicator />
-                  </Checkbox.Control>
-                  <span
-                    aria-hidden
-                    className="inline-block size-2 rounded-full"
-                    style={{ background: label.color }}
-                  />
-                  {label.name}
-                </Checkbox.Content>
-              </Checkbox>
-            ))}
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
+              {group.labels.map((label) => (
+                <Checkbox key={label.id} value={label.id}>
+                  <Checkbox.Content>
+                    <Checkbox.Control>
+                      <Checkbox.Indicator />
+                    </Checkbox.Control>
+                    <span
+                      aria-hidden
+                      className="inline-block size-2 shrink-0 rounded-full"
+                      style={{ background: label.color }}
+                    />
+                    {label.name}
+                  </Checkbox.Content>
+                </Checkbox>
+              ))}
+            </div>
           </CheckboxGroup>
         );
       })}

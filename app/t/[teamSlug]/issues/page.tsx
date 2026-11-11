@@ -10,6 +10,7 @@ import {
   SaveViewForm,
 } from "@/components/issue-filters-form";
 import { EmptyState } from "@/components/empty-state";
+import { IssuesLayoutToggle } from "@/components/issues-layout-toggle";
 import { IssuesListClient } from "@/components/issues-list-client";
 import { PageHeader } from "@/components/page-header";
 import { requireTeamBySlug } from "@/lib/rbac";
@@ -183,32 +184,12 @@ export default async function IssuesPage({
       <PageHeader
         actions={
           <div className="flex items-center gap-2">
-            <div className="flex rounded-lg border border-separator text-sm">
-              <NextLink
-                className={`px-3 py-1.5 ${!isBoard ? "bg-accent/15 text-accent" : "text-muted"}`}
-                href={`/t/${teamSlug}/issues${mine ? "?assignee=me" : ""}`}
-              >
-                List
-              </NextLink>
-              <NextLink
-                className={`px-3 py-1.5 ${isBoard ? "bg-accent/15 text-accent" : "text-muted"}`}
-                href={`/t/${teamSlug}/issues?layout=board${mine ? "&assignee=me" : ""}`}
-              >
-                Board
-              </NextLink>
-              <NextLink
-                className="px-3 py-1.5 text-muted"
-                href={`/t/${teamSlug}/issues?layout=board&group=priority`}
-              >
-                By priority
-              </NextLink>
-              <NextLink
-                className="px-3 py-1.5 text-muted"
-                href={`/t/${teamSlug}/issues?layout=board&group=project`}
-              >
-                By project
-              </NextLink>
-            </div>
+            <IssuesLayoutToggle
+              group={query.group}
+              layout={isBoard ? "board" : "list"}
+              mine={mine}
+              teamSlug={teamSlug}
+            />
             <CreateIssueForm
               cycles={cycleOpts}
               labels={labelOpts}

@@ -77,7 +77,7 @@ export default async function InboxPage({
                   </NextLink>
                 ) : null}
               </div>
-              <div className="flex shrink-0 flex-col gap-1">
+              <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
                 <form
                   action={async () => {
                     "use server";
@@ -90,7 +90,7 @@ export default async function InboxPage({
                     );
                   }}
                 >
-                  <Button size="sm" type="submit" variant="ghost">
+                  <Button size="sm" type="submit" variant="secondary">
                     Read
                   </Button>
                 </form>

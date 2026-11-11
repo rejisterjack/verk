@@ -1,6 +1,8 @@
 import NextLink from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { Chip } from "@heroui/react";
+
 import {
   CreateInitiativeForm,
   EditInitiativeInlineForm,
@@ -61,14 +63,15 @@ export default async function ProjectsPage({
         description="Group issues around a shared outcome"
         title="Projects"
       />
-      <section className="mb-4 space-y-3 rounded-xl border border-separator p-4">
+      <section className="mb-6 space-y-4 rounded-xl border border-separator p-4">
+        <h2 className="text-sm font-semibold">Initiatives</h2>
         <CreateInitiativeForm
           action={createInitiative}
           submitLabel="Create initiative"
-          variant="tertiary"
+          variant="secondary"
         />
         {initiatives.length === 0 ? (
-          <p className="text-xs text-muted">No initiatives yet.</p>
+          <p className="text-sm text-muted">No initiatives yet.</p>
         ) : (
           initiatives.map((initiative) => (
             <div
@@ -123,13 +126,16 @@ export default async function ProjectsPage({
           >
             <div className="flex items-start justify-between gap-2">
               <h3 className="font-medium">{p.name}</h3>
-              <span className="text-xs text-muted">{p.status}</span>
+              <Chip size="sm" variant="soft">
+                {p.status.replaceAll("_", " ")}
+              </Chip>
             </div>
             <p className="mt-1 line-clamp-2 text-sm text-muted">
               {p.summary || "No summary"}
             </p>
             <p className="mt-3 text-xs text-muted">
-              {p._count.issues} issues · {p.milestones.length} milestones
+              {p._count.issues} issues · {p.milestones.length}{" "}
+              {p.milestones.length === 1 ? "milestone" : "milestones"}
             </p>
           </NextLink>
         ))}

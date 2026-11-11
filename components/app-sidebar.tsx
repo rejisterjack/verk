@@ -148,6 +148,7 @@ export function AppSidebar({
       <div className="px-1">
         <SelectField
           aria-label="Switch team"
+          fullWidth
           label="Team"
           options={teams.map((t) => ({ id: t.slug, label: t.name }))}
           value={teamSlug}

@@ -30,43 +30,32 @@ export function MarkdownField({
   }
 
   return (
-    <TextField defaultValue={defaultValue} name={name}>
-      <Label>Description</Label>
-      <ButtonGroup>
-        <Button
-          size="sm"
-          type="button"
-          variant="secondary"
-          onPress={() => insert("**")}
-        >
-          Bold
-        </Button>
-        <Button
-          size="sm"
-          type="button"
-          variant="secondary"
-          onPress={() => insert("\n- ", "")}
-        >
-          List
-        </Button>
-        <Button
-          size="sm"
-          type="button"
-          variant="secondary"
-          onPress={() => insert("[", "](https://)")}
-        >
-          Link
-        </Button>
-        <Button
-          size="sm"
-          type="button"
-          variant="secondary"
-          onPress={() => insert("`")}
-        >
-          Code
-        </Button>
-      </ButtonGroup>
-      <TextArea ref={ref} rows={8} />
-    </TextField>
+    <div className="flex flex-col gap-1.5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Label id={`${name}-label`}>Description</Label>
+        <ButtonGroup size="sm" variant="tertiary">
+          <Button type="button" onPress={() => insert("**")}>
+            Bold
+          </Button>
+          <Button type="button" onPress={() => insert("\n- ", "")}>
+            List
+          </Button>
+          <Button type="button" onPress={() => insert("[", "](https://)")}>
+            Link
+          </Button>
+          <Button type="button" onPress={() => insert("`")}>
+            Code
+          </Button>
+        </ButtonGroup>
+      </div>
+      <TextField
+        aria-labelledby={`${name}-label`}
+        defaultValue={defaultValue}
+        fullWidth
+        name={name}
+      >
+        <TextArea ref={ref} fullWidth rows={6} />
+      </TextField>
+    </div>
   );
 }

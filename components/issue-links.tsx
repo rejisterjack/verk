@@ -68,7 +68,7 @@ export function IssueLinks({
         ))}
       </ul>
       <Form
-        className="mt-2 flex flex-wrap items-end gap-2"
+        className="mt-2 grid grid-cols-[minmax(7rem,9rem)_minmax(0,1fr)_auto] items-end gap-2"
         onSubmit={(event) => {
           event.preventDefault();
           void fetch(`/api/teams/${teamId}/issues/${issueId}/links`, {
@@ -83,6 +83,7 @@ export function IssueLinks({
         }}
       >
         <SelectField
+          fullWidth
           label="Kind"
           options={[
             { id: "figma", label: "Figma" },
@@ -92,12 +93,7 @@ export function IssueLinks({
           value={kind}
           onChange={(key) => setKind(key ?? "figma")}
         />
-        <TextField
-          className="min-w-48 flex-1"
-          name="url"
-          value={url}
-          onChange={setUrl}
-        >
+        <TextField fullWidth name="url" value={url} onChange={setUrl}>
           <Label>URL</Label>
           <Input placeholder="https://" />
         </TextField>

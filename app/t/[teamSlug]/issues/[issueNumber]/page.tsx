@@ -91,6 +91,7 @@ export default async function IssueDetailPage({
       workflows={workflows.map((workflow) => ({
         id: workflow.id,
         name: workflow.name,
+        key: workflow.key,
       }))}
     />
   );

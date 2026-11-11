@@ -1,25 +1,25 @@
 "use client";
 
-import clsx from "clsx";
-import NextLink from "next/link";
-import { usePathname } from "next/navigation";
+import { Tabs } from "@heroui/react";
+import { usePathname, useRouter } from "next/navigation";
 
 type SettingsLink = {
-  href: string;
+  key: string;
+  path: string;
   label: string;
   adminOnly?: boolean;
 };
 
 const LINKS: SettingsLink[] = [
-  { href: "", label: "General" },
-  { href: "/members", label: "Members" },
-  { href: "/labels", label: "Labels" },
-  { href: "/templates", label: "Templates" },
-  { href: "/views", label: "Views" },
-  { href: "/workflow", label: "Workflow" },
-  { href: "/import", label: "Import" },
-  { href: "/api-keys", label: "API keys" },
-  { href: "/webhooks", label: "Webhooks", adminOnly: true },
+  { key: "general", path: "", label: "General" },
+  { key: "members", path: "/members", label: "Members" },
+  { key: "labels", path: "/labels", label: "Labels" },
+  { key: "templates", path: "/templates", label: "Templates" },
+  { key: "views", path: "/views", label: "Views" },
+  { key: "workflow", path: "/workflow", label: "Workflow" },
+  { key: "import", path: "/import", label: "Import" },
+  { key: "api-keys", path: "/api-keys", label: "API keys" },
+  { key: "webhooks", path: "/webhooks", label: "Webhooks", adminOnly: true },
 ];
 
 export function SettingsNav({
@@ -30,29 +30,36 @@ export function SettingsNav({
   canAdmin?: boolean;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const base = `/t/${teamSlug}/settings`;
+  const links = LINKS.filter((link) => !link.adminOnly || canAdmin);
+
+  const selected =
+    links.find((link) =>
+      link.path === ""
+        ? pathname === base || pathname === `${base}/`
+        : pathname.startsWith(`${base}${link.path}`),
+    )?.key ?? "general";
 
   return (
-    <nav className="flex flex-wrap gap-3 text-sm">
-      {LINKS.filter((link) => !link.adminOnly || canAdmin).map((link) => {
-        const href = `${base}${link.href}`;
-        const active =
-          link.href === ""
-            ? pathname === base || pathname === `${base}/`
-            : pathname.startsWith(href);
+    <Tabs
+      selectedKey={selected}
+      onSelectionChange={(key) => {
+        const link = links.find((item) => item.key === String(key));
 
-        return (
-          <NextLink
-            key={href}
-            className={clsx(
-              active ? "text-accent" : "text-muted hover:text-foreground",
-            )}
-            href={href}
-          >
-            {link.label}
-          </NextLink>
-        );
-      })}
-    </nav>
+        if (link) router.push(`${base}${link.path}`);
+      }}
+    >
+      <Tabs.ListContainer>
+        <Tabs.List aria-label="Settings sections">
+          {links.map((link) => (
+            <Tabs.Tab key={link.key} id={link.key}>
+              {link.label}
+              <Tabs.Indicator />
+            </Tabs.Tab>
+          ))}
+        </Tabs.List>
+      </Tabs.ListContainer>
+    </Tabs>
   );
 }

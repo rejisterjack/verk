@@ -5,7 +5,9 @@ import type { LocalIssue } from "@/lib/offline/db";
 import { parseDate } from "@internationalized/date";
 import {
   Button,
+  Calendar,
   DateField,
+  DatePicker,
   Form,
   Input,
   Label,
@@ -20,14 +22,20 @@ import { LabelChecklist } from "@/components/label-checklist";
 import { IssueAttachments } from "@/components/issue-attachments";
 import { IssueLinks } from "@/components/issue-links";
 import { MarkdownField } from "@/components/markdown-field";
-import { MarkdownBody } from "@/components/markdown-body";
 import { IssueComments } from "@/components/issue-comments";
 import { IssueRelations } from "@/components/issue-relations";
 import { PageHeader } from "@/components/page-header";
 import { ConflictModal } from "@/components/pwa/conflict-modal";
 import { SelectField } from "@/components/ui/select-field";
 import { deleteIssueAction, updateIssueAction } from "@/lib/actions/issues";
-import { ESTIMATE_LABELS, PRIORITY_LABELS, STATUS_LABELS } from "@/lib/labels";
+import type { IssueStatus } from "@/lib/generated/prisma/client";
+
+import {
+  ESTIMATE_LABELS,
+  PRIORITY_LABELS,
+  STATUS_LABELS,
+  statusToWorkflowKey,
+} from "@/lib/labels";
 import { isOfflineEnabled } from "@/lib/offline/feature";
 import {
   deleteIssueLocal,
@@ -48,7 +56,7 @@ type LabelOpt = {
   color: string;
   group?: string | null;
 };
-type WorkflowOpt = { id: string; name: string };
+type WorkflowOpt = { id: string; name: string; key?: string };
 
 export function IssueEditor({
   teamId,
@@ -261,6 +269,22 @@ export function IssueEditor({
   }
 
   const dueValue = issue.dueDate ? issue.dueDate.slice(0, 10) : "";
+  const statusDefault = (() => {
+    if (!workflows.length) return issue.status;
+    if (
+      issue.workflowStatusId &&
+      workflows.some((w) => w.id === issue.workflowStatusId)
+    ) {
+      return issue.workflowStatusId;
+    }
+    const key = statusToWorkflowKey(issue.status as IssueStatus);
+
+    return (
+      workflows.find((w) => w.key === key)?.id ??
+      workflows[0]?.id ??
+      issue.status
+    );
+  })();
 
   return (
     <div className="max-w-3xl">
@@ -282,7 +306,7 @@ export function IssueEditor({
       />
 
       <Form
-        className="flex flex-col gap-4"
+        className="flex flex-col gap-6"
         onSubmit={async (e) => {
           e.preventDefault();
           await onSave(new FormData(e.currentTarget));
@@ -290,24 +314,24 @@ export function IssueEditor({
       >
         <input name="labelsTouched" type="hidden" value="1" />
         <input name="revision" type="hidden" value={issue.revision} />
-        <TextField
-          key={issue.title + issue.revision}
-          isRequired
-          defaultValue={issue.title}
-          name="title"
-        >
-          <Label>Title</Label>
-          <Input />
-        </TextField>
-        <div className="flex flex-col gap-1">
-          <MarkdownField defaultValue={issue.description} name="description" />
-          <MarkdownBody text={issue.description} />
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <SelectField
-            key={"s" + (issue.workflowStatusId ?? issue.status)}
+        <div className="flex flex-col gap-3">
+          <TextField
+            key={issue.title + issue.revision}
             isRequired
-            defaultValue={issue.workflowStatusId ?? issue.status}
+            fullWidth
+            defaultValue={issue.title}
+            name="title"
+          >
+            <Label>Title</Label>
+            <Input />
+          </TextField>
+          <MarkdownField defaultValue={issue.description} name="description" />
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <SelectField
+            key={"s" + statusDefault}
+            isRequired
+            defaultValue={statusDefault}
             label="Status"
             name={workflows.length ? "workflowStatusId" : "status"}
             options={
@@ -342,7 +366,8 @@ export function IssueEditor({
               label,
             }))}
           />
-          <DateField
+          <DatePicker
+            className="w-full"
             defaultValue={dueValue ? parseDate(dueValue) : null}
             name="dueDate"
           >
@@ -351,8 +376,30 @@ export function IssueEditor({
               <DateField.Input>
                 {(segment) => <DateField.Segment segment={segment} />}
               </DateField.Input>
+              <DateField.Suffix>
+                <DatePicker.Trigger>
+                  <DatePicker.TriggerIndicator />
+                </DatePicker.Trigger>
+              </DateField.Suffix>
             </DateField.Group>
-          </DateField>
+            <DatePicker.Popover>
+              <Calendar aria-label="Choose due date">
+                <Calendar.Header>
+                  <Calendar.Heading />
+                  <Calendar.NavButton slot="previous" />
+                  <Calendar.NavButton slot="next" />
+                </Calendar.Header>
+                <Calendar.Grid>
+                  <Calendar.GridHeader>
+                    {(day) => <Calendar.HeaderCell>{day}</Calendar.HeaderCell>}
+                  </Calendar.GridHeader>
+                  <Calendar.GridBody>
+                    {(date) => <Calendar.Cell date={date} />}
+                  </Calendar.GridBody>
+                </Calendar.Grid>
+              </Calendar>
+            </DatePicker.Popover>
+          </DatePicker>
           <SelectField
             clearable
             defaultValue={issue.assigneeId ?? undefined}
@@ -372,26 +419,24 @@ export function IssueEditor({
             options={cycles.map((c) => ({ id: c.id, label: c.name }))}
             placeholder="No cycle"
           />
-          <div className="sm:col-span-2">
-            <SelectField
-              clearable
-              defaultValue={issue.projectId ?? undefined}
-              label="Project"
-              name="projectId"
-              options={projects.map((p) => ({ id: p.id, label: p.name }))}
-              placeholder="No project"
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <SelectField
-              clearable
-              defaultValue={issue.milestoneId ?? undefined}
-              label="Milestone"
-              name="milestoneId"
-              options={milestones.map((m) => ({ id: m.id, label: m.name }))}
-              placeholder="No milestone"
-            />
-          </div>
+          <SelectField
+            clearable
+            className="sm:col-span-2"
+            defaultValue={issue.projectId ?? undefined}
+            label="Project"
+            name="projectId"
+            options={projects.map((p) => ({ id: p.id, label: p.name }))}
+            placeholder="No project"
+          />
+          <SelectField
+            clearable
+            className="sm:col-span-2"
+            defaultValue={issue.milestoneId ?? undefined}
+            label="Milestone"
+            name="milestoneId"
+            options={milestones.map((m) => ({ id: m.id, label: m.name }))}
+            placeholder="No milestone"
+          />
         </div>
         {labels.length ? (
           <LabelChecklist

@@ -98,84 +98,94 @@ export function IssueRelations({
     await load();
   }
 
+  const subIssues = relations.filter(
+    (relation) => relation.type === "CHILD" || relation.type === "PARENT",
+  );
+
   return (
-    <section className="mt-10 border-t border-separator pt-6">
-      <h2 className="text-sm font-semibold">Sub-issues</h2>
-      <ul className="mt-2 space-y-1 text-sm">
-        {relations
-          .filter(
-            (relation) =>
-              relation.type === "CHILD" || relation.type === "PARENT",
-          )
-          .map((relation) => {
-            const other =
-              relation.fromIssue.id === issueId
-                ? relation.toIssue
-                : relation.fromIssue;
+    <section className="mt-10 space-y-8 border-t border-separator pt-6">
+      {subIssues.length > 0 ? (
+        <div>
+          <h2 className="text-sm font-semibold">Sub-issues</h2>
+          <ul className="mt-2 space-y-1 text-sm">
+            {subIssues.map((relation) => {
+              const other =
+                relation.fromIssue.id === issueId
+                  ? relation.toIssue
+                  : relation.fromIssue;
+
+              return (
+                <li key={relation.id}>
+                  {relation.type}: {other.title}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ) : null}
+      <div>
+        <h2 className="text-sm font-semibold">Relations</h2>
+        <ul className="mt-3 space-y-2 text-sm">
+          {relations.map((r) => {
+            const other = r.fromIssue.id === issueId ? r.toIssue : r.fromIssue;
 
             return (
-              <li key={relation.id}>
-                {relation.type}: {other.title}
+              <li
+                key={r.id}
+                className="flex items-center justify-between rounded-lg border border-separator px-3 py-2"
+              >
+                <span>
+                  <span className="text-xs text-muted">{r.type}</span>{" "}
+                  <a
+                    className="text-accent hover:underline"
+                    href={`/t/${teamSlug}/issues/${other.number}`}
+                  >
+                    {teamSlug.slice(0, 3).toUpperCase()}-{other.number}{" "}
+                    {other.title}
+                  </a>
+                </span>
+                <Button size="sm" variant="ghost" onPress={() => remove(r.id)}>
+                  Remove
+                </Button>
               </li>
             );
           })}
-      </ul>
-      <h2 className="mt-6 text-sm font-semibold">Relations</h2>
-      <ul className="mt-3 space-y-2 text-sm">
-        {relations.map((r) => {
-          const other = r.fromIssue.id === issueId ? r.toIssue : r.fromIssue;
-
-          return (
-            <li
-              key={r.id}
-              className="flex items-center justify-between rounded-lg border border-separator px-3 py-2"
-            >
-              <span>
-                <span className="text-xs text-muted">{r.type}</span>{" "}
-                <a
-                  className="text-accent hover:underline"
-                  href={`/t/${teamSlug}/issues/${other.number}`}
-                >
-                  {teamSlug.slice(0, 3).toUpperCase()}-{other.number}{" "}
-                  {other.title}
-                </a>
-              </span>
-              <Button size="sm" variant="ghost" onPress={() => remove(r.id)}>
-                Remove
-              </Button>
-            </li>
-          );
-        })}
-        {relations.length === 0 ? (
-          <li className="text-muted">No relations yet.</li>
-        ) : null}
-      </ul>
-      <Form className="mt-3 flex flex-wrap items-end gap-2" onSubmit={add}>
-        <SelectField
-          label="Relation"
-          options={[
-            { id: "RELATED", label: "Related" },
-            { id: "BLOCKS", label: "Blocks" },
-            { id: "BLOCKED_BY", label: "Blocked by" },
-            { id: "PARENT", label: "Parent" },
-            { id: "CHILD", label: "Child" },
-          ]}
-          value={type}
-          onChange={(key) => setType(key ?? "RELATED")}
-        />
-        <TextField
-          name="targetNumber"
-          value={targetNumber}
-          onChange={setTargetNumber}
+          {relations.length === 0 ? (
+            <li className="text-muted">No relations yet.</li>
+          ) : null}
+        </ul>
+        <Form
+          className="mt-3 grid grid-cols-[minmax(9rem,12rem)_6rem_auto] items-end gap-2"
+          onSubmit={add}
         >
-          <Label>Issue #</Label>
-          <Input placeholder="42" />
-        </TextField>
-        <Button size="sm" type="submit" variant="tertiary">
-          Add
-        </Button>
-      </Form>
-      {error ? <p className="mt-1 text-xs text-danger">{error}</p> : null}
+          <SelectField
+            fullWidth
+            label="Relation"
+            options={[
+              { id: "RELATED", label: "Related" },
+              { id: "BLOCKS", label: "Blocks" },
+              { id: "BLOCKED_BY", label: "Blocked by" },
+              { id: "PARENT", label: "Parent" },
+              { id: "CHILD", label: "Child" },
+            ]}
+            value={type}
+            onChange={(key) => setType(key ?? "RELATED")}
+          />
+          <TextField
+            fullWidth
+            name="targetNumber"
+            value={targetNumber}
+            onChange={setTargetNumber}
+          >
+            <Label>Issue #</Label>
+            <Input placeholder="42" />
+          </TextField>
+          <Button size="sm" type="submit" variant="tertiary">
+            Add
+          </Button>
+        </Form>
+        {error ? <p className="mt-1 text-xs text-danger">{error}</p> : null}
+      </div>
     </section>
   );
 }

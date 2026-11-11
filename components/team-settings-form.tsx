@@ -1,6 +1,6 @@
 "use client";
 
-import { Checkbox, Form, Input, Label, TextField } from "@heroui/react";
+import { Form, Input, Label, Switch, TextField } from "@heroui/react";
 
 import { SelectField } from "@/components/ui/select-field";
 import { SubmitButton as Button } from "@/components/submit-button";
@@ -104,20 +104,20 @@ export function TeamSettingsForm({
             <Label>GitHub repository (owner/repo)</Label>
             <Input placeholder="e.g. acme/web-app" />
           </TextField>
-          <Checkbox
+          <Switch
             defaultSelected={team.githubMergeCompletes}
             name="githubMergeCompletes"
             value="true"
           >
-            <Checkbox.Control>
-              <Checkbox.Indicator />
-            </Checkbox.Control>
-            <Checkbox.Content>
+            <Switch.Control>
+              <Switch.Thumb />
+            </Switch.Control>
+            <Switch.Content>
               <Label>
-                Auto-complete: move issue to Done when a linked GitHub PR merges
+                Auto-complete when a linked GitHub PR merges
               </Label>
-            </Checkbox.Content>
-          </Checkbox>
+            </Switch.Content>
+          </Switch>
           <TextField
             defaultValue={team.slackWebhookUrl ?? ""}
             name="slackWebhookUrl"

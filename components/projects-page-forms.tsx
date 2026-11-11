@@ -12,15 +12,15 @@ export function CreateProjectForm({
   return (
     <Form
       action={action}
-      className="mb-6 flex flex-wrap gap-2 rounded-xl border border-separator p-4"
+      className="mb-6 grid gap-3 rounded-xl border border-separator p-4 sm:grid-cols-[1fr_1.4fr_auto] sm:items-end"
     >
-      <TextField isRequired className="min-w-[200px] flex-1" name="name">
-        <Label className="sr-only">Project name</Label>
-        <Input placeholder="Project name" />
+      <TextField isRequired fullWidth name="name">
+        <Label>Project name</Label>
+        <Input placeholder="Launch Verk" />
       </TextField>
-      <TextField className="min-w-[200px] flex-[2]" name="summary">
-        <Label className="sr-only">Summary</Label>
-        <Input placeholder="Summary (optional)" />
+      <TextField fullWidth name="summary">
+        <Label>Summary</Label>
+        <Input placeholder="Optional summary" />
       </TextField>
       <Button type="submit">Create project</Button>
     </Form>
