@@ -1,40 +1,46 @@
 import NextLink from "next/link";
 
+import { VerkIcon } from "@/components/verk-logo";
+import { auth } from "@/lib/auth";
+
 export const metadata = {
   title: "Page Not Found - Verk",
 };
 
-export default function NotFound() {
+export default async function NotFound() {
+  let signedIn = false;
+
+  try {
+    const session = await auth();
+
+    signedIn = Boolean(session?.user);
+  } catch {
+    signedIn = false;
+  }
+
   return (
-    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 py-16">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(ellipse 80% 60% at 20% 20%, rgba(15,118,110,0.14), transparent 55%), radial-gradient(ellipse 70% 50% at 85% 75%, rgba(180,83,9,0.08), transparent 50%), linear-gradient(165deg, #faf9f6 0%, #f0ebe3 100%)",
-        }}
-      />
-      <div className="relative z-10 max-w-md text-center">
-        <p className="font-display text-4xl font-bold tracking-tight text-accent">
+    <main className="verk-grain verk-grid relative flex min-h-screen items-center justify-center overflow-hidden px-6 py-16">
+      <div className="relative z-10 w-full max-w-[420px] rounded-2xl border border-separator/80 bg-surface/90 px-8 py-10 text-center shadow-xl shadow-black/5 backdrop-blur-md">
+        <VerkIcon className="mx-auto" glow={false} size={48} />
+        <p className="mt-6 font-mono text-xs font-medium tracking-[0.18em] text-accent uppercase">
           404
         </p>
-        <h1 className="mt-4 font-display text-2xl font-semibold tracking-tight text-foreground">
-          Page not found
+        <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight text-foreground">
+          This page isn&apos;t here
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-muted">
-          The page or resource you are looking for doesn&apos;t exist or may
-          have been moved.
+          That address doesn&apos;t match a Verk page. It may have been renamed,
+          or the link is incomplete.
         </p>
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+        <div className="mt-8 flex flex-col gap-2.5 sm:flex-row sm:justify-center">
           <NextLink
-            className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-opacity hover:opacity-90"
-            href="/t"
+            className="inline-flex h-11 items-center justify-center rounded-xl bg-accent px-5 text-sm font-semibold text-accent-foreground shadow-lg shadow-accent/20 transition-opacity hover:opacity-95"
+            href={signedIn ? "/t" : "/login"}
           >
-            Go to teams
+            {signedIn ? "Go to your teams" : "Log in"}
           </NextLink>
           <NextLink
-            className="rounded-lg border border-separator bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-default"
+            className="inline-flex h-11 items-center justify-center rounded-xl border border-separator bg-background px-5 text-sm font-medium text-foreground transition-colors hover:bg-default"
             href="/"
           >
             Home

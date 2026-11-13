@@ -8,9 +8,9 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="verk-grain verk-grid relative flex min-h-screen flex-col">
       <MarketingNavbar demoMode={isDemoMode()} privateHost={isPrivateHost()} />
-      <main className="flex flex-1 items-center justify-center px-6 py-12">
+      <main className="flex flex-1 items-center justify-center px-6 py-16">
         {children}
       </main>
     </div>
