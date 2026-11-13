@@ -4,7 +4,7 @@ import { VerkIcon } from "@/components/verk-logo";
 import { auth } from "@/lib/auth";
 
 export const metadata = {
-  title: "Page Not Found - Verk",
+  title: "Page Not Found",
 };
 
 export default async function NotFound() {
