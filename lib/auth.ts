@@ -7,6 +7,7 @@ import Credentials from "next-auth/providers/credentials";
 import GitHub from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
 
+import { isPrivateHost } from "@/lib/auth-allowlist";
 import { authConfig } from "@/lib/auth.config";
 import { prisma } from "@/lib/db";
 import { loginSchema } from "@/lib/validators";
@@ -19,6 +20,8 @@ const providers: Provider[] = [
       password: { label: "Password", type: "password" },
     },
     async authorize(credentials) {
+      if (isPrivateHost()) return null;
+
       const parsed = loginSchema.safeParse(credentials);
 
       if (!parsed.success) return null;

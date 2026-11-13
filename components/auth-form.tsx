@@ -22,12 +22,16 @@ import {
 export function LoginForm({
   callbackUrl = "/onboarding",
   demoMode = false,
+  privateHost = false,
+  accessDenied = false,
   githubEnabled,
   googleEnabled,
   oidcEnabled,
 }: {
   callbackUrl?: string;
   demoMode?: boolean;
+  privateHost?: boolean;
+  accessDenied?: boolean;
   githubEnabled: boolean;
   googleEnabled?: boolean;
   oidcEnabled?: boolean;
@@ -39,7 +43,20 @@ export function LoginForm({
     <div className="mx-auto w-full max-w-md space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">Log in to Verk</h1>
-        {demoMode ? (
+        {privateHost ? (
+          <p className="text-muted text-sm mt-1">
+            This hosted Verk is private. Sign in with GitHub, or{" "}
+            <a
+              className="text-accent underline"
+              href="https://github.com/rejisterjack/verk"
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              deploy your own
+            </a>
+            .
+          </p>
+        ) : demoMode ? (
           <p className="text-muted text-sm mt-1">
             Public demo credentials:{" "}
             <code className="font-mono text-foreground">demo@verk.dev</code> /{" "}
@@ -56,6 +73,11 @@ export function LoginForm({
         )}
       </div>
 
+      {accessDenied ? (
+        <p className="text-danger text-sm">
+          That GitHub account cannot use this host.
+        </p>
+      ) : null}
       {githubEnabled ? (
         <form action={githubSignInAction}>
           <input name="callbackUrl" type="hidden" value={callbackUrl} />
@@ -64,7 +86,7 @@ export function LoginForm({
           </Button>
         </form>
       ) : null}
-      {googleEnabled ? (
+      {!privateHost && googleEnabled ? (
         <form action={googleSignInAction}>
           <input name="callbackUrl" type="hidden" value={callbackUrl} />
           <Button className="w-full" type="submit" variant="secondary">
@@ -72,7 +94,7 @@ export function LoginForm({
           </Button>
         </form>
       ) : null}
-      {oidcEnabled ? (
+      {!privateHost && oidcEnabled ? (
         <form action={oidcSignInAction}>
           <input name="callbackUrl" type="hidden" value={callbackUrl} />
           <Button className="w-full" type="submit" variant="secondary">
@@ -81,36 +103,38 @@ export function LoginForm({
         </form>
       ) : null}
 
-      <Form
-        className="flex flex-col gap-4"
-        onSubmit={async (e) => {
-          e.preventDefault();
-          setPending(true);
-          setError(null);
-          const formData = new FormData(e.currentTarget);
+      {privateHost ? null : (
+        <Form
+          className="flex flex-col gap-4"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setPending(true);
+            setError(null);
+            const formData = new FormData(e.currentTarget);
 
-          formData.set("callbackUrl", callbackUrl);
-          const result = await loginAction(formData);
+            formData.set("callbackUrl", callbackUrl);
+            const result = await loginAction(formData);
 
-          if (result?.error) setError(result.error);
-          setPending(false);
-        }}
-      >
-        <TextField isRequired name="email" type="email">
-          <Label>Email</Label>
-          <Input placeholder="you@company.com" />
-          <FieldError />
-        </TextField>
-        <TextField isRequired name="password" type="password">
-          <Label>Password</Label>
-          <Input placeholder="••••••••" />
-          <FieldError />
-        </TextField>
-        {error ? <p className="text-danger text-sm">{error}</p> : null}
-        <Button className="w-full" isDisabled={pending} type="submit">
-          {pending ? "Signing in…" : "Sign in"}
-        </Button>
-      </Form>
+            if (result?.error) setError(result.error);
+            setPending(false);
+          }}
+        >
+          <TextField isRequired name="email" type="email">
+            <Label>Email</Label>
+            <Input placeholder="you@company.com" />
+            <FieldError />
+          </TextField>
+          <TextField isRequired name="password" type="password">
+            <Label>Password</Label>
+            <Input placeholder="••••••••" />
+            <FieldError />
+          </TextField>
+          {error ? <p className="text-danger text-sm">{error}</p> : null}
+          <Button className="w-full" isDisabled={pending} type="submit">
+            {pending ? "Signing in…" : "Sign in"}
+          </Button>
+        </Form>
+      )}
     </div>
   );
 }

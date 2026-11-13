@@ -1,18 +1,21 @@
 import { LoginForm } from "@/components/auth-form";
+import { isPrivateHost } from "@/lib/auth-allowlist";
 import { isDemoMode } from "@/lib/utils";
 
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ callbackUrl?: string }>;
+  searchParams: Promise<{ callbackUrl?: string; error?: string }>;
 }) {
   const params = await searchParams;
   const demo = isDemoMode();
 
   return (
     <LoginForm
+      accessDenied={params.error === "AccessDenied"}
       callbackUrl={params.callbackUrl ?? "/onboarding"}
       demoMode={demo}
+      privateHost={isPrivateHost()}
       githubEnabled={Boolean(
         process.env.AUTH_GITHUB_ID && process.env.AUTH_GITHUB_SECRET,
       )}
