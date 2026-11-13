@@ -64,7 +64,7 @@ export function SelectField({
         className={[
           "min-w-0",
           compact &&
-            "!h-7 !min-h-7 !gap-1 !px-2.5 !py-0 !text-[12px] !leading-none [&_.select__value]:!text-[12px] [&_.select__value]:!leading-none [&_.select__indicator]:!size-3.5 [&_.select__clear-button]:!size-4",
+            "!h-7 !min-h-7 !items-center !gap-1 !px-2.5 !py-0 !text-[12px] !leading-none [&_.select__value]:!flex [&_.select__value]:!h-full [&_.select__value]:!items-center [&_.select__value]:!text-[12px] [&_.select__value]:!leading-none [&>svg]:!static [&>svg]:!m-0 [&>svg]:!top-auto [&_.select__indicator]:!size-3.5 [&_.select__clear-button]:!size-4",
           triggerClassName,
         ]
           .filter(Boolean)
