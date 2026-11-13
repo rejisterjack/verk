@@ -1,6 +1,10 @@
 import { notFound, redirect } from "next/navigation";
 
-import { PageHeader } from "@/components/page-header";
+import {
+  CreateCustomerForm,
+  LinkCustomerRequestForm,
+} from "@/components/customers-forms";
+import { ViewToolbar } from "@/components/page-header";
 import { SubmitButton as Button } from "@/components/submit-button";
 import { requireTeamBySlug } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
@@ -46,18 +50,19 @@ export default async function CustomersPage({
   }
 
   return (
-    <div className="max-w-xl space-y-4">
-      <PageHeader description="Link requests to issues from the API" title="Customers" />
-      <form action={create} className="flex gap-2">
-        <input required className="rounded-lg border border-separator px-3 py-2 text-sm" name="name" placeholder="Name" />
-        <input className="rounded-lg border border-separator px-3 py-2 text-sm" name="domain" placeholder="domain.com" />
-        <Button type="submit">Add</Button>
-      </form>
-      <ul className="text-sm">
+    <div className="flex min-h-full flex-col">
+      <ViewToolbar title="Customers" />
+      <div className="border-b border-separator px-4 py-3">
+        <CreateCustomerForm action={create} />
+      </div>
+      <ul className="divide-y divide-separator text-[13px]">
         {customers.map((customer) => (
-          <li key={customer.id} className="space-y-2 border-b border-separator py-2">
-            <p>
-              {customer.name} · {customer._count.requests} requests
+          <li key={customer.id} className="space-y-2 px-4 py-3">
+            <p className="font-medium">
+              {customer.name}{" "}
+              <span className="font-normal text-muted">
+                · {customer._count.requests} requests
+              </span>
             </p>
             <ul className="text-xs text-muted">
               {customer.requests.map((request) => (
@@ -70,12 +75,19 @@ export default async function CustomersPage({
                       redirect(`/t/${teamSlug}/customers`);
                     }}
                   >
-                    <Button size="sm" type="submit" variant="danger">Remove</Button>
+                    <Button
+                      className="h-7 px-2 text-[12px]"
+                      size="sm"
+                      type="submit"
+                      variant="danger"
+                    >
+                      Remove
+                    </Button>
                   </form>
                 </li>
               ))}
             </ul>
-            <form
+            <LinkCustomerRequestForm
               action={async (formData) => {
                 "use server";
                 const issueNumber = Number(formData.get("issueNumber"));
@@ -88,19 +100,8 @@ export default async function CustomersPage({
                 });
                 redirect(`/t/${teamSlug}/customers`);
               }}
-              className="flex gap-2"
-            >
-              <input className="flex-1 rounded border border-separator px-2 py-1" name="body" placeholder="Request" required />
-              <select className="rounded border border-separator px-2 py-1" name="issueNumber">
-                <option value="">No issue</option>
-                {issues.map((issue) => (
-                  <option key={issue.number} value={issue.number}>
-                    #{issue.number} {issue.title}
-                  </option>
-                ))}
-              </select>
-              <Button size="sm" type="submit">Link</Button>
-            </form>
+              issues={issues}
+            />
             <form
               action={async () => {
                 "use server";
@@ -108,7 +109,14 @@ export default async function CustomersPage({
                 redirect(`/t/${teamSlug}/customers`);
               }}
             >
-              <Button size="sm" type="submit" variant="danger">Delete customer</Button>
+              <Button
+                className="h-7 px-2 text-[12px]"
+                size="sm"
+                type="submit"
+                variant="danger"
+              >
+                Delete customer
+              </Button>
             </form>
           </li>
         ))}

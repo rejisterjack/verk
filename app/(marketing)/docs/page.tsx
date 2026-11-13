@@ -12,7 +12,8 @@ export default function DocsPage() {
           Getting started
         </h1>
         <p className="mt-3 text-muted">
-          Set DATABASE_URL, DIRECT_URL, AUTH_SECRET, and AUTH_URL. A live board in under five minutes.
+          Set DATABASE_URL, DIRECT_URL, AUTH_SECRET, and AUTH_URL. A live board
+          in under five minutes.
         </p>
       </header>
 
@@ -53,8 +54,7 @@ export default function DocsPage() {
               AUTH_SECRET
             </code>
             , and{" "}
-            <code className="font-mono text-foreground text-sm">AUTH_URL</code>
-            .
+            <code className="font-mono text-foreground text-sm">AUTH_URL</code>.
           </li>
           <li>
             Set{" "}
@@ -205,9 +205,9 @@ npm run dev`}</pre>
             customers.
           </li>
           <li>
-            Settings → Workflow can rename, reorder, and add statuses. The
-            five built-in keys still map onto Issue.status; extra keys keep
-            their own workflow row.
+            Settings → Workflow can rename, reorder, and add statuses. The five
+            built-in keys still map onto Issue.status; extra keys keep their own
+            workflow row.
           </li>
           <li>
             Issue attachments require{" "}

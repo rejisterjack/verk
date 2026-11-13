@@ -54,7 +54,8 @@ export async function createIssueAction(teamSlug: string, formData: FormData) {
 
     revalidatePath(`/t/${teamSlug}/issues`);
     revalidatePath(`/t/${teamSlug}/board`);
-    redirect(`/t/${teamSlug}/issues/${issue.number}`);
+
+    return { number: issue.number };
   } catch (error) {
     if (error && typeof error === "object" && "digest" in error) throw error;
 

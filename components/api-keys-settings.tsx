@@ -1,6 +1,7 @@
 "use client";
 
-import { Button } from "@heroui/react";
+import { Button, Form, Input, Label, TextField } from "@heroui/react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { createApiKeyAction, revokeApiKeyAction } from "@/lib/actions/api-keys";
@@ -13,6 +14,13 @@ type KeyRow = {
   lastUsedAt: Date | string | null;
 };
 
+/** Stable across SSR/CSR — avoids toLocaleString hydration mismatch. */
+function formatUtcStamp(value: Date | string) {
+  const iso = new Date(value).toISOString();
+
+  return `${iso.slice(0, 16).replace("T", " ")} UTC`;
+}
+
 export function ApiKeysSettings({
   teamSlug,
   keys,
@@ -22,6 +30,7 @@ export function ApiKeysSettings({
   keys: KeyRow[];
   canAdmin: boolean;
 }) {
+  const router = useRouter();
   const [plaintext, setPlaintext] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,8 +42,8 @@ export function ApiKeysSettings({
 
   return (
     <div className="space-y-6">
-      <form
-        className="flex flex-wrap gap-2 rounded-xl border border-separator p-4"
+      <Form
+        className="flex flex-wrap items-end gap-2 rounded-xl border border-separator p-4"
         onSubmit={async (e) => {
           e.preventDefault();
           setError(null);
@@ -49,14 +58,13 @@ export function ApiKeysSettings({
           }
           setPlaintext(result.plaintext ?? null);
           e.currentTarget.reset();
+          router.refresh();
         }}
       >
-        <input
-          required
-          className="min-w-56 flex-1 rounded-lg border border-separator bg-background px-3 py-2 text-sm"
-          name="name"
-          placeholder="Cursor agent"
-        />
+        <TextField isRequired className="min-w-56 flex-1" name="name">
+          <Label>Name</Label>
+          <Input placeholder="Cursor agent" />
+        </TextField>
         <Button type="submit">Create key</Button>
         {error ? <p className="w-full text-sm text-danger">{error}</p> : null}
         {plaintext ? (
@@ -80,7 +88,7 @@ export function ApiKeysSettings({
             </div>
           </div>
         ) : null}
-      </form>
+      </Form>
 
       <div className="overflow-x-auto rounded-xl border border-separator">
         <table className="w-full text-sm">
@@ -101,9 +109,7 @@ export function ApiKeysSettings({
                 <td className="px-4 py-3">{key.name}</td>
                 <td className="px-4 py-3 font-mono text-xs">{key.prefix}…</td>
                 <td className="px-4 py-3 text-muted">
-                  {key.lastUsedAt
-                    ? new Date(key.lastUsedAt).toLocaleString()
-                    : "Never"}
+                  {key.lastUsedAt ? formatUtcStamp(key.lastUsedAt) : "Never"}
                 </td>
                 <td className="px-4 py-3 text-right">
                   <Button
@@ -111,6 +117,8 @@ export function ApiKeysSettings({
                     variant="danger"
                     onPress={async () => {
                       await revokeApiKeyAction(teamSlug, key.id);
+                      setPlaintext(null);
+                      router.refresh();
                     }}
                   >
                     Revoke

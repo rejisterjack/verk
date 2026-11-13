@@ -1,7 +1,11 @@
 import { notFound, redirect } from "next/navigation";
 
-import { PageHeader } from "@/components/page-header";
-import { SettingsNav } from "@/components/settings-nav";
+import { EmptyState } from "@/components/empty-state";
+import { ViewToolbar } from "@/components/page-header";
+import {
+  CreateTemplateForm,
+  UpdateTemplateForm,
+} from "@/components/templates-settings-forms";
 import { SubmitButton as Button } from "@/components/submit-button";
 import { requireTeamBySlug } from "@/lib/rbac";
 import {
@@ -26,8 +30,6 @@ export default async function TemplatesPage({
   }
   const templates = await listTemplates(teamCtx.team.id);
   const teamId = teamCtx.team.id;
-  const canAdmin =
-    teamCtx.membership.role === "ADMIN" || teamCtx.membership.role === "OWNER";
 
   async function create(formData: FormData) {
     "use server";
@@ -42,54 +44,54 @@ export default async function TemplatesPage({
   }
 
   return (
-    <div className="max-w-lg space-y-4">
-      <PageHeader description="Apply these from the new-issue form" title="Templates" />
-      <SettingsNav canAdmin={canAdmin} teamSlug={teamSlug} />
-      <form action={create} className="space-y-2">
-        <input required className="w-full rounded-lg border border-separator px-3 py-2 text-sm" name="name" placeholder="Template name" />
-        <input required className="w-full rounded-lg border border-separator px-3 py-2 text-sm" name="title" placeholder="Issue title" />
-        <textarea className="min-h-20 w-full rounded-lg border border-separator px-3 py-2 text-sm" name="description" placeholder="Description" />
-        <input className="w-full rounded-lg border border-separator px-3 py-2 text-sm" name="priority" placeholder="Priority (NONE, URGENT, HIGH, MEDIUM, LOW)" />
-        <input className="w-full rounded-lg border border-separator px-3 py-2 text-sm" name="estimate" placeholder="Estimate (NONE, S, M, L)" />
-        <Button type="submit">Save template</Button>
-      </form>
-      <ul className="space-y-3 text-sm">
-        {templates.map((template) => (
-          <li key={template.id} className="rounded-lg border border-separator p-3">
-            <form
-              action={async (formData) => {
-                "use server";
-                await updateTemplate(teamId, template.id, {
-                  name: String(formData.get("name") ?? ""),
-                  title: String(formData.get("title") ?? ""),
-                  description: String(formData.get("description") ?? ""),
-                  priority: String(formData.get("priority") ?? "NONE"),
-                  estimate: String(formData.get("estimate") ?? "NONE"),
-                });
-                redirect(`/t/${teamSlug}/settings/templates`);
-              }}
-              className="space-y-2"
+    <div className="px-4 py-3 max-w-lg space-y-4">
+      <ViewToolbar
+        description="Apply these from the new-issue form"
+        title="Templates"
+      />
+      <CreateTemplateForm action={create} />
+      {templates.length === 0 ? (
+        <EmptyState
+          description="Create a template to speed up new issues."
+          title="No templates yet"
+        />
+      ) : (
+        <ul className="space-y-3 text-sm">
+          {templates.map((template) => (
+            <li
+              key={template.id}
+              className="rounded-lg border border-separator p-3"
             >
-              <input className="w-full rounded border border-separator px-2 py-1" defaultValue={template.name} name="name" required />
-              <input className="w-full rounded border border-separator px-2 py-1" defaultValue={template.title} name="title" required />
-              <textarea className="min-h-16 w-full rounded border border-separator px-2 py-1" defaultValue={template.description} name="description" />
-              <input className="w-full rounded border border-separator px-2 py-1" defaultValue={template.priority} name="priority" />
-              <input className="w-full rounded border border-separator px-2 py-1" defaultValue={template.estimate} name="estimate" />
-              <Button size="sm" type="submit">Update</Button>
-            </form>
-            <form
-              action={async () => {
-                "use server";
-                await deleteTemplate(teamId, template.id);
-                redirect(`/t/${teamSlug}/settings/templates`);
-              }}
-              className="mt-2"
-            >
-              <Button size="sm" type="submit" variant="danger">Delete</Button>
-            </form>
-          </li>
-        ))}
-      </ul>
+              <UpdateTemplateForm
+                action={async (formData) => {
+                  "use server";
+                  await updateTemplate(teamId, template.id, {
+                    name: String(formData.get("name") ?? ""),
+                    title: String(formData.get("title") ?? ""),
+                    description: String(formData.get("description") ?? ""),
+                    priority: String(formData.get("priority") ?? "NONE"),
+                    estimate: String(formData.get("estimate") ?? "NONE"),
+                  });
+                  redirect(`/t/${teamSlug}/settings/templates`);
+                }}
+                template={template}
+              />
+              <form
+                action={async () => {
+                  "use server";
+                  await deleteTemplate(teamId, template.id);
+                  redirect(`/t/${teamSlug}/settings/templates`);
+                }}
+                className="mt-2"
+              >
+                <Button size="sm" type="submit" variant="danger">
+                  Delete
+                </Button>
+              </form>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

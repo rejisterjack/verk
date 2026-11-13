@@ -101,6 +101,25 @@ export function KeyboardShell({
         return;
       }
 
+      if (
+        e.key.toLowerCase() === "f" &&
+        !e.metaKey &&
+        !e.ctrlKey &&
+        !e.altKey
+      ) {
+        const search = document.querySelector<HTMLInputElement>(
+          "[data-issue-filters] input[name='search']",
+        );
+
+        if (search) {
+          e.preventDefault();
+          search.focus();
+          search.select();
+        }
+
+        return;
+      }
+
       if (e.key.toLowerCase() === "c" && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
         openCreate();

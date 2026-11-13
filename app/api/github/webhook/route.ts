@@ -43,7 +43,11 @@ export async function POST(request: Request) {
     repository?: { full_name?: string };
   };
 
-  if (event.action !== "opened" && event.action !== "edited" && event.action !== "closed") {
+  if (
+    event.action !== "opened" &&
+    event.action !== "edited" &&
+    event.action !== "closed"
+  ) {
     return Response.json({ ok: true, skipped: true });
   }
 
@@ -94,7 +98,13 @@ export async function POST(request: Request) {
   if (merged && team.githubMergeCompletes) {
     const { updateIssue } = await import("@/lib/services/issues");
 
-    await updateIssue(team.id, issue.id, { status: "DONE" }, "OWNER", owner.userId);
+    await updateIssue(
+      team.id,
+      issue.id,
+      { status: "DONE" },
+      "OWNER",
+      owner.userId,
+    );
   }
 
   return Response.json({ ok: true, linked: true });

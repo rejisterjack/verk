@@ -287,7 +287,9 @@ export async function addIssueLink(
   issueId: string,
   input: unknown,
 ) {
-  const issue = await prisma.issue.findFirst({ where: { id: issueId, teamId } });
+  const issue = await prisma.issue.findFirst({
+    where: { id: issueId, teamId },
+  });
 
   if (!issue) throw new AuthError("Issue not found", "NOT_FOUND", 404);
   const data = z
@@ -343,27 +345,29 @@ export async function insightCounts(teamId: string) {
     weekStarts.push(start);
   }
 
-  const [created, done, statusGroups, cycles, recentIssues] = await Promise.all([
-    prisma.issue.count({ where: { teamId, createdAt: { gte: since } } }),
-    prisma.issue.count({
-      where: { teamId, status: "DONE", updatedAt: { gte: since } },
-    }),
-    prisma.issue.groupBy({
-      by: ["status"],
-      where: { teamId, createdAt: { gte: since } },
-      _count: { _all: true },
-    }),
-    prisma.cycle.findMany({
-      where: { teamId },
-      include: { issues: { select: { status: true } } },
-      orderBy: { startDate: "desc" },
-      take: 6,
-    }),
-    prisma.issue.findMany({
-      where: { teamId, createdAt: { gte: since } },
-      select: { createdAt: true, status: true, updatedAt: true },
-    }),
-  ]);
+  const [created, done, statusGroups, cycles, recentIssues] = await Promise.all(
+    [
+      prisma.issue.count({ where: { teamId, createdAt: { gte: since } } }),
+      prisma.issue.count({
+        where: { teamId, status: "DONE", updatedAt: { gte: since } },
+      }),
+      prisma.issue.groupBy({
+        by: ["status"],
+        where: { teamId, createdAt: { gte: since } },
+        _count: { _all: true },
+      }),
+      prisma.cycle.findMany({
+        where: { teamId },
+        include: { issues: { select: { status: true } } },
+        orderBy: { startDate: "desc" },
+        take: 6,
+      }),
+      prisma.issue.findMany({
+        where: { teamId, createdAt: { gte: since } },
+        select: { createdAt: true, status: true, updatedAt: true },
+      }),
+    ],
+  );
 
   const weekly = weekStarts.map((start, index) => {
     const end =
@@ -396,7 +400,9 @@ export async function insightCounts(teamId: string) {
     ),
     cycles: cycles.map((cycle) => {
       const total = cycle.issues.length;
-      const finished = cycle.issues.filter((issue) => issue.status === "DONE").length;
+      const finished = cycle.issues.filter(
+        (issue) => issue.status === "DONE",
+      ).length;
 
       return {
         id: cycle.id,
@@ -407,7 +413,10 @@ export async function insightCounts(teamId: string) {
   };
 }
 
-export async function notifySlack(url: string | null | undefined, text: string) {
+export async function notifySlack(
+  url: string | null | undefined,
+  text: string,
+) {
   if (!url) return;
 
   try {
@@ -418,9 +427,11 @@ export async function notifySlack(url: string | null | undefined, text: string) 
     });
 
     if (!response.ok) {
+      // eslint-disable-next-line no-console
       console.error(`Slack webhook failed: ${response.status}`);
     }
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error("Slack webhook failed", error);
   }
 }

@@ -1,6 +1,10 @@
+/* eslint-disable no-console */
 import { prisma } from "@/lib/db";
 
-export async function commentOnLinkedPullRequest(issueId: string, status: string) {
+export async function commentOnLinkedPullRequest(
+  issueId: string,
+  status: string,
+) {
   const token = process.env.GITHUB_TOKEN;
 
   if (!token) return;
@@ -9,9 +13,7 @@ export async function commentOnLinkedPullRequest(issueId: string, status: string
   });
 
   for (const link of links) {
-    const match = link.url.match(
-      /github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)/,
-    );
+    const match = link.url.match(/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)/);
 
     if (!match) continue;
     const response = await fetch(

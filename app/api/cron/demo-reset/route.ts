@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   }
 
   if (!isDemoMode()) {
-    return Response.json({ error: "Demo mode disabled" }, { status: 403 });
+    return Response.json({ ok: true, skipped: true });
   }
 
   const { seedDemo } = await import("@/prisma/seed");

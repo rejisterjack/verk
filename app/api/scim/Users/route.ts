@@ -81,7 +81,10 @@ export async function POST(request: Request) {
   const email = body.userName?.toLowerCase();
 
   if (!email || !body.teamId) {
-    return NextResponse.json({ error: "userName and teamId required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "userName and teamId required" },
+      { status: 400 },
+    );
   }
   const user = await prisma.user.upsert({
     where: { email },

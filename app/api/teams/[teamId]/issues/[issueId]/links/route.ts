@@ -1,7 +1,11 @@
 import { NextRequest } from "next/server";
 
 import { authenticateRequest, jsonError } from "@/lib/api-auth";
-import { addIssueLink, deleteIssueLink, listIssueLinks } from "@/lib/services/surface";
+import {
+  addIssueLink,
+  deleteIssueLink,
+  listIssueLinks,
+} from "@/lib/services/surface";
 
 export async function GET(
   request: NextRequest,

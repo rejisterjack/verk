@@ -10,11 +10,33 @@ import { ThemeSwitch } from "@/components/theme-switch";
 import { VerkLogo } from "@/components/verk-logo";
 import { siteConfig } from "@/config/site";
 
-export function MarketingNavbar({ demoMode = false }: { demoMode?: boolean }) {
+export function MarketingNavbar({
+  demoMode = false,
+  privateHost = false,
+}: {
+  demoMode?: boolean;
+  privateHost?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
-  const ctaHref = demoMode ? "/login" : "/register";
-  const ctaLabel = demoMode ? "Try demo" : "Start free";
+  const ctaHref = privateHost
+    ? siteConfig.links.deploy
+    : demoMode
+      ? "/login"
+      : "/register";
+  const ctaLabel = privateHost
+    ? "Deploy your own"
+    : demoMode
+      ? "Try demo"
+      : "Start free";
+  const openCta = () => {
+    if (ctaHref.startsWith("http")) {
+      window.location.assign(ctaHref);
+      return;
+    }
+
+    router.push(ctaHref);
+  };
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-separator/60 bg-background/75 backdrop-blur-xl">
@@ -58,7 +80,7 @@ export function MarketingNavbar({ demoMode = false }: { demoMode?: boolean }) {
           >
             Log in
           </Button>
-          <Button size="sm" onPress={() => router.push(ctaHref)}>
+          <Button size="sm" onPress={openCta}>
             {ctaLabel}
           </Button>
         </div>
@@ -85,7 +107,7 @@ export function MarketingNavbar({ demoMode = false }: { demoMode?: boolean }) {
               {item.label}
             </NextLink>
           ))}
-          <Button onPress={() => router.push(ctaHref)}>{ctaLabel}</Button>
+          <Button onPress={openCta}>{ctaLabel}</Button>
         </div>
       )}
     </nav>

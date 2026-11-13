@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@heroui/react";
+import { Button, Label, TextArea, TextField } from "@heroui/react";
 import { useEffect, useState } from "react";
 
 const REACTIONS = ["👍", "👀", "🎉", "❤️", "🚀"] as const;
@@ -41,16 +41,14 @@ export function IssueComments({
     void load();
   }, [teamId, issueId]);
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  async function submit() {
     if (!body.trim()) return;
     setPending(true);
     const { isOfflineEnabled } = await import("@/lib/offline/feature");
 
     if (isOfflineEnabled() && !navigator.onLine) {
-      const { queueCommentLocal } = await import(
-        "@/lib/offline/issue-repository"
-      );
+      const { queueCommentLocal } =
+        await import("@/lib/offline/issue-repository");
 
       await queueCommentLocal(teamId, issueId, body);
       setComments((prev) => [
@@ -151,19 +149,22 @@ export function IssueComments({
           <li className="text-sm text-muted">No comments yet.</li>
         ) : null}
       </ul>
-      <form className="mt-4 flex flex-col gap-2" onSubmit={submit}>
-        <textarea
-          className="min-h-20 rounded-lg border border-separator bg-background px-3 py-2 text-sm"
-          placeholder="Leave a comment…"
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-        />
+      <div className="mt-4 flex flex-col gap-2">
+        <TextField name="body" value={body} onChange={setBody}>
+          <Label>Comment</Label>
+          <TextArea placeholder="Leave a comment…" rows={3} />
+        </TextField>
         <div>
-          <Button isDisabled={pending} size="sm" type="submit">
+          <Button
+            isDisabled={pending}
+            size="sm"
+            type="button"
+            onPress={() => void submit()}
+          >
             {pending ? "Posting…" : "Comment"}
           </Button>
         </div>
-      </form>
+      </div>
     </section>
   );
 }

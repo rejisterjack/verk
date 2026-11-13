@@ -1,19 +1,23 @@
 import NextLink from "next/link";
 import { notFound } from "next/navigation";
 
+import { CreateCycleForm } from "@/components/cycle-forms";
 import { SubmitButton as Button } from "@/components/submit-button";
 import { EmptyState } from "@/components/empty-state";
-import { PageHeader } from "@/components/page-header";
+import { ViewToolbar } from "@/components/page-header";
 import { createCycleAction, setActiveCycleAction } from "@/lib/actions/cycles";
 import { requireTeamBySlug } from "@/lib/rbac";
 import * as cyclesService from "@/lib/services/cycles";
 
 export default async function CyclesPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ teamSlug: string }>;
+  searchParams: Promise<{ scope?: string }>;
 }) {
   const { teamSlug } = await params;
+  const { scope } = await searchParams;
   let teamCtx;
 
   try {
@@ -24,9 +28,28 @@ export default async function CyclesPage({
   const { team } = teamCtx;
   const cycles = await cyclesService.listCycles(team.id);
 
+  const now = new Date();
+  const upcoming = cycles.filter(
+    (c) => !c.isActive && c.startDate.getTime() > now.getTime(),
+  );
+  const current = cycles.filter((c) => c.isActive);
+  const past = cycles.filter(
+    (c) => !c.isActive && c.startDate.getTime() <= now.getTime(),
+  );
+  const sections =
+    scope === "current"
+      ? [{ label: "Current", rows: current }]
+      : scope === "upcoming"
+        ? [{ label: "Upcoming", rows: upcoming }]
+        : [
+            { label: "Current", rows: current },
+            { label: "Upcoming", rows: upcoming },
+            { label: "Past", rows: past },
+          ];
+
   return (
-    <div className="space-y-8">
-      <PageHeader
+    <div className="flex min-h-full flex-col">
+      <ViewToolbar
         actions={
           <form
             action={async () => {
@@ -47,52 +70,17 @@ export default async function CyclesPage({
             </Button>
           </form>
         }
-        description="Time-boxed planning periods — advance creates the next cycle and carries unfinished work"
         title="Cycles"
       />
 
-      <form
-        action={async (formData) => {
-          "use server";
-          await createCycleAction(teamSlug, formData);
-        }}
-        className="grid gap-3 rounded-xl border border-separator p-4 sm:grid-cols-2 lg:grid-cols-5"
-      >
-        <label className="flex flex-col gap-1 text-sm lg:col-span-2">
-          <span className="text-muted">Name</span>
-          <input
-            required
-            className="rounded-lg border border-separator bg-background px-3 py-2"
-            name="name"
-            placeholder="Cycle 2"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-muted">Start</span>
-          <input
-            required
-            className="rounded-lg border border-separator bg-background px-3 py-2"
-            name="startDate"
-            type="date"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-muted">End</span>
-          <input
-            required
-            className="rounded-lg border border-separator bg-background px-3 py-2"
-            name="endDate"
-            type="date"
-          />
-        </label>
-        <div className="flex items-end gap-3">
-          <label className="flex items-center gap-2 text-sm">
-            <input name="isActive" type="checkbox" />
-            Active
-          </label>
-          <Button type="submit">Create</Button>
-        </div>
-      </form>
+      <div className="border-b border-separator px-4 py-3">
+        <CreateCycleForm
+          action={async (formData) => {
+            "use server";
+            await createCycleAction(teamSlug, formData);
+          }}
+        />
+      </div>
 
       {cycles.length === 0 ? (
         <EmptyState
@@ -100,63 +88,54 @@ export default async function CyclesPage({
           title="No cycles yet"
         />
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-separator">
-          <table className="w-full text-sm">
-            <thead className="border-b border-separator bg-surface text-left text-muted">
-              <tr>
-                <th className="px-4 py-3 font-medium">Name</th>
-                <th className="px-4 py-3 font-medium">Dates</th>
-                <th className="px-4 py-3 font-medium">Issues</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium" />
-              </tr>
-            </thead>
-            <tbody>
-              {cycles.map((cycle) => (
-                <tr
-                  key={cycle.id}
-                  className="border-b border-separator last:border-0"
-                >
-                  <td className="px-4 py-3">
-                    <NextLink
-                      className="font-medium hover:text-accent"
-                      href={`/t/${teamSlug}/cycles/${cycle.id}`}
+        <div>
+          {sections.map((section) =>
+            section.rows.length ? (
+              <section key={section.label}>
+                <h2 className="border-b border-separator bg-surface/50 px-4 py-1.5 text-[11px] font-medium uppercase tracking-wide text-muted">
+                  {section.label}
+                </h2>
+                <ul className="divide-y divide-separator">
+                  {section.rows.map((cycle) => (
+                    <li
+                      key={cycle.id}
+                      className="flex h-[var(--row-h)] items-center gap-3 px-4 text-[13px]"
                     >
-                      {cycle.name}
-                    </NextLink>
-                  </td>
-                  <td className="px-4 py-3 text-muted">
-                    {cycle.startDate.toISOString().slice(0, 10)} →{" "}
-                    {cycle.endDate.toISOString().slice(0, 10)}
-                  </td>
-                  <td className="px-4 py-3">{cycle._count.issues}</td>
-                  <td className="px-4 py-3">
-                    {cycle.isActive ? (
-                      <span className="text-accent text-xs font-medium">
-                        Active
-                      </span>
-                    ) : (
-                      <span className="text-muted text-xs">Inactive</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    {!cycle.isActive ? (
-                      <form
-                        action={async () => {
-                          "use server";
-                          await setActiveCycleAction(teamSlug, cycle.id);
-                        }}
+                      <NextLink
+                        className="min-w-0 flex-1 truncate font-medium hover:text-accent"
+                        href={`/t/${teamSlug}/cycles/${cycle.id}`}
                       >
-                        <Button size="sm" type="submit" variant="tertiary">
-                          Set active
-                        </Button>
-                      </form>
-                    ) : null}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                        {cycle.name}
+                      </NextLink>
+                      <span className="hidden text-[12px] text-muted sm:inline">
+                        {cycle.startDate.toISOString().slice(0, 10)} →{" "}
+                        {cycle.endDate.toISOString().slice(0, 10)}
+                      </span>
+                      <span className="w-16 text-right text-[12px] text-muted">
+                        {cycle._count.issues}
+                      </span>
+                      {cycle.isActive ? (
+                        <span className="text-[11px] font-medium text-accent">
+                          Active
+                        </span>
+                      ) : (
+                        <form
+                          action={async () => {
+                            "use server";
+                            await setActiveCycleAction(teamSlug, cycle.id);
+                          }}
+                        >
+                          <Button size="sm" type="submit" variant="tertiary">
+                            Set active
+                          </Button>
+                        </form>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null,
+          )}
         </div>
       )}
     </div>

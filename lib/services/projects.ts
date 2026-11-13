@@ -118,7 +118,9 @@ export async function listInitiatives(teamId: string) {
     where: { teamId },
     include: {
       _count: { select: { projects: true } },
-      projects: { select: { id: true, name: true, targetDate: true, status: true } },
+      projects: {
+        select: { id: true, name: true, targetDate: true, status: true },
+      },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -141,7 +143,11 @@ export async function createInitiative(teamId: string, input: unknown) {
   });
 }
 
-export async function updateInitiative(teamId: string, initiativeId: string, input: unknown) {
+export async function updateInitiative(
+  teamId: string,
+  initiativeId: string,
+  input: unknown,
+) {
   const existing = await prisma.initiative.findFirst({
     where: { id: initiativeId, teamId },
   });
@@ -159,6 +165,15 @@ export async function updateInitiative(teamId: string, initiativeId: string, inp
     where: { id: initiativeId },
     data,
   });
+}
+
+export async function deleteInitiative(teamId: string, initiativeId: string) {
+  const existing = await prisma.initiative.findFirst({
+    where: { id: initiativeId, teamId },
+  });
+
+  if (!existing) throw new AuthError("Initiative not found", "NOT_FOUND", 404);
+  await prisma.initiative.delete({ where: { id: initiativeId } });
 }
 
 export async function setInitiativeHealth(

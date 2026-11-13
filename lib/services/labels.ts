@@ -9,7 +9,7 @@ const labelSchema = z.object({
     .string()
     .regex(/^#[0-9a-fA-F]{6}$/)
     .optional(),
-  group: z.string().max(40).optional(),
+  group: z.string().max(40).nullable().optional(),
 });
 
 export async function listLabels(teamId: string) {

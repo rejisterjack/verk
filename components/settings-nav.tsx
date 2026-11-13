@@ -5,21 +5,22 @@ import NextLink from "next/link";
 import { usePathname } from "next/navigation";
 
 type SettingsLink = {
-  href: string;
+  key: string;
+  path: string;
   label: string;
   adminOnly?: boolean;
 };
 
 const LINKS: SettingsLink[] = [
-  { href: "", label: "General" },
-  { href: "/members", label: "Members" },
-  { href: "/labels", label: "Labels" },
-  { href: "/templates", label: "Templates" },
-  { href: "/views", label: "Views" },
-  { href: "/workflow", label: "Workflow" },
-  { href: "/import", label: "Import" },
-  { href: "/api-keys", label: "API keys" },
-  { href: "/webhooks", label: "Webhooks", adminOnly: true },
+  { key: "general", path: "", label: "General" },
+  { key: "members", path: "/members", label: "Members" },
+  { key: "labels", path: "/labels", label: "Labels" },
+  { key: "templates", path: "/templates", label: "Templates" },
+  { key: "views", path: "/views", label: "Views" },
+  { key: "workflow", path: "/workflow", label: "Workflow", adminOnly: true },
+  { key: "import", path: "/import", label: "Import" },
+  { key: "api-keys", path: "/api-keys", label: "API keys" },
+  { key: "webhooks", path: "/webhooks", label: "Webhooks", adminOnly: true },
 ];
 
 export function SettingsNav({
@@ -31,21 +32,28 @@ export function SettingsNav({
 }) {
   const pathname = usePathname();
   const base = `/t/${teamSlug}/settings`;
+  const links = LINKS.filter((link) => !link.adminOnly || canAdmin);
 
   return (
-    <nav className="flex flex-wrap gap-3 text-sm">
-      {LINKS.filter((link) => !link.adminOnly || canAdmin).map((link) => {
-        const href = `${base}${link.href}`;
+    <nav
+      aria-label="Settings sections"
+      className="z-10 flex flex-wrap gap-0.5 border-b border-separator bg-background px-4 py-1.5"
+    >
+      {links.map((link) => {
+        const href = `${base}${link.path}`;
         const active =
-          link.href === ""
+          link.path === ""
             ? pathname === base || pathname === `${base}/`
-            : pathname.startsWith(href);
+            : pathname.startsWith(`${base}${link.path}`);
 
         return (
           <NextLink
-            key={href}
+            key={link.key}
             className={clsx(
-              active ? "text-accent" : "text-muted hover:text-foreground",
+              "rounded px-2 py-1 text-[12px] transition-colors",
+              active
+                ? "bg-accent/15 font-medium text-accent"
+                : "text-muted hover:bg-default hover:text-foreground",
             )}
             href={href}
           >

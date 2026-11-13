@@ -27,10 +27,12 @@ type ListIssue = {
   description?: string;
   status: IssueStatus;
   priority: Priority;
+  workflowStatusId?: string | null;
   assignee?: { name: string | null; email: string } | null;
   cycle?: { name: string } | null;
   createdAt?: string;
   syncStatus?: string;
+  labelIds?: string[];
 };
 
 function isTypingTarget(target: EventTarget | null) {
@@ -43,6 +45,20 @@ function isTypingTarget(target: EventTarget | null) {
     tag === "SELECT" ||
     target.isContentEditable
   );
+}
+
+function uniqueIssues(rows: ListIssue[]) {
+  const seenIds = new Set<string>();
+  const seenNumbers = new Set<number>();
+
+  return rows.filter((row) => {
+    if (seenIds.has(row.id)) return false;
+    if (row.number != null && seenNumbers.has(row.number)) return false;
+    seenIds.add(row.id);
+    if (row.number != null) seenNumbers.add(row.number);
+
+    return true;
+  });
 }
 
 export function IssuesListClient({
@@ -63,23 +79,24 @@ export function IssuesListClient({
   initialCursor?: string;
   slaHours?: unknown;
   slaWindow?: SlaWindow;
-  workflows?: { id: string; name: string }[];
+  workflows?: { id: string; name: string; key?: string }[];
   filters?: {
     status?: string;
     priority?: string;
     cycleId?: string;
     search?: string;
+    labelIds?: string[];
   };
 }) {
   const router = useRouter();
-  const [issues, setIssues] = useState(initialIssues);
+  const [issues, setIssues] = useState(() => uniqueIssues(initialIssues));
   const [cursor, setCursor] = useState(initialCursor);
   const [loadingMore, setLoadingMore] = useState(false);
   const [focusIndex, setFocusIndex] = useState(0);
   const [peekOpen, setPeekOpen] = useState(false);
 
   useEffect(() => {
-    setIssues(initialIssues);
+    setIssues(uniqueIssues(initialIssues));
     setFocusIndex(0);
   }, [initialIssues]);
 
@@ -87,54 +104,62 @@ export function IssuesListClient({
     if (!isOfflineEnabled()) return;
 
     void upsertTeam({ id: teamId, slug: teamSlug, name: teamName });
-    void hydrateIssuesFromServer(
-      teamId,
-      initialIssues.map(
-        (i) =>
-          ({
-            id: i.id,
-            number: i.number ?? 0,
-            title: i.title,
-            status: i.status,
-            priority: i.priority,
-            order: 0,
-            teamId,
-            assignee: i.assignee
-              ? {
-                  id: "",
-                  name: i.assignee.name,
-                  email: i.assignee.email,
-                  image: null,
-                }
-              : null,
-          }) as ServerIssue,
-      ),
-    );
-
+    let cancelled = false;
     const refresh = () => {
       void listLocalIssues(teamId, filters).then((rows) => {
         setIssues(
-          rows.map((r) => ({
-            id: r.id,
-            number: r.number,
-            title: r.title,
-            description: r.description,
-            status: r.status as IssueStatus,
-            priority: r.priority as Priority,
-            assignee: r.assignee,
-            cycle: r.cycleId ? { name: "" } : null,
-            syncStatus: r.syncStatus,
-          })),
+          uniqueIssues(
+            rows.map((r) => ({
+              id: r.id,
+              number: r.number,
+              title: r.title,
+              description: r.description,
+              status: r.status as IssueStatus,
+              priority: r.priority as Priority,
+              assignee: r.assignee,
+              cycle: r.cycleId ? { name: "" } : null,
+              syncStatus: r.syncStatus,
+            })),
+          ),
         );
       });
     };
 
     const unsub = subscribeIssues(refresh);
 
-    refresh();
+    void (async () => {
+      await hydrateIssuesFromServer(
+        teamId,
+        initialIssues.map(
+          (issue) =>
+            ({
+              id: issue.id,
+              number: issue.number ?? 0,
+              title: issue.title,
+              status: issue.status,
+              priority: issue.priority,
+              order: 0,
+              teamId,
+              labels: (issue.labelIds ?? []).map((id) => ({ labelId: id })),
+              assignee: issue.assignee
+                ? {
+                    id: "",
+                    name: issue.assignee.name,
+                    email: issue.assignee.email,
+                    image: null,
+                  }
+                : null,
+            }) as ServerIssue,
+        ),
+      );
+      if (!cancelled) refresh();
+    })();
     void pullDelta(teamId);
 
-    return unsub;
+    return () => {
+      cancelled = true;
+      unsub();
+    };
   }, [teamId, teamSlug, teamName, initialIssues, filters]);
 
   useEffect(() => {
@@ -181,82 +206,80 @@ export function IssuesListClient({
 
   return (
     <>
-      <div className="overflow-x-auto rounded-xl border border-separator">
-        <table className="w-full text-sm">
-          <thead className="border-b border-separator bg-surface text-left text-muted">
-            <tr>
-              <th className="px-4 py-3 font-medium">ID</th>
-              <th className="px-4 py-3 font-medium">Title</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Priority</th>
-              <th className="px-4 py-3 font-medium">Assignee</th>
-              <th className="px-4 py-3 font-medium">Cycle</th>
-            </tr>
-          </thead>
-          <tbody>
-            {issues.map((issue, index) => {
-              const href =
-                issue.number != null
-                  ? `/t/${teamSlug}/issues/${issue.number}`
-                  : `/t/${teamSlug}/issues/tmp/${issue.id}`;
-              const focusedRow = index === focusIndex;
+      <div className="divide-y divide-separator border-b border-separator">
+        {issues.map((issue, index) => {
+          const href =
+            issue.number != null
+              ? `/t/${teamSlug}/issues/${issue.number}`
+              : `/t/${teamSlug}/issues/tmp/${issue.id}`;
+          const focusedRow = index === focusIndex;
+          const breached =
+            issue.createdAt &&
+            slaBreached(
+              issue.priority,
+              issue.status,
+              new Date(issue.createdAt),
+              slaHours,
+              new Date(),
+              slaWindow,
+            );
 
-              return (
-                <tr
-                  key={issue.id}
-                  className={`border-b border-separator last:border-0 hover:bg-default/40 ${
-                    focusedRow ? "bg-accent/10" : ""
-                  }`}
-                  onClick={() => setFocusIndex(index)}
-                >
-                  <td className="px-4 py-3 text-muted whitespace-nowrap">
-                    <NextLink className="hover:text-accent" href={href}>
-                      {issueKey(teamSlug, issue.number)}
-                    </NextLink>
-                  </td>
-                  <td className="px-4 py-3">
-                    <NextLink
-                      className="font-medium hover:text-accent"
-                      href={href}
-                    >
-                      {issue.title}
-                      {issue.syncStatus === "pending" ? (
-                        <span className="ml-2 text-xs text-muted">syncing</span>
-                      ) : null}
-                    </NextLink>
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusChip status={issue.status} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <PriorityChip priority={issue.priority} />
-                  </td>
-                  <td className="px-4 py-3 text-muted">
-                    {issue.assignee?.name ?? issue.assignee?.email ?? "—"}
-                  </td>
-                  <td className="px-4 py-3 text-muted">
-                    {issue.cycle?.name || "—"}
-                    {issue.createdAt &&
-                    slaBreached(
-                      issue.priority,
-                      issue.status,
-                      new Date(issue.createdAt),
-                      slaHours,
-                      new Date(),
-                      slaWindow,
-                    ) ? (
-                      <span className="ml-2 text-xs text-danger">SLA</span>
-                    ) : null}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+          return (
+            <div
+              key={issue.id}
+              aria-selected={focusedRow}
+              className={`group flex h-[var(--row-h)] min-h-[var(--row-h)] cursor-default items-center gap-3 px-4 text-[13px] hover:bg-default/50 ${
+                focusedRow ? "bg-accent/10" : ""
+              }`}
+              role="row"
+              tabIndex={focusedRow ? 0 : -1}
+              onClick={() => setFocusIndex(index)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setFocusIndex(index);
+                }
+              }}
+            >
+              <div className="hidden w-[6.5rem] shrink-0 sm:block">
+                <PriorityChip quiet priority={issue.priority} />
+              </div>
+              <NextLink
+                className="w-14 shrink-0 truncate font-mono text-[11px] text-muted hover:text-accent"
+                href={href}
+              >
+                {issueKey(teamSlug, issue.number)}
+              </NextLink>
+              <div className="hidden w-28 shrink-0 md:block">
+                <StatusChip quiet status={issue.status} />
+              </div>
+              <NextLink
+                className="min-w-0 flex-1 truncate font-medium text-foreground hover:text-accent"
+                href={href}
+              >
+                {issue.title}
+                {issue.syncStatus === "pending" ? (
+                  <span className="ml-2 text-[11px] font-normal text-muted">
+                    syncing
+                  </span>
+                ) : null}
+              </NextLink>
+              <span className="hidden w-28 shrink-0 truncate text-[12px] text-muted lg:block">
+                {issue.assignee?.name ?? issue.assignee?.email ?? "—"}
+              </span>
+              <span className="hidden w-24 shrink-0 truncate text-[12px] text-muted xl:block">
+                {issue.cycle?.name || "—"}
+                {breached ? (
+                  <span className="ml-1 text-[11px] text-danger">SLA</span>
+                ) : null}
+              </span>
+            </div>
+          );
+        })}
       </div>
       {cursor ? (
         <button
-          className="mt-3 rounded-lg border border-separator px-3 py-2 text-sm"
+          className="m-3 rounded-md border border-separator px-3 py-1.5 text-[13px] text-muted hover:bg-default hover:text-foreground"
           disabled={loadingMore}
           type="button"
           onClick={() => {

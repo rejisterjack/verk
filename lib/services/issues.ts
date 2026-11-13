@@ -54,6 +54,9 @@ export async function listIssues(teamId: string, query: unknown) {
   if (q.assigneeId) where.assigneeId = q.assigneeId;
   if (q.projectId) where.projectId = q.projectId;
   if (q.workflowStatusId) where.workflowStatusId = q.workflowStatusId;
+  if (q.labelGroup) {
+    where.labels = { some: { label: { group: q.labelGroup } } };
+  }
   if (q.number) where.number = q.number;
   if (q.triage) {
     const now = new Date();
@@ -277,7 +280,11 @@ export async function createIssue(
     await dispatchWebhooks(teamId, "issue.created", issue);
     const team = await prisma.team.findUnique({ where: { id: teamId } });
 
-    if (!issue.assigneeId && team?.triageOwnerId && team.triageOwnerId !== userId) {
+    if (
+      !issue.assigneeId &&
+      team?.triageOwnerId &&
+      team.triageOwnerId !== userId
+    ) {
       await prisma.notification.create({
         data: {
           userId: team.triageOwnerId,
@@ -397,9 +404,8 @@ export async function updateIssue(
   const saved = await getIssueById(teamId, issueId);
 
   if (data.status && data.status !== existing.status && saved) {
-    const { notifyIssueSubscribers } = await import(
-      "@/lib/services/notifications"
-    );
+    const { notifyIssueSubscribers } =
+      await import("@/lib/services/notifications");
 
     await notifyIssueSubscribers({
       teamId,
@@ -411,7 +417,8 @@ export async function updateIssue(
   }
 
   if (saved) {
-    const { recordActivity, notifySlack } = await import("@/lib/services/surface");
+    const { recordActivity, notifySlack } =
+      await import("@/lib/services/surface");
     const fields = [
       "title",
       "description",
@@ -432,7 +439,10 @@ export async function updateIssue(
     };
 
     for (const field of fields) {
-      if (data[field] !== undefined && asText(data[field]) !== asText(existing[field])) {
+      if (
+        data[field] !== undefined &&
+        asText(data[field]) !== asText(existing[field])
+      ) {
         await recordActivity(
           issueId,
           userId,
@@ -457,6 +467,7 @@ export async function updateIssue(
 
         await commentOnLinkedPullRequest(issueId, String(data.status));
       } catch (error) {
+        // eslint-disable-next-line no-console
         console.error("GitHub status comment failed", error);
       }
     }
@@ -580,6 +591,7 @@ export async function getBoardIssues(
     cycleId?: string;
     priority?: Priority;
     search?: string;
+    labelGroup?: string;
   },
 ) {
   const where: Prisma.IssueWhereInput = {
@@ -589,6 +601,9 @@ export async function getBoardIssues(
 
   if (filters?.cycleId) where.cycleId = filters.cycleId;
   if (filters?.priority) where.priority = filters.priority;
+  if (filters?.labelGroup) {
+    where.labels = { some: { label: { group: filters.labelGroup } } };
+  }
   if (filters?.search) {
     where.OR = [
       { title: { contains: filters.search, mode: "insensitive" } },
@@ -612,6 +627,7 @@ export async function getBoardIssues(
       cycleId: true,
       projectId: true,
       workflowStatusId: true,
+      labels: { select: { labelId: true } },
       creatorId: true,
       assignee: { select: { id: true, name: true, email: true, image: true } },
     },

@@ -104,7 +104,8 @@ model User {
   sessions            Session[]
   memberships         Membership[]
   workspaceMembers    WorkspaceMember[]
-  invitesSent         Invite[]          @relation("InvitedBy")
+  invitesSent          Invite[]          @relation("InvitedBy")
+  workspaceInvitesSent WorkspaceInvite[] @relation("WorkspaceInvitedBy")
   issuesCreated       Issue[]           @relation("IssueCreator")
   issuesAssigned      Issue[]           @relation("IssueAssignee")
   apiKeys             ApiKey[]
@@ -165,6 +166,7 @@ model Workspace {
   members  WorkspaceMember[]
   teams    Team[]
   projects Project[]
+  invites  WorkspaceInvite[]
 }
 
 model WorkspaceMember {
@@ -179,6 +181,24 @@ model WorkspaceMember {
 
   @@unique([workspaceId, userId])
   @@index([userId])
+}
+
+model WorkspaceInvite {
+  id          String    @id @default(cuid())
+  workspaceId String
+  email       String
+  role        Role      @default(MEMBER)
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  invitedById String
+  acceptedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invitedBy User      @relation("WorkspaceInvitedBy", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([email])
 }
 
 model Team {

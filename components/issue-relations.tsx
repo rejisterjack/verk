@@ -1,7 +1,11 @@
 "use client";
 
-import { Button } from "@heroui/react";
+import type { Key } from "@heroui/react";
+
+import { Button, Input, Label, TextField } from "@heroui/react";
 import { useEffect, useState } from "react";
+
+import { SelectField } from "@/components/ui/select-field";
 
 type Rel = {
   id: string;
@@ -20,7 +24,7 @@ export function IssueRelations({
   issueId: string;
 }) {
   const [relations, setRelations] = useState<Rel[]>([]);
-  const [type, setType] = useState("RELATED");
+  const [type, setType] = useState<Key>("RELATED");
   const [targetNumber, setTargetNumber] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -40,8 +44,7 @@ export function IssueRelations({
     void load();
   }, [teamId, issueId]);
 
-  async function add(e: React.FormEvent) {
-    e.preventDefault();
+  async function add() {
     setError(null);
     const num = Number(targetNumber);
 
@@ -71,7 +74,7 @@ export function IssueRelations({
         method: "POST",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ toIssueId: match.id, type }),
+        body: JSON.stringify({ toIssueId: match.id, type: String(type) }),
       },
     );
 
@@ -94,76 +97,96 @@ export function IssueRelations({
     await load();
   }
 
+  const subIssues = relations.filter(
+    (relation) => relation.type === "CHILD" || relation.type === "PARENT",
+  );
+
   return (
-    <section className="mt-10 border-t border-separator pt-6">
-      <h2 className="text-sm font-semibold">Sub-issues</h2>
-      <ul className="mt-2 space-y-1 text-sm">
-        {relations
-          .filter((relation) => relation.type === "CHILD" || relation.type === "PARENT")
-          .map((relation) => {
-            const other = relation.fromIssue.id === issueId ? relation.toIssue : relation.fromIssue;
+    <section className="mt-10 space-y-8 border-t border-separator pt-6">
+      {subIssues.length > 0 ? (
+        <div>
+          <h2 className="text-sm font-semibold">Sub-issues</h2>
+          <ul className="mt-2 space-y-1 text-sm">
+            {subIssues.map((relation) => {
+              const other =
+                relation.fromIssue.id === issueId
+                  ? relation.toIssue
+                  : relation.fromIssue;
+
+              return (
+                <li key={relation.id}>
+                  {relation.type}: {other.title}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ) : null}
+      <div>
+        <h2 className="text-sm font-semibold">Relations</h2>
+        <ul className="mt-3 space-y-2 text-sm">
+          {relations.map((r) => {
+            const other = r.fromIssue.id === issueId ? r.toIssue : r.fromIssue;
 
             return (
-              <li key={relation.id}>
-                {relation.type}: {other.title}
+              <li
+                key={r.id}
+                className="flex items-center justify-between rounded-lg border border-separator px-3 py-2"
+              >
+                <span>
+                  <span className="text-xs text-muted">{r.type}</span>{" "}
+                  <a
+                    className="text-accent hover:underline"
+                    href={`/t/${teamSlug}/issues/${other.number}`}
+                  >
+                    {teamSlug.slice(0, 3).toUpperCase()}-{other.number}{" "}
+                    {other.title}
+                  </a>
+                </span>
+                <Button size="sm" variant="ghost" onPress={() => remove(r.id)}>
+                  Remove
+                </Button>
               </li>
             );
           })}
-      </ul>
-      <h2 className="mt-6 text-sm font-semibold">Relations</h2>
-      <ul className="mt-3 space-y-2 text-sm">
-        {relations.map((r) => {
-          const other =
-            r.fromIssue.id === issueId ? r.toIssue : r.fromIssue;
-
-          return (
-            <li
-              key={r.id}
-              className="flex items-center justify-between rounded-lg border border-separator px-3 py-2"
-            >
-              <span>
-                <span className="text-xs text-muted">{r.type}</span>{" "}
-                <a
-                  className="text-accent hover:underline"
-                  href={`/t/${teamSlug}/issues/${other.number}`}
-                >
-                  {teamSlug.slice(0, 3).toUpperCase()}-{other.number}{" "}
-                  {other.title}
-                </a>
-              </span>
-              <Button size="sm" variant="ghost" onPress={() => remove(r.id)}>
-                Remove
-              </Button>
-            </li>
-          );
-        })}
-        {relations.length === 0 ? (
-          <li className="text-muted">No relations yet.</li>
-        ) : null}
-      </ul>
-      <form className="mt-3 flex flex-wrap gap-2" onSubmit={add}>
-        <select
-          className="rounded-lg border border-separator bg-background px-2 py-1.5 text-sm"
-          value={type}
-          onChange={(e) => setType(e.target.value)}
-        >
-          <option value="RELATED">Related</option>
-          <option value="BLOCKS">Blocks</option>
-          <option value="BLOCKED_BY">Blocked by</option>
-          <option value="PARENT">Parent</option>
-          <option value="CHILD">Child</option>
-        </select>
-        <input
-          className="w-28 rounded-lg border border-separator bg-background px-2 py-1.5 text-sm"
-          placeholder="Issue #"
-          value={targetNumber}
-          onChange={(e) => setTargetNumber(e.target.value)}
-        />
-        <Button size="sm" type="submit" variant="tertiary">
-          Add
-        </Button>
-      </form>
-      {error ? <p className="mt-1 text-xs text-danger">{error}</p> : null}
+          {relations.length === 0 ? (
+            <li className="text-muted">No relations yet.</li>
+          ) : null}
+        </ul>
+        <div className="mt-3 grid grid-cols-[minmax(9rem,12rem)_6rem_auto] items-end gap-2">
+          <SelectField
+            fullWidth
+            label="Relation"
+            options={[
+              { id: "RELATED", label: "Related" },
+              { id: "BLOCKS", label: "Blocks" },
+              { id: "BLOCKED_BY", label: "Blocked by" },
+              { id: "PARENT", label: "Parent" },
+              { id: "CHILD", label: "Child" },
+            ]}
+            value={type}
+            onChange={(key) => setType(key ?? "RELATED")}
+          />
+          <TextField
+            fullWidth
+            name="targetNumber"
+            value={targetNumber}
+            onChange={setTargetNumber}
+          >
+            <Label>Issue #</Label>
+            <Input placeholder="42" />
+          </TextField>
+          <Button
+            size="sm"
+            type="button"
+            variant="tertiary"
+            onPress={() => void add()}
+          >
+            Add
+          </Button>
+        </div>
+        {error ? <p className="mt-1 text-xs text-danger">{error}</p> : null}
+      </div>
     </section>
   );
 }

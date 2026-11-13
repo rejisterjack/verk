@@ -122,8 +122,7 @@ export function parseLinearCsv(text: string): LinearCsvRow[] {
           : undefined,
       labels:
         labelsIdx >= 0 && cells[labelsIdx]
-          ? cells[labelsIdx]!
-              .split(",")
+          ? cells[labelsIdx]!.split(",")
               .map((name) => name.trim())
               .filter(Boolean)
           : undefined,

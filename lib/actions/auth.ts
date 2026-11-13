@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { AuthError } from "next-auth";
 import { headers } from "next/headers";
 
+import { isPrivateHost } from "@/lib/auth-allowlist";
 import { signIn, signOut } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
@@ -21,6 +22,12 @@ export async function registerAction(formData: FormData) {
   if (isDemoMode()) {
     return {
       error: "Registration is disabled on the public demo. Use demo@verk.dev.",
+    };
+  }
+
+  if (isPrivateHost()) {
+    return {
+      error: "This host is private. Deploy your own Verk to create an account.",
     };
   }
 

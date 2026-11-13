@@ -1,7 +1,10 @@
 import { notFound, redirect } from "next/navigation";
 
-import { PageHeader } from "@/components/page-header";
-import { SubmitButton as Button } from "@/components/submit-button";
+import { ViewToolbar } from "@/components/page-header";
+import {
+  AddWorkflowStatusForm,
+  WorkflowStatusRow,
+} from "@/components/workflow-settings-forms";
 import { requireTeamBySlug } from "@/lib/rbac";
 import * as workspaces from "@/lib/services/workspaces";
 
@@ -62,84 +65,23 @@ export default async function WorkflowSettingsPage({
   }
 
   return (
-    <div className="max-w-lg">
-      <PageHeader
+    <div className="px-4 py-3 max-w-lg">
+      <ViewToolbar
         description="Rename, reorder, or add a status. New statuses use a workflow key and map onto the nearest built-in column type."
         title="Workflow"
       />
-      <form action={addStatus} className="mb-6 flex flex-wrap items-end gap-2">
-        <input
-          required
-          className="rounded-lg border border-separator bg-background px-3 py-2 text-sm"
-          name="name"
-          placeholder="Name"
-        />
-        <input
-          required
-          className="rounded-lg border border-separator bg-background px-3 py-2 text-sm"
-          name="key"
-          pattern="[a-z0-9_]+"
-          placeholder="key"
-        />
-        <select
-          className="rounded-lg border border-separator bg-background px-3 py-2 text-sm"
-          defaultValue="unstarted"
-          name="type"
-        >
-          <option value="backlog">backlog</option>
-          <option value="unstarted">unstarted</option>
-          <option value="started">started</option>
-          <option value="completed">completed</option>
-          <option value="canceled">canceled</option>
-        </select>
-        <Button size="sm" type="submit">
-          Add status
-        </Button>
-      </form>
+      <AddWorkflowStatusForm action={addStatus} />
       <ul className="space-y-3">
         {statuses.map((s, i) => (
-          <li
+          <WorkflowStatusRow
             key={s.id}
-            className="rounded-xl border border-separator p-3 text-sm"
-          >
-            <form action={rename} className="flex flex-wrap items-end gap-2">
-              <input name="id" type="hidden" value={s.id} />
-              <label className="flex flex-1 flex-col gap-1">
-                <span className="text-xs text-muted">
-                  {s.key} · {s.type}
-                </span>
-                <input
-                  className="rounded-lg border border-separator bg-background px-3 py-2"
-                  defaultValue={s.name}
-                  name="name"
-                />
-              </label>
-              <Button size="sm" type="submit">
-                Rename
-              </Button>
-            </form>
-            <div className="mt-2 flex gap-2">
-              <form action={move}>
-                <input name="id" type="hidden" value={s.id} />
-                <input name="direction" type="hidden" value="up" />
-                <Button isDisabled={i === 0} size="sm" type="submit" variant="ghost">
-                  Up
-                </Button>
-              </form>
-              <form action={move}>
-                <input name="id" type="hidden" value={s.id} />
-                <input name="direction" type="hidden" value="down" />
-                <Button
-                  isDisabled={i === statuses.length - 1}
-                  size="sm"
-                  type="submit"
-                  variant="ghost"
-                >
-                  Down
-                </Button>
-              </form>
-            </div>
-          </li>
+            index={i}
+            moveDownAction={move}
+            moveUpAction={move}
+            renameAction={rename}
+            status={s}
+            total={statuses.length}
+          />
         ))}
       </ul>
     </div>

@@ -1,6 +1,6 @@
-import { z } from "zod";
-
 import type { Role } from "@/lib/generated/prisma/client";
+
+import { z } from "zod";
 
 import { prisma } from "@/lib/db";
 import { AuthError } from "@/lib/errors";
@@ -94,7 +94,8 @@ async function notifyMentions(
     const name = (member.user.name ?? "").trim().toLowerCase();
 
     return (
-      text.includes(`@${email}`) || (name.length > 0 && text.includes(`@${name}`))
+      text.includes(`@${email}`) ||
+      (name.length > 0 && text.includes(`@${name}`))
     );
   });
 

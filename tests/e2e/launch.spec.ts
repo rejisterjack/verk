@@ -20,6 +20,12 @@ test("projects page loads", async ({ page }) => {
   await expect(page.getByRole("heading", { name: /projects/i })).toBeVisible();
 });
 
+test("initiatives page loads", async ({ page }) => {
+  await loginAsDemo(page);
+  await page.goto("/t/acme-engineering/initiatives");
+  await expect(page.getByRole("heading", { name: "Initiatives" })).toBeVisible();
+});
+
 test("import settings page loads", async ({ page }) => {
   await loginAsDemo(page);
   await page.goto("/t/acme-engineering/settings/import");

@@ -1,7 +1,9 @@
+import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 
-import { PageHeader } from "@/components/page-header";
+import { ViewToolbar } from "@/components/page-header";
 import { SubmitButton as Button } from "@/components/submit-button";
+import { CreateWebhookForm } from "@/components/webhooks-form";
 import { requireTeamBySlug } from "@/lib/rbac";
 import * as webhooksService from "@/lib/services/webhooks";
 
@@ -33,14 +35,15 @@ export default async function WebhooksPage({
       events: ["issue.created", "issue.updated", "comment.created"],
     });
 
+    revalidatePath(`/t/${teamSlug}/settings/webhooks`);
     redirect(
       `/t/${teamSlug}/settings/webhooks?created=${hook.id}&secret=${encodeURIComponent(hook.secret)}`,
     );
   }
 
   return (
-    <div className="max-w-lg">
-      <PageHeader
+    <div className="px-4 py-3 max-w-lg">
+      <ViewToolbar
         description="POST JSON to your endpoint on issue and comment events"
         title="Webhooks"
       />
@@ -48,21 +51,10 @@ export default async function WebhooksPage({
         <div className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
           <p className="font-medium">Copy your signing secret now</p>
           <p className="mt-1 break-all font-mono text-xs">{query.secret}</p>
-          <p className="mt-2 text-xs text-muted">
-            It will not be shown again.
-          </p>
+          <p className="mt-2 text-xs text-muted">It will not be shown again.</p>
         </div>
       ) : null}
-      <form action={create} className="mb-6 flex gap-2">
-        <input
-          required
-          className="flex-1 rounded-lg border border-separator bg-background px-3 py-2 text-sm"
-          name="url"
-          placeholder="https://example.com/hooks/verk"
-          type="url"
-        />
-        <Button type="submit">Add</Button>
-      </form>
+      <CreateWebhookForm action={create} />
       <ul className="space-y-2 text-sm">
         {hooks.map((h) => (
           <li
@@ -72,8 +64,7 @@ export default async function WebhooksPage({
             <div>
               <p className="font-mono text-xs">{h.url}</p>
               <p className="text-xs text-muted">
-                {h.disabledAt ? "Disabled" : "Active"} ·{" "}
-                {h.events.join(", ")}
+                {h.disabledAt ? "Disabled" : "Active"} · {h.events.join(", ")}
               </p>
             </div>
             <div className="flex gap-1">
@@ -85,6 +76,7 @@ export default async function WebhooksPage({
                     h.id,
                     !h.disabledAt,
                   );
+                  revalidatePath(`/t/${teamSlug}/settings/webhooks`);
                   redirect(`/t/${teamSlug}/settings/webhooks`);
                 }}
               >
@@ -96,6 +88,7 @@ export default async function WebhooksPage({
                 action={async () => {
                   "use server";
                   await webhooksService.deleteWebhook(teamId, h.id);
+                  revalidatePath(`/t/${teamSlug}/settings/webhooks`);
                   redirect(`/t/${teamSlug}/settings/webhooks`);
                 }}
               >

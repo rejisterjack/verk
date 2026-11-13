@@ -2,8 +2,8 @@ import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { AppSidebar } from "@/components/app-sidebar";
-import { InstallPrompt } from "@/components/pwa/install-prompt";
 import { KeyboardShell } from "@/components/app/keyboard-shell";
+import { GlobalCreateIssue } from "@/components/global-create-issue";
 import { auth } from "@/lib/auth";
 import { listUserTeams } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
@@ -43,6 +43,7 @@ export default async function TeamLayout({
     team.name,
     team.slug,
   ).catch(() => null);
+
   await seedDefaultWorkflowStatuses(team.id).catch(() => undefined);
 
   const [views, inboxCount] = await Promise.all([
@@ -58,25 +59,37 @@ export default async function TeamLayout({
   ]);
 
   return (
-    <div className="flex min-h-screen">
-      <Suspense fallback={<aside className="w-56 border-r border-separator" />}>
-        <AppSidebar
-          inboxCount={inboxCount}
-          role={membership.role}
-          teamSlug={teamSlug}
-          workspaceSlug={workspace?.slug}
-          teams={memberships.map((m) => ({
-            slug: m.team.slug,
-            name: m.team.name,
-          }))}
-          views={views
-            .filter((v) => v.pinned)
-            .map((v) => ({ id: v.id, name: v.name }))}
-        />
-      </Suspense>
-      <KeyboardShell teamId={team.id} teamSlug={teamSlug}>
-        <main className="flex-1 overflow-auto p-5">{children}</main>
-      </KeyboardShell>
-    </div>
+    <KeyboardShell teamId={team.id} teamSlug={teamSlug}>
+      <div className="flex min-h-screen">
+        <Suspense
+          fallback={
+            <aside className="w-[var(--sidebar-w)] border-r border-separator" />
+          }
+        >
+          <AppSidebar
+            inboxCount={inboxCount}
+            role={membership.role}
+            teamName={team.name}
+            teamSlug={teamSlug}
+            teams={memberships.map((m) => ({
+              slug: m.team.slug,
+              name: m.team.name,
+            }))}
+            views={views
+              .filter((v) => v.pinned)
+              .map((v) => ({ id: v.id, name: v.name }))}
+            workspaceSlug={workspace?.slug}
+          />
+        </Suspense>
+        <main className="flex min-h-screen flex-1 flex-col overflow-auto">
+          {children}
+        </main>
+        {membership.role !== "GUEST" ? (
+          <Suspense fallback={null}>
+            <GlobalCreateIssue teamId={team.id} teamSlug={teamSlug} />
+          </Suspense>
+        ) : null}
+      </div>
+    </KeyboardShell>
   );
 }

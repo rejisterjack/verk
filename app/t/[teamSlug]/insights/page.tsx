@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { PageHeader } from "@/components/page-header";
+import { ViewToolbar } from "@/components/page-header";
 import { requireTeamBySlug } from "@/lib/rbac";
 import { insightCounts } from "@/lib/services/surface";
 
@@ -9,7 +9,10 @@ function WeeklyBars({
 }: {
   weekly: { label: string; created: number; done: number }[];
 }) {
-  const max = Math.max(1, ...weekly.flatMap((week) => [week.created, week.done]));
+  const max = Math.max(
+    1,
+    ...weekly.flatMap((week) => [week.created, week.done]),
+  );
   const height = 120;
   const barWidth = 18;
   const gap = 10;
@@ -17,13 +20,15 @@ function WeeklyBars({
   const width = weekly.length * (groupWidth + gap);
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-separator p-4">
+    <div className="overflow-x-auto border-b border-separator px-4 py-3">
       <div className="mb-3 flex items-center gap-4 text-xs text-muted">
         <span className="inline-flex items-center gap-1.5">
-          <span className="inline-block h-2.5 w-2.5 rounded-sm bg-accent" /> Created
+          <span className="inline-block h-2.5 w-2.5 rounded-sm bg-accent" />{" "}
+          Created
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="inline-block h-2.5 w-2.5 rounded-sm bg-accent/40" /> Completed
+          <span className="inline-block h-2.5 w-2.5 rounded-sm bg-accent/40" />{" "}
+          Completed
         </span>
       </div>
       <svg
@@ -89,28 +94,31 @@ export default async function InsightsPage({
   const stats = await insightCounts(teamCtx.team.id);
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <PageHeader
-        description="Last 8 weeks"
+    <div className="flex min-h-full flex-col">
+      <ViewToolbar
+        description={`Created ${stats.created} · Completed ${stats.done} · Last 8 weeks`}
         title="Insights"
       />
-      <p className="text-sm">
-        Created {stats.created} · Completed {stats.done}
-      </p>
       <WeeklyBars weekly={stats.weekly} />
-      <ul className="space-y-1 text-sm">
+      <ul className="divide-y divide-separator border-b border-separator text-[13px]">
         {Object.entries(stats.byStatus).map(([status, count]) => (
-          <li key={status} className="flex justify-between">
-            <span>{status}</span>
-            <span>{count}</span>
+          <li key={status} className="flex justify-between px-4 py-1.5">
+            <span>
+              {status
+                .toLowerCase()
+                .split("_")
+                .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+                .join(" ")}
+            </span>
+            <span className="text-muted">{count}</span>
           </li>
         ))}
       </ul>
-      <ul className="space-y-2 text-sm">
+      <ul className="divide-y divide-separator text-[13px]">
         {stats.cycles.map((cycle) => (
-          <li key={cycle.id} className="flex justify-between">
+          <li key={cycle.id} className="flex justify-between px-4 py-1.5">
             <span>{cycle.name}</span>
-            <span>{cycle.percent}%</span>
+            <span className="text-muted">{cycle.percent}%</span>
           </li>
         ))}
       </ul>

@@ -1,6 +1,11 @@
+import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 
-import { PageHeader } from "@/components/page-header";
+import {
+  CreateLabelForm,
+  RenameLabelForm,
+} from "@/components/labels-settings-forms";
+import { ViewToolbar } from "@/components/page-header";
 import { SubmitButton as Button } from "@/components/submit-button";
 import { requireTeamBySlug } from "@/lib/rbac";
 import * as labelsService from "@/lib/services/labels";
@@ -20,20 +25,33 @@ export default async function LabelsSettingsPage({
   }
 
   const teamId = teamCtx.team.id;
-  const labels = await labelsService.listLabels(teamId);
+  const labels = (await labelsService.listLabels(teamId)).sort((a, b) => {
+    const group = (a.group ?? "").localeCompare(b.group ?? "");
+
+    if (group !== 0) return group;
+
+    return a.name.localeCompare(b.name);
+  });
+
+  const labelsPath = `/t/${teamSlug}/settings/labels`;
 
   async function rename(formData: FormData) {
     "use server";
+    const group = String(formData.get("group") ?? "").trim();
+
     await labelsService.updateLabel(teamId, String(formData.get("id")), {
       name: String(formData.get("name") ?? ""),
+      group: group || null,
     });
-    redirect(`/t/${teamSlug}/settings/labels`);
+    revalidatePath(labelsPath);
+    redirect(labelsPath);
   }
 
   async function remove(formData: FormData) {
     "use server";
     await labelsService.deleteLabel(teamId, String(formData.get("id")));
-    redirect(`/t/${teamSlug}/settings/labels`);
+    revalidatePath(labelsPath);
+    redirect(labelsPath);
   }
 
   async function create(formData: FormData) {
@@ -43,35 +61,17 @@ export default async function LabelsSettingsPage({
       color: String(formData.get("color") ?? "#0f766e"),
       group: String(formData.get("group") ?? "") || undefined,
     });
-    redirect(`/t/${teamSlug}/settings/labels`);
+    revalidatePath(labelsPath);
+    redirect(labelsPath);
   }
 
   return (
-    <div className="max-w-lg">
-      <PageHeader
+    <div className="px-4 py-3 max-w-lg">
+      <ViewToolbar
         description="Team-scoped labels for filtering"
         title="Labels"
       />
-      <form action={create} className="mb-6 flex gap-2">
-        <input
-          required
-          className="flex-1 rounded-lg border border-separator bg-background px-3 py-2 text-sm"
-          name="name"
-          placeholder="bug"
-        />
-        <input
-          className="w-28 rounded-lg border border-separator bg-background px-2 py-2 text-sm"
-          name="group"
-          placeholder="group"
-        />
-        <input
-          className="w-24 rounded-lg border border-separator bg-background px-2 py-2 text-sm"
-          defaultValue="#0f766e"
-          name="color"
-          type="color"
-        />
-        <Button type="submit">Add</Button>
-      </form>
+      <CreateLabelForm action={create} />
       <ul className="divide-y divide-separator rounded-xl border border-separator">
         {labels.map((l) => (
           <li key={l.id} className="flex items-center gap-3 px-4 py-2 text-sm">
@@ -79,17 +79,12 @@ export default async function LabelsSettingsPage({
               className="size-3 rounded-full"
               style={{ background: l.color }}
             />
-            <form action={rename} className="flex flex-1 items-center gap-2">
-              <input name="id" type="hidden" value={l.id} />
-              <input
-                className="flex-1 rounded-lg border border-separator bg-background px-2 py-1"
-                defaultValue={l.name}
-                name="name"
-              />
-              <Button size="sm" type="submit" variant="ghost">
-                Rename
-              </Button>
-            </form>
+            <RenameLabelForm
+              action={rename}
+              group={l.group}
+              id={l.id}
+              name={l.name}
+            />
             <form action={remove}>
               <input name="id" type="hidden" value={l.id} />
               <Button size="sm" type="submit" variant="danger">

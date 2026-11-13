@@ -1,6 +1,11 @@
 "use client";
 
+import type { Key } from "@heroui/react";
+
+import { Button, Input, Label, TextField } from "@heroui/react";
 import { useEffect, useState } from "react";
+
+import { SelectField } from "@/components/ui/select-field";
 
 type Link = { id: string; kind: string; url: string };
 
@@ -12,7 +17,7 @@ export function IssueLinks({
   issueId: string;
 }) {
   const [links, setLinks] = useState<Link[]>([]);
-  const [kind, setKind] = useState("figma");
+  const [kind, setKind] = useState<Key>("figma");
   const [url, setUrl] = useState("");
 
   async function load() {
@@ -37,13 +42,18 @@ export function IssueLinks({
         {links.map((link) => (
           <li key={link.id} className="flex items-center gap-2">
             <span className="text-muted">{link.kind}</span>{" "}
-            <a className="text-accent" href={link.url} rel="noreferrer" target="_blank">
+            <a
+              className="text-accent"
+              href={link.url}
+              rel="noreferrer"
+              target="_blank"
+            >
               {link.url}
             </a>
-            <button
-              className="text-xs text-danger"
-              type="button"
-              onClick={() => {
+            <Button
+              size="sm"
+              variant="danger"
+              onPress={() => {
                 void fetch(`/api/teams/${teamId}/issues/${issueId}/links`, {
                   method: "DELETE",
                   credentials: "same-origin",
@@ -53,33 +63,44 @@ export function IssueLinks({
               }}
             >
               Remove
-            </button>
+            </Button>
           </li>
         ))}
       </ul>
-      <form
-        className="mt-2 flex flex-wrap gap-2"
-        onSubmit={(event) => {
-          event.preventDefault();
-          void fetch(`/api/teams/${teamId}/issues/${issueId}/links`, {
-            method: "POST",
-            credentials: "same-origin",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ kind, url }),
-          }).then(() => {
-            setUrl("");
-            void load();
-          });
-        }}
-      >
-        <select className="rounded-lg border border-separator px-2 py-1 text-sm" value={kind} onChange={(event) => setKind(event.target.value)}>
-          <option value="figma">Figma</option>
-          <option value="sentry">Sentry</option>
-          <option value="link">Link</option>
-        </select>
-        <input className="min-w-48 flex-1 rounded-lg border border-separator px-2 py-1 text-sm" placeholder="https://" value={url} onChange={(event) => setUrl(event.target.value)} />
-        <button className="rounded-lg border border-separator px-2 py-1 text-sm" type="submit">Add</button>
-      </form>
+      <div className="mt-2 grid grid-cols-[minmax(7rem,9rem)_minmax(0,1fr)_auto] items-end gap-2">
+        <SelectField
+          fullWidth
+          label="Kind"
+          options={[
+            { id: "figma", label: "Figma" },
+            { id: "sentry", label: "Sentry" },
+            { id: "link", label: "Link" },
+          ]}
+          value={kind}
+          onChange={(key) => setKind(key ?? "figma")}
+        />
+        <TextField fullWidth name="url" value={url} onChange={setUrl}>
+          <Label>URL</Label>
+          <Input placeholder="https://" />
+        </TextField>
+        <Button
+          size="sm"
+          type="button"
+          onPress={() => {
+            void fetch(`/api/teams/${teamId}/issues/${issueId}/links`, {
+              method: "POST",
+              credentials: "same-origin",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ kind: String(kind), url }),
+            }).then(() => {
+              setUrl("");
+              void load();
+            });
+          }}
+        >
+          Add
+        </Button>
+      </div>
     </section>
   );
 }
