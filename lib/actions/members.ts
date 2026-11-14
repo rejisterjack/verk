@@ -40,11 +40,45 @@ export async function inviteMemberAction(teamSlug: string, formData: FormData) {
   }
 }
 
-export async function revokeInviteAction(teamSlug: string, inviteId: string) {
+export async function resendInviteAction(teamSlug: string, inviteId: string) {
   const { team, membership } = await requireTeamBySlug(teamSlug, "ADMIN");
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  const proto = h.get("x-forwarded-proto") ?? "http";
+  const origin = process.env.AUTH_URL ?? `${proto}://${host}`;
 
   try {
-    await membersService.revokeInvite(team.id, inviteId, membership.role);
+    const result = await membersService.resendInvite(
+      team.id,
+      inviteId,
+      membership.role,
+      origin,
+    );
+
+    revalidatePath(`/t/${teamSlug}/settings/members`);
+
+    return {
+      ok: true,
+      inviteUrl: result.inviteUrl,
+      emailSent: result.emailSent,
+      emailError: result.emailError,
+    };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Failed to resend",
+    };
+  }
+}
+
+export async function revokeInviteAction(teamSlug: string, inviteId: string) {
+  const { team, membership, user } = await requireTeamBySlug(teamSlug, "ADMIN");
+
+  try {
+    await membersService.revokeInvite(team.id, inviteId, membership.role, {
+      id: user.id!,
+      name: user.name,
+      email: user.email,
+    });
     revalidatePath(`/t/${teamSlug}/settings/members`);
 
     return { ok: true };
@@ -60,7 +94,7 @@ export async function updateMemberRoleAction(
   membershipId: string,
   formData: FormData,
 ) {
-  const { team, membership } = await requireTeamBySlug(teamSlug, "ADMIN");
+  const { team, membership, user } = await requireTeamBySlug(teamSlug, "ADMIN");
 
   try {
     await membersService.updateMemberRole(
@@ -68,6 +102,7 @@ export async function updateMemberRoleAction(
       membershipId,
       { role: String(formData.get("role") ?? "MEMBER") },
       membership.role,
+      { id: user.id!, name: user.name, email: user.email },
     );
     revalidatePath(`/t/${teamSlug}/settings/members`);
 
@@ -83,16 +118,47 @@ export async function removeMemberAction(
   teamSlug: string,
   membershipId: string,
 ) {
-  const { team, membership } = await requireTeamBySlug(teamSlug, "ADMIN");
+  const { team, membership, user } = await requireTeamBySlug(teamSlug, "ADMIN");
 
   try {
-    await membersService.removeMember(team.id, membershipId, membership.role);
+    await membersService.removeMember(team.id, membershipId, membership.role, {
+      id: user.id!,
+      name: user.name,
+      email: user.email,
+    });
     revalidatePath(`/t/${teamSlug}/settings/members`);
 
     return { ok: true };
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : "Failed to remove member",
+    };
+  }
+}
+
+/** Limit a guest to specific projects (an empty list gives back the whole team). Admins only. */
+export async function setGuestProjectsAction(
+  teamSlug: string,
+  membershipId: string,
+  projectIds: string[],
+) {
+  const { team, membership, user } = await requireTeamBySlug(teamSlug, "ADMIN");
+
+  try {
+    const { setGuestProjects } = await import("@/lib/services/guest-scope");
+
+    await setGuestProjects(team.id, membershipId, projectIds, membership.role, {
+      id: user.id!,
+      name: user.name,
+      email: user.email,
+    });
+    revalidatePath(`/t/${teamSlug}/settings/members`);
+
+    return { ok: true as const };
+  } catch (error) {
+    return {
+      error:
+        error instanceof Error ? error.message : "Could not save guest access",
     };
   }
 }

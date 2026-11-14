@@ -1,10 +1,11 @@
 import { CreateIssueForm } from "@/components/create-issue-form";
+import { prisma } from "@/lib/db";
 import * as cyclesService from "@/lib/services/cycles";
 import * as labelsService from "@/lib/services/labels";
 import * as membersService from "@/lib/services/members";
 import * as projectsService from "@/lib/services/projects";
 import { listTemplates } from "@/lib/services/surface";
-import * as workspacesService from "@/lib/services/workspaces";
+import { getWorkflow } from "@/lib/services/workflow";
 
 /** Mount once in team layout so C / sidebar + work from every page. */
 export async function GlobalCreateIssue({
@@ -14,20 +15,25 @@ export async function GlobalCreateIssue({
   teamId: string;
   teamSlug: string;
 }) {
-  const [cycles, members, projects, labels, workflows, templates] =
+  const [cycles, members, projects, labels, workflows, templates, team] =
     await Promise.all([
       cyclesService.listCycles(teamId),
       membersService.listMembers(teamId),
       projectsService.listProjects(teamId),
       labelsService.listLabels(teamId),
-      workspacesService.listWorkflowStatuses(teamId),
+      getWorkflow(teamId),
       listTemplates(teamId),
+      prisma.team.findUnique({
+        where: { id: teamId },
+        select: { estimateScale: true },
+      }),
     ]);
 
   return (
     <CreateIssueForm
       hideTrigger
       cycles={cycles.map((c) => ({ id: c.id, name: c.name }))}
+      estimateScale={team?.estimateScale}
       labels={labels.map((l) => ({
         id: l.id,
         name: l.name,

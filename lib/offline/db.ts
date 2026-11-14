@@ -33,7 +33,13 @@ export type LocalIssue = {
 };
 
 export type OutboxOpType =
-  "create" | "update" | "reorder" | "delete" | "comment" | "setLabels";
+  | "create"
+  | "update"
+  | "reorder"
+  | "delete"
+  | "comment"
+  | "setLabels"
+  | "draft";
 
 export type OutboxStatus = "queued" | "inflight" | "failed";
 

@@ -7,7 +7,7 @@ import {
 } from "@/components/team-settings-form";
 import { deleteTeamAction, updateTeamAction } from "@/lib/actions/teams";
 import { isDemoMode } from "@/lib/utils";
-import { requireTeamBySlug } from "@/lib/rbac";
+import { listUserTeams, requireTeamBySlug } from "@/lib/rbac";
 import { listMembers } from "@/lib/services/members";
 
 export default async function SettingsPage({
@@ -26,6 +26,14 @@ export default async function SettingsPage({
   const { team, membership } = teamCtx;
   const canAdmin = membership.role === "ADMIN" || membership.role === "OWNER";
   const members = canAdmin ? await listMembers(team.id) : [];
+  const teams = canAdmin
+    ? (await listUserTeams(teamCtx.user.id))
+        .filter((membership) => membership.team.id !== team.id)
+        .map((membership) => ({
+          id: membership.team.id,
+          label: membership.team.name,
+        }))
+    : [];
 
   return (
     <div className="px-4 py-3 max-w-2xl space-y-8">
@@ -39,6 +47,7 @@ export default async function SettingsPage({
           }}
           members={members}
           team={team}
+          teams={teams}
         />
       ) : (
         <p className="text-muted text-sm">

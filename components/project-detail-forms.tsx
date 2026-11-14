@@ -37,12 +37,14 @@ export function ProjectSettingsForm({
     status: string;
     leadId: string | null;
     initiativeId: string | null;
+    startDate?: Date | null;
     targetDate: Date | null;
   };
   members: Member[];
   initiatives: Initiative[];
 }) {
   const target = isoDateOnly(project.targetDate);
+  const start = isoDateOnly(project.startDate ?? null);
 
   return (
     <Form
@@ -82,6 +84,17 @@ export function ProjectSettingsForm({
         options={initiatives.map((item) => ({ id: item.id, label: item.name }))}
         placeholder="No initiative"
       />
+      <DateField
+        defaultValue={start ? parseDate(start) : null}
+        name="startDate"
+      >
+        <Label>Start date</Label>
+        <DateField.Group>
+          <DateField.Input>
+            {(segment) => <DateField.Segment segment={segment} />}
+          </DateField.Input>
+        </DateField.Group>
+      </DateField>
       <DateField
         defaultValue={target ? parseDate(target) : null}
         name="targetDate"

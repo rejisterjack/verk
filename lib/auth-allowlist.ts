@@ -27,5 +27,7 @@ export function isGithubIdentityAllowed(profile: unknown): boolean {
     typeof record.login === "string" ? record.login.toLowerCase() : "";
   const id = record.id == null ? "" : String(record.id).toLowerCase();
 
-  return (login !== "" && list.includes(login)) || (id !== "" && list.includes(id));
+  return (
+    (login !== "" && list.includes(login)) || (id !== "" && list.includes(id))
+  );
 }

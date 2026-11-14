@@ -1,6 +1,6 @@
 import type { SelectOption } from "@/components/ui/select-field";
 
-import { ESTIMATE_LABELS, PRIORITY_LABELS, STATUS_LABELS } from "@/lib/labels";
+import { PRIORITY_LABELS, STATUS_LABELS } from "@/lib/labels";
 
 export const INITIATIVE_HEALTH_OPTIONS: SelectOption[] = [
   { id: "ON_TRACK", label: "On track" },
@@ -52,10 +52,6 @@ export const ISSUE_FILTER_PRIORITY_OPTIONS: SelectOption[] = [
 
 export const TEMPLATE_PRIORITY_OPTIONS: SelectOption[] = Object.entries(
   PRIORITY_LABELS,
-).map(([id, label]) => ({ id, label }));
-
-export const TEMPLATE_ESTIMATE_OPTIONS: SelectOption[] = Object.entries(
-  ESTIMATE_LABELS,
 ).map(([id, label]) => ({ id, label }));
 
 export function isoDateOnly(value: Date | string | null | undefined): string {

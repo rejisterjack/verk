@@ -11,9 +11,13 @@ import {
   SaveViewForm,
 } from "@/components/issue-filters-form";
 import { EmptyState } from "@/components/empty-state";
+import { FilterBuilder } from "@/components/filter-builder";
+import { IssuesDisplayMenu } from "@/components/issues-display-menu";
 import { IssuesLayoutToggle } from "@/components/issues-layout-toggle";
+import { parseGroupBy, parseSortBy } from "@/lib/list-display";
 import { IssuesListClient } from "@/components/issues-list-client";
 import { ViewToolbar } from "@/components/page-header";
+import { auth } from "@/lib/auth";
 import { requireTeamBySlug } from "@/lib/rbac";
 import * as issuesService from "@/lib/services/issues";
 import * as cyclesService from "@/lib/services/cycles";
@@ -21,13 +25,11 @@ import * as labelsService from "@/lib/services/labels";
 import * as membersService from "@/lib/services/members";
 import * as projectsService from "@/lib/services/projects";
 import * as viewsService from "@/lib/services/views";
-import * as workspacesService from "@/lib/services/workspaces";
-import {
-  WORKFLOW_KEY_TO_STATUS,
-  WORKFLOW_TYPE_TO_STATUS,
-  statusToWorkflowKey,
-} from "@/lib/labels";
+import { statusToWorkflowKey } from "@/lib/labels";
+import { getWorkflow } from "@/lib/services/workflow";
+import { TYPE_TO_STATUS } from "@/lib/workflow";
 import { listTemplates } from "@/lib/services/surface";
+import { type Filter, parseFilter } from "@/lib/issue-filter";
 
 export default async function IssuesPage({
   params,
@@ -45,6 +47,10 @@ export default async function IssuesPage({
     group?: string;
     workflowStatusId?: string;
     labelGroup?: string;
+    archived?: string;
+    filter?: string;
+    listGroup?: string;
+    listSort?: string;
   }>;
 }) {
   const { teamSlug } = await params;
@@ -58,7 +64,11 @@ export default async function IssuesPage({
   }
   const { team, user, membership } = teamCtx;
   const isGuest = membership.role === "GUEST";
+  let listGroup = parseGroupBy(query.listGroup);
+  let listSort = parseSortBy(query.listSort);
 
+  // An advanced filter tree: from a saved v2 view, or from `?filter=<json>`.
+  let advancedFilter: unknown = query.filter || undefined;
   let filters: {
     status?: IssueStatus;
     priority?: Priority;
@@ -81,10 +91,38 @@ export default async function IssuesPage({
     const saved = views.find((v) => v.id === query.view);
 
     if (saved && saved.filterJson && typeof saved.filterJson === "object") {
-      filters = { ...filters, ...(saved.filterJson as typeof filters) };
+      const {
+        listGroup: savedGroup,
+        listSort: savedSort,
+        ...stored
+      } = saved.filterJson as Record<string, unknown>;
+
+      // A view remembers how its list was grouped and sorted; the URL still wins.
+      if (!query.listGroup) listGroup = parseGroupBy(savedGroup);
+      if (!query.listSort) listSort = parseSortBy(savedSort);
+      if (stored.version === 2) {
+        // Advanced view: the filter tree runs through the filter engine.
+        advancedFilter = stored.filter;
+      } else {
+        filters = { ...filters, ...(stored as typeof filters) };
+      }
       if (saved.layout === "BOARD" && !query.layout) {
         redirect(`/t/${teamSlug}/issues?view=${saved.id}&layout=board`);
       }
+    }
+  }
+
+  // Check the advanced filter now, so a bad `?filter=` shows a message instead of an error page.
+  let filterError: string | null = null;
+  let activeFilter: Filter | null = null;
+
+  if (advancedFilter !== undefined && advancedFilter !== "") {
+    try {
+      activeFilter = parseFilter(advancedFilter);
+    } catch (error) {
+      filterError =
+        error instanceof Error ? error.message : "That filter is not valid";
+      advancedFilter = undefined;
     }
   }
 
@@ -92,7 +130,9 @@ export default async function IssuesPage({
     filters.assigneeId = user.id;
   }
 
-  const isBoard = query.layout === "board";
+  const archivedView = query.archived === "true";
+  // The archive is always a list: boards only show live issues.
+  const isBoard = query.layout === "board" && !archivedView;
   const mine = query.assignee === "me";
 
   const [
@@ -112,20 +152,34 @@ export default async function IssuesPage({
           >["issues"],
           nextCursor: undefined as string | undefined,
         })
-      : issuesService.listIssues(team.id, { ...filters, take: 100 }),
+      : issuesService.listIssues(
+          team.id,
+          {
+            ...filters,
+            archived: archivedView,
+            filter: advancedFilter,
+            take: 100,
+          },
+          { userId: user.id },
+        ),
     isBoard
-      ? issuesService.getBoardIssues(team.id, {
-          cycleId: filters.cycleId,
-          priority: filters.priority,
-          search: filters.search,
-          labelGroup: filters.labelGroup,
-        })
+      ? issuesService.getBoardIssues(
+          team.id,
+          {
+            cycleId: filters.cycleId,
+            priority: filters.priority,
+            search: filters.search,
+            labelGroup: filters.labelGroup,
+            filter: advancedFilter,
+          },
+          { userId: user.id },
+        )
       : Promise.resolve([]),
     cyclesService.listCycles(team.id),
     membersService.listMembers(team.id),
     projectsService.listProjects(team.id),
     labelsService.listLabels(team.id),
-    workspacesService.listWorkflowStatuses(team.id),
+    getWorkflow(team.id),
     listTemplates(team.id),
   ]);
 
@@ -134,13 +188,10 @@ export default async function IssuesPage({
   const columnLabels = Object.fromEntries(
     visibleWorkflows.map((w) => [w.key, w.name]),
   );
+  // A column's coarse status comes from its type alone, so custom statuses work like the
+  // built-in ones (a status's key says nothing about what it means).
   const columnStatus = Object.fromEntries(
-    visibleWorkflows.map((w) => [
-      w.key,
-      WORKFLOW_KEY_TO_STATUS[w.key] ??
-        WORKFLOW_TYPE_TO_STATUS[w.type] ??
-        "TODO",
-    ]),
+    visibleWorkflows.map((w) => [w.key, TYPE_TO_STATUS[w.type]]),
   );
   const columnWorkflowIds = Object.fromEntries(
     visibleWorkflows.map((w) => [w.key, w.id]),
@@ -179,8 +230,15 @@ export default async function IssuesPage({
     : listResult.issues;
 
   const activeCycle = cycles.find((c) => c.isActive);
-  const title = mine ? "My issues" : isBoard ? "Board" : "Issues";
+  const title = archivedView
+    ? "Archive"
+    : mine
+      ? "My issues"
+      : isBoard
+        ? "Board"
+        : "Issues";
   const hasActiveFilters = Boolean(
+    activeFilter ||
     query.search ||
     query.priority ||
     query.cycleId ||
@@ -204,18 +262,55 @@ export default async function IssuesPage({
     <div className="flex min-h-full flex-col">
       <ViewToolbar
         actions={
-          <IssuesLayoutToggle
-            group={query.group}
-            layout={isBoard ? "board" : "list"}
-            mine={mine}
-            teamSlug={teamSlug}
-          />
+          <>
+            <NextLink
+              className="text-[12px] text-muted hover:text-foreground"
+              href={
+                archivedView
+                  ? `/t/${teamSlug}/issues`
+                  : `/t/${teamSlug}/issues?archived=true`
+              }
+            >
+              {archivedView ? "Back to issues" : "Archive"}
+            </NextLink>
+            <a
+              className="text-[12px] text-muted hover:text-foreground"
+              href={`/api/teams/${team.id}/export`}
+            >
+              Export CSV
+            </a>
+            {archivedView || isBoard ? null : (
+              <IssuesDisplayMenu groupBy={listGroup} sortBy={listSort} />
+            )}
+            {archivedView ? null : (
+              <IssuesLayoutToggle
+                group={query.group}
+                layout={isBoard ? "board" : "list"}
+                mine={mine}
+                teamSlug={teamSlug}
+              />
+            )}
+          </>
         }
         description={
           activeCycle ? `Active cycle: ${activeCycle.name}` : undefined
         }
         filters={
           <>
+            <FilterBuilder
+              canSave={!isGuest}
+              error={filterError}
+              initial={activeFilter}
+              options={{
+                members: memberOpts,
+                projects: projectOpts,
+                cycles: cycleOpts,
+                milestones: milestoneOpts,
+                workflows: workflows.map((w) => ({ id: w.id, name: w.name })),
+                labels: labelOpts,
+              }}
+              teamSlug={teamSlug}
+            />
             <IssueFiltersForm
               activeCycleId={activeCycle?.id}
               cycleId={query.cycleId}
@@ -246,6 +341,8 @@ export default async function IssuesPage({
                   workflowStatusId: query.workflowStatusId,
                   labelGroup: filters.labelGroup,
                   assigneeId: mine ? user.id : undefined,
+                  listGroup: listGroup === "none" ? undefined : listGroup,
+                  listSort: listSort === "manual" ? undefined : listSort,
                 }}
                 layout={isBoard ? "BOARD" : "LIST"}
                 teamId={team.id}
@@ -257,7 +354,12 @@ export default async function IssuesPage({
         title={title}
       />
 
-      {issues.length === 0 ? (
+      {issues.length === 0 && archivedView ? (
+        <EmptyState
+          description="Archived issues stay here for 30 days, then are deleted for good. Restore one to bring it back."
+          title="Nothing archived"
+        />
+      ) : issues.length === 0 ? (
         hasActiveFilters ? (
           <EmptyState
             action={
@@ -277,6 +379,7 @@ export default async function IssuesPage({
               !isGuest ? (
                 <CreateIssueForm
                   cycles={cycleOpts}
+                  estimateScale={team.estimateScale}
                   labels={labelOpts}
                   members={memberOpts}
                   milestones={milestoneOpts}
@@ -365,6 +468,10 @@ export default async function IssuesPage({
         />
       ) : (
         <IssuesListClient
+          archived={archivedView}
+          canBulkDelete={
+            membership.role === "ADMIN" || membership.role === "OWNER"
+          }
           filters={{
             status: filters.status,
             priority: filters.priority,
@@ -372,6 +479,7 @@ export default async function IssuesPage({
             search: filters.search,
             labelIds: groupLabelIds,
           }}
+          groupBy={listGroup}
           initialCursor={listResult.nextCursor}
           initialIssues={listResult.issues.map((issue) => ({
             createdAt: issue.createdAt.toISOString(),
@@ -382,10 +490,16 @@ export default async function IssuesPage({
             status: issue.status,
             priority: issue.priority,
             workflowStatusId: issue.workflowStatusId,
+            projectId: issue.projectId,
             assignee: issue.assignee,
             cycle: issue.cycle,
             labelIds: issue.labels.map((row) => row.labelId),
           }))}
+          members={memberOpts}
+          projectNames={Object.fromEntries(
+            projectOpts.map((project) => [project.id, project.name]),
+          )}
+          readOnly={isGuest}
           slaHours={team.slaHours}
           slaWindow={{
             timezone: team.timezone,
@@ -393,6 +507,7 @@ export default async function IssuesPage({
             endHour: team.slaEndHour,
             weekdays: team.slaWeekdays,
           }}
+          sortBy={listSort}
           teamId={team.id}
           teamName={team.name}
           teamSlug={teamSlug}
@@ -428,11 +543,15 @@ function SaveViewButton({
     for (const [k, v] of Object.entries(filters)) {
       if (v) filterJson[k] = v;
     }
+    const session = await auth();
+
     await viewsService.createView(teamId, {
       name,
       filterJson,
       layout,
       pinned: true,
+      shared: formData.get("shared") === "on",
+      ownerId: session?.user?.id ?? null,
     });
     revalidatePath(`/t/${teamSlug}`, "layout");
   }

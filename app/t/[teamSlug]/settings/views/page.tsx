@@ -12,7 +12,7 @@ import * as cyclesService from "@/lib/services/cycles";
 import * as membersService from "@/lib/services/members";
 import * as projectsService from "@/lib/services/projects";
 import * as viewsService from "@/lib/services/views";
-import * as workspacesService from "@/lib/services/workspaces";
+import { getWorkflow } from "@/lib/services/workflow";
 
 function collectFilters(formData: FormData) {
   const filterJson: Record<string, string> = {};
@@ -48,7 +48,7 @@ export default async function ViewsSettingsPage({
   const teamId = teamCtx.team.id;
   const [views, workflows, cycles, members, projects] = await Promise.all([
     viewsService.listViews(teamId),
-    workspacesService.listWorkflowStatuses(teamId),
+    getWorkflow(teamId),
     cyclesService.listCycles(teamId),
     membersService.listMembers(teamId),
     projectsService.listProjects(teamId),

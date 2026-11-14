@@ -26,7 +26,10 @@ export default async function WebhooksPage({
 
   const teamId = teamCtx.team.id;
   const userId = teamCtx.user.id!;
-  const hooks = await webhooksService.listWebhooks(teamId);
+  const [hooks, deliveries] = await Promise.all([
+    webhooksService.listWebhooks(teamId),
+    webhooksService.listDeliveries(teamId, 25),
+  ]);
 
   async function create(formData: FormData) {
     "use server";
@@ -75,6 +78,7 @@ export default async function WebhooksPage({
                     teamId,
                     h.id,
                     !h.disabledAt,
+                    { id: userId },
                   );
                   revalidatePath(`/t/${teamSlug}/settings/webhooks`);
                   redirect(`/t/${teamSlug}/settings/webhooks`);
@@ -87,7 +91,9 @@ export default async function WebhooksPage({
               <form
                 action={async () => {
                   "use server";
-                  await webhooksService.deleteWebhook(teamId, h.id);
+                  await webhooksService.deleteWebhook(teamId, h.id, {
+                    id: userId,
+                  });
                   revalidatePath(`/t/${teamSlug}/settings/webhooks`);
                   redirect(`/t/${teamSlug}/settings/webhooks`);
                 }}
@@ -100,6 +106,59 @@ export default async function WebhooksPage({
           </li>
         ))}
       </ul>
+
+      <section className="mt-8">
+        <h2 className="text-sm font-semibold">Recent deliveries</h2>
+        <p className="text-xs text-muted">
+          Failed deliveries retry after 1 minute, 5 minutes, 30 minutes and 2
+          hours (the daily job picks up anything still waiting). Entries are
+          kept for 14 days.
+        </p>
+        {deliveries.length === 0 ? (
+          <p className="mt-2 text-sm text-muted">Nothing delivered yet.</p>
+        ) : (
+          <ul className="mt-2 space-y-1.5 text-xs">
+            {deliveries.map((d) => (
+              <li
+                key={d.id}
+                className="flex flex-wrap items-center gap-2 rounded-md border border-separator px-2 py-1.5"
+              >
+                <span
+                  className={
+                    d.status === "delivered"
+                      ? "text-success"
+                      : d.status === "failed"
+                        ? "text-danger"
+                        : "text-warning"
+                  }
+                >
+                  {d.status}
+                </span>
+                <span className="font-mono">{d.event}</span>
+                <span className="min-w-0 flex-1 truncate text-muted">
+                  {d.webhook.url} · {d.attempts} attempt
+                  {d.attempts === 1 ? "" : "s"}
+                  {d.lastCode ? ` · HTTP ${d.lastCode}` : ""}
+                  {d.lastError && !d.lastCode ? ` · ${d.lastError}` : ""}
+                </span>
+                {d.status !== "delivered" ? (
+                  <form
+                    action={async () => {
+                      "use server";
+                      await webhooksService.retryDelivery(teamId, d.id);
+                      revalidatePath(`/t/${teamSlug}/settings/webhooks`);
+                    }}
+                  >
+                    <Button size="sm" type="submit" variant="ghost">
+                      Retry
+                    </Button>
+                  </form>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }

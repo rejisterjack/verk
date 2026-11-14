@@ -2,11 +2,14 @@
   "name": "Verk",
   "short_name": "Verk",
   "description": "Linear UX. Vercel deploy. Neon database.",
+  "id": "/t",
   "start_url": "/t",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
   "background_color": "#faf9f6",
   "theme_color": "#0f766e",
+  "categories": ["productivity", "business"],
   "icons": [
     {
       "src": "/icons/icon-192.png",
@@ -24,5 +27,37 @@
       "type": "image/png",
       "purpose": "maskable"
     }
-  ]
+  ],
+  "shortcuts": [
+    {
+      "name": "New issue",
+      "short_name": "New issue",
+      "description": "Start a new issue",
+      "url": "/t/go?to=new",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "My issues",
+      "short_name": "My issues",
+      "description": "Issues assigned to you",
+      "url": "/t/go?to=mine",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Inbox",
+      "short_name": "Inbox",
+      "description": "Your notifications",
+      "url": "/t/go?to=inbox",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "share_target": {
+    "action": "/t/go",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
 }

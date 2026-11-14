@@ -2,10 +2,8 @@
 
 import { Form, Input, Label, TextArea, TextField } from "@heroui/react";
 
-import {
-  TEMPLATE_ESTIMATE_OPTIONS,
-  TEMPLATE_PRIORITY_OPTIONS,
-} from "@/components/form-options";
+import { TEMPLATE_PRIORITY_OPTIONS } from "@/components/form-options";
+import { estimateOptions, normalizeScale } from "@/lib/estimate-points";
 import { SelectField } from "@/components/ui/select-field";
 import { SubmitButton as Button } from "@/components/submit-button";
 
@@ -20,8 +18,10 @@ type Template = {
 
 export function CreateTemplateForm({
   action,
+  estimateScale,
 }: {
   action: (formData: FormData) => void | Promise<void>;
+  estimateScale?: string;
 }) {
   return (
     <Form action={action} className="space-y-2">
@@ -47,7 +47,7 @@ export function CreateTemplateForm({
         defaultValue="NONE"
         label="Estimate"
         name="estimate"
-        options={TEMPLATE_ESTIMATE_OPTIONS}
+        options={estimateOptions(normalizeScale(estimateScale))}
       />
       <Button type="submit">Save template</Button>
     </Form>
@@ -57,9 +57,11 @@ export function CreateTemplateForm({
 export function UpdateTemplateForm({
   action,
   template,
+  estimateScale,
 }: {
   action: (formData: FormData) => void | Promise<void>;
   template: Template;
+  estimateScale?: string;
 }) {
   return (
     <Form action={action} className="space-y-2">
@@ -85,7 +87,10 @@ export function UpdateTemplateForm({
         defaultValue={template.estimate}
         label="Estimate"
         name="estimate"
-        options={TEMPLATE_ESTIMATE_OPTIONS}
+        options={estimateOptions(
+          normalizeScale(estimateScale),
+          template.estimate,
+        )}
       />
       <Button size="sm" type="submit">
         Update

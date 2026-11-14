@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 
+import { GuestAccessSettings } from "@/components/guest-access-settings";
 import { MembersSettings } from "@/components/members-settings";
+import * as projectsService from "@/lib/services/projects";
 import { ViewToolbar } from "@/components/page-header";
 import { requireTeamBySlug } from "@/lib/rbac";
 import * as membersService from "@/lib/services/members";
@@ -19,9 +21,10 @@ export default async function MembersPage({
     notFound();
   }
 
-  const [members, invites] = await Promise.all([
+  const [members, invites, projectList] = await Promise.all([
     membersService.listMembers(teamCtx.team.id),
     membersService.listInvites(teamCtx.team.id),
+    projectsService.listProjects(teamCtx.team.id),
   ]);
 
   const canAdmin =
@@ -36,6 +39,19 @@ export default async function MembersPage({
         members={members}
         teamSlug={teamSlug}
       />
+      {canAdmin ? (
+        <GuestAccessSettings
+          guests={members
+            .filter((m) => m.role === "GUEST")
+            .map((m) => ({
+              membershipId: m.id,
+              label: m.user.name ?? m.user.email,
+              projectIds: m.guestProjectIds,
+            }))}
+          projects={projectList.map((p) => ({ id: p.id, name: p.name }))}
+          teamSlug={teamSlug}
+        />
+      ) : null}
     </div>
   );
 }

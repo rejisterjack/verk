@@ -32,7 +32,12 @@ export default async function ApiKeysPage({
         description="Use Bearer keys with /api/mcp and the JSON API"
         title="API keys"
       />
-      <ApiKeysSettings canAdmin={canAdmin} keys={keys} teamSlug={teamSlug} />
+      <ApiKeysSettings
+        canAdmin={canAdmin}
+        grantableRoles={["GUEST", "MEMBER", "ADMIN"]}
+        keys={keys}
+        teamSlug={teamSlug}
+      />
     </div>
   );
 }

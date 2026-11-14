@@ -41,6 +41,7 @@ export async function POST(
       issueId,
       authResult.user.id!,
       file,
+      authResult.role,
     );
 
     return Response.json(attachment, { status: 201 });
@@ -56,13 +57,18 @@ export async function DELETE(
   try {
     const { teamId } = await context.params;
 
-    await authenticateRequest(request, teamId);
+    const authResult = await authenticateRequest(request, teamId);
     const body = (await request.json()) as { attachmentId?: string };
 
     if (!body.attachmentId) {
       return Response.json({ error: "attachmentId required" }, { status: 400 });
     }
-    await attachmentsService.deleteAttachment(teamId, body.attachmentId);
+    await attachmentsService.deleteAttachment(
+      teamId,
+      body.attachmentId,
+      authResult.user.id!,
+      authResult.role,
+    );
 
     return Response.json({ ok: true });
   } catch (error) {

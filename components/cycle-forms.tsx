@@ -144,6 +144,7 @@ export function UpdateCycleForm({
     startDate: Date;
     endDate: Date;
     isActive: boolean;
+    capacityPoints?: number | null;
   };
 }) {
   const start = isoDateOnly(cycle.startDate);
@@ -181,6 +182,19 @@ export function UpdateCycleForm({
         value={endDate}
         onChange={setEndDate}
       />
+      <TextField
+        defaultValue={
+          cycle.capacityPoints == null ? "" : String(cycle.capacityPoints)
+        }
+        name="capacityPoints"
+      >
+        <Label className="text-[12px] text-muted">Capacity (points)</Label>
+        <Input
+          className="!h-7 !min-h-7 !px-2.5 !py-0 text-[12px] leading-none"
+          min={0}
+          type="number"
+        />
+      </TextField>
       <Checkbox defaultSelected={cycle.isActive} name="isActive" value="on">
         <Checkbox.Control>
           <Checkbox.Indicator />

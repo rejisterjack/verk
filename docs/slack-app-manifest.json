@@ -1,0 +1,58 @@
+{
+  "_comment": "Replace https://YOUR-APP.vercel.app with your AUTH_URL, then create the app at api.slack.com/apps -> Create New App -> From a manifest.",
+  "display_information": {
+    "name": "Verk",
+    "description": "File and update Verk issues from Slack.",
+    "background_color": "#0f766e"
+  },
+  "features": {
+    "bot_user": {
+      "display_name": "Verk",
+      "always_online": false
+    },
+    "slash_commands": [
+      {
+        "command": "/verk",
+        "url": "https://YOUR-APP.vercel.app/api/slack/command",
+        "description": "Create or update a Verk issue",
+        "usage_hint": "<title> | customer:Acme <title> | assign <number> <email> | status <number> <status>",
+        "should_escape": false
+      }
+    ],
+    "shortcuts": [
+      {
+        "name": "Create Verk issue",
+        "type": "message",
+        "callback_id": "verk_create_issue",
+        "description": "Turn this message into a Verk issue"
+      }
+    ]
+  },
+  "oauth_config": {
+    "scopes": {
+      "bot": [
+        "commands",
+        "chat:write",
+        "app_mentions:read",
+        "links:read",
+        "links:write",
+        "users:read",
+        "users:read.email"
+      ]
+    }
+  },
+  "settings": {
+    "event_subscriptions": {
+      "request_url": "https://YOUR-APP.vercel.app/api/slack/events",
+      "bot_events": ["app_mention", "link_shared"]
+    },
+    "unfurl_domains": ["YOUR-APP.vercel.app"],
+    "interactivity": {
+      "is_enabled": true,
+      "request_url": "https://YOUR-APP.vercel.app/api/slack/interactivity"
+    },
+    "org_deploy_enabled": false,
+    "socket_mode_enabled": false,
+    "token_rotation_enabled": false
+  }
+}

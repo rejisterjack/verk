@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { ImportApiForm } from "@/components/import-settings-forms";
 import { ViewToolbar } from "@/components/page-header";
 import { SubmitButton as Button } from "@/components/submit-button";
-import { rateLimit } from "@/lib/rate-limit";
+import { rateLimitShared } from "@/lib/rate-limit";
 import { requireTeamBySlug } from "@/lib/rbac";
 import * as importService from "@/lib/services/import";
 
@@ -39,7 +39,7 @@ export default async function ImportPage({
     const file = formData.get("file");
 
     if (!(file instanceof File)) return;
-    if (!rateLimit(`import:${teamId}`).ok) {
+    if (!(await rateLimitShared(`import:${teamId}`)).ok) {
       redirect(
         `/t/${teamSlug}/settings/import?errors=${encodeURIComponent("Too many requests")}`,
       );
@@ -63,7 +63,7 @@ export default async function ImportPage({
     const teamKey = String(formData.get("teamKey") ?? "").trim() || undefined;
 
     if (!apiKey) return;
-    if (!rateLimit(`import:${teamId}`).ok) {
+    if (!(await rateLimitShared(`import:${teamId}`)).ok) {
       redirect(
         `/t/${teamSlug}/settings/import?errors=${encodeURIComponent("Too many requests")}`,
       );

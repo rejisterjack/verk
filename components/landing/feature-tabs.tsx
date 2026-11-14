@@ -75,7 +75,7 @@ export function FeatureTabs() {
                 </h3>
                 <p className="text-sm leading-relaxed text-muted">
                   Drag issues seamlessly between Backlog, Todo, In Progress, and
-                  Done. Built with `@dnd-kit` for 60fps micro-interactions and
+                  Done. Built with dnd-kit for 60fps micro-interactions and
                   instant optimistic UI updates.
                 </p>
                 <ul className="space-y-2 text-xs font-mono text-muted">
@@ -130,7 +130,7 @@ export function FeatureTabs() {
 
                   <div className="rounded-lg bg-surface/50 p-2.5 border border-separator/50">
                     <div className="text-[11px] font-mono text-muted uppercase font-bold mb-2">
-                      Done (4)
+                      Done (1)
                     </div>
                     <div className="rounded bg-background p-2 border border-separator/60 text-xs shadow-xs opacity-75">
                       <span className="font-mono text-[9px] text-success font-semibold">
@@ -221,7 +221,13 @@ export function FeatureTabs() {
                         {row.status}
                       </span>
                       <span
-                        className={`text-[10px] font-bold ${row.prio === "Urgent" ? "text-danger" : "text-accent"}`}
+                        className={`text-[10px] font-bold ${
+                          row.prio === "Urgent"
+                            ? "text-danger"
+                            : row.prio === "High"
+                              ? "text-accent"
+                              : "text-muted"
+                        }`}
                       >
                         {row.prio}
                       </span>
@@ -258,7 +264,7 @@ export function FeatureTabs() {
                       Cycle 04 (Current Sprint)
                     </h4>
                     <p className="font-mono text-xs text-muted">
-                      Oct 20 — Nov 03 (6 days remaining)
+                      Nov 9 — Nov 22
                     </p>
                   </div>
                   <span className="rounded-full bg-accent/15 px-2.5 py-0.5 font-mono text-xs font-semibold text-accent border border-accent/30">
@@ -328,13 +334,13 @@ export function FeatureTabs() {
                 {[
                   {
                     name: "Rupam (You)",
-                    email: "rupam@acme.dev",
+                    email: "rupam@example.com",
                     role: "Owner",
                     color: "bg-accent/20 text-accent",
                   },
                   {
-                    name: "Sarah Chen",
-                    email: "sarah@acme.dev",
+                    name: "Alex",
+                    email: "alex@example.com",
                     role: "Admin",
                     color: "bg-surface text-foreground",
                   },

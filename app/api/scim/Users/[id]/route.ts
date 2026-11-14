@@ -1,122 +1,132 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
-import { rateLimit } from "@/lib/rate-limit";
+import { scimError, scimGuard, scimJson, userResource } from "@/lib/scim";
 
-function authorized(request: Request) {
-  const token = process.env.SCIM_TOKEN;
+type Params = { params: Promise<{ id: string }> };
 
-  if (!token) return false;
-
-  return request.headers.get("authorization") === `Bearer ${token}`;
+async function findUser(id: string) {
+  return prisma.user.findUnique({ where: { id } });
 }
 
-function userResource(user: {
-  id: string;
-  email: string;
-  name: string | null;
-  disabled: boolean;
-}) {
-  return {
-    schemas: ["urn:ietf:params:scim:schemas:core:2.0:User"],
-    id: user.id,
-    userName: user.email,
-    name: { formatted: user.name ?? user.email },
-    active: !user.disabled,
-  };
+export async function GET(request: Request, { params }: Params) {
+  const blocked = await scimGuard(request);
+
+  if (blocked) return blocked;
+  const user = await findUser((await params).id);
+
+  if (!user) return scimError(404, "User not found");
+
+  return scimJson(userResource(user));
 }
 
-export async function GET(
-  request: Request,
-  context: { params: Promise<{ id: string }> },
-) {
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
+export async function PATCH(request: Request, { params }: Params) {
+  const blocked = await scimGuard(request);
 
-  if (!rateLimit(`scim:${ip}`).ok) {
-    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
-  }
-  if (!authorized(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const { id } = await context.params;
-  const user = await prisma.user.findUnique({ where: { id } });
-
-  if (!user) return NextResponse.json({ error: "Not found" }, { status: 404 });
-
-  return NextResponse.json(userResource(user));
-}
-
-export async function PATCH(
-  request: Request,
-  context: { params: Promise<{ id: string }> },
-) {
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
-
-  if (!rateLimit(`scim:${ip}`).ok) {
-    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
-  }
-  if (!authorized(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const { id } = await context.params;
-  const body = (await request.json()) as {
+  if (blocked) return blocked;
+  const { id } = await params;
+  let body: {
     active?: boolean;
     teamId?: string;
     Operations?: { op?: string; path?: string; value?: unknown }[];
   };
-  const replaceActive = body.Operations?.find(
-    (operation) =>
-      operation.op?.toLowerCase() === "replace" && operation.path === "active",
-  );
+
+  try {
+    body = await request.json();
+  } catch {
+    return scimError(400, "Body must be valid JSON", "invalidSyntax");
+  }
+  const find = (path: string) =>
+    body.Operations?.find(
+      (operation) =>
+        operation.op?.toLowerCase() === "replace" && operation.path === path,
+    );
+  const replaceActive = find("active");
+  const replaceName =
+    find("name.formatted") ??
+    body.Operations?.find(
+      (operation) =>
+        operation.op?.toLowerCase() === "replace" && operation.path === "name",
+    );
+  const replaceEmail = find("userName");
   const active =
     typeof body.active === "boolean"
       ? body.active
       : typeof replaceActive?.value === "boolean"
         ? replaceActive.value
         : undefined;
+  const name =
+    typeof replaceName?.value === "string" ? replaceName.value : undefined;
+  const email =
+    typeof replaceEmail?.value === "string"
+      ? replaceEmail.value.toLowerCase()
+      : undefined;
 
-  if (active === undefined) {
-    return NextResponse.json({ error: "active required" }, { status: 400 });
+  if (active === undefined && name === undefined && email === undefined) {
+    return scimError(400, "Nothing to update", "noTarget");
   }
+  if (!(await findUser(id))) return scimError(404, "User not found");
+
   const user = await prisma.user.update({
     where: { id },
-    data: { disabled: !active },
+    data: {
+      ...(active === undefined ? {} : { disabled: !active }),
+      ...(name === undefined ? {} : { name }),
+      ...(email === undefined ? {} : { email }),
+    },
   });
 
-  if (!active && body.teamId) {
+  if (active === false && body.teamId) {
     await prisma.membership.deleteMany({
       where: { userId: id, teamId: body.teamId },
     });
   }
 
-  return NextResponse.json(userResource(user));
+  return scimJson(userResource(user));
 }
 
-export async function DELETE(
-  request: Request,
-  context: { params: Promise<{ id: string }> },
-) {
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
+export async function PUT(request: Request, { params }: Params) {
+  const blocked = await scimGuard(request);
 
-  if (!rateLimit(`scim:${ip}`).ok) {
-    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  if (blocked) return blocked;
+  const { id } = await params;
+  let body: {
+    userName?: string;
+    active?: boolean;
+    name?: { formatted?: string };
+  };
+
+  try {
+    body = await request.json();
+  } catch {
+    return scimError(400, "Body must be valid JSON", "invalidSyntax");
   }
-  if (!authorized(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const { id } = await context.params;
+  if (!(await findUser(id))) return scimError(404, "User not found");
+
+  const user = await prisma.user.update({
+    where: { id },
+    data: {
+      ...(body.userName ? { email: body.userName.toLowerCase() } : {}),
+      ...(body.name?.formatted ? { name: body.name.formatted } : {}),
+      ...(typeof body.active === "boolean" ? { disabled: !body.active } : {}),
+    },
+  });
+
+  return scimJson(userResource(user));
+}
+
+export async function DELETE(request: Request, { params }: Params) {
+  const blocked = await scimGuard(request);
+
+  if (blocked) return blocked;
+  const { id } = await params;
   const teamId = new URL(request.url).searchParams.get("teamId");
 
+  if (!(await findUser(id))) return scimError(404, "User not found");
   if (teamId) {
     await prisma.membership.deleteMany({ where: { userId: id, teamId } });
   }
-  await prisma.user.update({
-    where: { id },
-    data: { disabled: true },
-  });
+  await prisma.user.update({ where: { id }, data: { disabled: true } });
 
   return new NextResponse(null, { status: 204 });
 }

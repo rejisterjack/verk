@@ -1,7 +1,13 @@
 import NextLink from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { FavoriteButton } from "@/components/favorite-button";
 import { ViewToolbar } from "@/components/page-header";
+import {
+  CreateDocumentForm,
+  UpdateDocumentForm,
+} from "@/components/docs-forms";
+import { MarkdownBody } from "@/components/markdown-body";
 import {
   AddMilestoneForm,
   PostProjectUpdateForm,
@@ -10,9 +16,16 @@ import {
 import { StatusChip } from "@/components/status-chip";
 import { SubmitButton as Button } from "@/components/submit-button";
 import { requireTeamBySlug } from "@/lib/rbac";
+import { favoriteIds } from "@/lib/services/favorites";
 import * as membersService from "@/lib/services/members";
 import * as projectsService from "@/lib/services/projects";
-import { addProjectUpdate, listProjectUpdates } from "@/lib/services/surface";
+import {
+  addProjectUpdate,
+  deleteDocument,
+  listDocuments,
+  listProjectUpdates,
+  saveDocument,
+} from "@/lib/services/surface";
 import { issueKey } from "@/lib/utils";
 
 export default async function ProjectDetailPage({
@@ -38,11 +51,16 @@ export default async function ProjectDetailPage({
   const canAdmin =
     teamCtx.membership.role === "ADMIN" || teamCtx.membership.role === "OWNER";
 
-  const [updates, members, initiatives] = await Promise.all([
-    listProjectUpdates(teamId, projectId),
-    membersService.listMembers(teamId),
-    projectsService.listInitiatives(teamId),
-  ]);
+  const [updates, members, initiatives, documents, starred] = await Promise.all(
+    [
+      listProjectUpdates(teamId, projectId),
+      membersService.listMembers(teamId),
+      projectsService.listInitiatives(teamId),
+      listDocuments(teamId),
+      favoriteIds(teamCtx.user.id, teamId, "project"),
+    ],
+  );
+  const projectDocs = documents.filter((doc) => doc.projectId === projectId);
 
   async function postUpdate(formData: FormData) {
     "use server";
@@ -86,6 +104,7 @@ export default async function ProjectDetailPage({
   async function saveProject(formData: FormData) {
     "use server";
     const targetRaw = String(formData.get("targetDate") ?? "");
+    const startRaw = String(formData.get("startDate") ?? "");
     const leadId = String(formData.get("leadId") ?? "");
     const initiativeId = String(formData.get("initiativeId") ?? "");
 
@@ -95,6 +114,7 @@ export default async function ProjectDetailPage({
       status: String(formData.get("status") ?? "BACKLOG"),
       leadId: leadId || null,
       initiativeId: initiativeId || null,
+      startDate: startRaw ? new Date(startRaw) : null,
       targetDate: targetRaw ? new Date(targetRaw) : null,
     });
     redirect(`/t/${teamSlug}/projects/${projectId}`);
@@ -103,6 +123,14 @@ export default async function ProjectDetailPage({
   return (
     <div className="flex min-h-full flex-col">
       <ViewToolbar
+        actions={
+          <FavoriteButton
+            initial={starred.has(projectId)}
+            kind="project"
+            targetId={projectId}
+            teamSlug={teamSlug}
+          />
+        }
         description={`${project.status.replaceAll("_", " ")} · ${percent}% · ${project.issues.length} issues`}
         title={project.name}
       />
@@ -110,23 +138,130 @@ export default async function ProjectDetailPage({
         <div className="min-w-0 flex-1 border-b border-separator lg:border-b-0 lg:border-r">
           <section className="border-b border-separator px-4 py-3">
             <h2 className="mb-2 text-[12px] font-medium uppercase tracking-wide text-muted">
+              Documents
+            </h2>
+            <ul className="mb-3 space-y-3 text-[13px]">
+              {projectDocs.map((doc) => (
+                <li key={doc.id}>
+                  <p className="font-medium">{doc.title}</p>
+                  <div className="mt-1">
+                    <MarkdownBody text={doc.body} />
+                  </div>
+                  <UpdateDocumentForm
+                    action={async (formData) => {
+                      "use server";
+                      await saveDocument(
+                        teamId,
+                        teamCtx.user.id,
+                        {
+                          title: String(formData.get("title") ?? ""),
+                          body: String(formData.get("body") ?? ""),
+                          ...(formData.has("baseBody")
+                            ? { baseBody: String(formData.get("baseBody")) }
+                            : {}),
+                          projectId,
+                        },
+                        doc.id,
+                      );
+                      redirect(`/t/${teamSlug}/projects/${projectId}`);
+                    }}
+                    body={doc.body}
+                    title={doc.title}
+                  />
+                  <form
+                    action={async () => {
+                      "use server";
+                      await deleteDocument(teamId, doc.id);
+                      redirect(`/t/${teamSlug}/projects/${projectId}`);
+                    }}
+                    className="mt-2"
+                  >
+                    <Button size="sm" type="submit" variant="danger">
+                      Delete
+                    </Button>
+                  </form>
+                </li>
+              ))}
+              {projectDocs.length === 0 ? (
+                <li className="text-muted">None yet.</li>
+              ) : null}
+            </ul>
+            <CreateDocumentForm
+              action={async (formData) => {
+                "use server";
+                await saveDocument(teamId, teamCtx.user.id, {
+                  title: String(formData.get("title") ?? ""),
+                  body: String(formData.get("body") ?? ""),
+                  projectId,
+                });
+                redirect(`/t/${teamSlug}/projects/${projectId}`);
+              }}
+              hiddenProjectId={projectId}
+            />
+            <h2 className="mb-2 text-[12px] font-medium uppercase tracking-wide text-muted">
+              Timeline
+            </h2>
+            <ul className="mb-4 space-y-1 text-[13px]">
+              {[
+                ...updates.map((update) => ({
+                  at: update.createdAt,
+                  label: update.body,
+                })),
+                ...project.milestones
+                  .filter((milestone) => milestone.targetDate)
+                  .map((milestone) => ({
+                    at: milestone.targetDate!,
+                    label: milestone.name,
+                  })),
+              ]
+                .sort((a, b) => a.at.getTime() - b.at.getTime())
+                .map((item) => (
+                  <li key={item.label + item.at.toISOString()}>
+                    <span className="text-muted">
+                      {item.at.toISOString().slice(0, 10)}
+                    </span>{" "}
+                    {item.label}
+                  </li>
+                ))}
+            </ul>
+            <h2 className="mb-2 text-[12px] font-medium uppercase tracking-wide text-muted">
               Issues
             </h2>
             <div className="divide-y divide-separator">
-              {project.issues.map((issue) => (
-                <NextLink
-                  key={issue.id}
-                  className="flex h-[var(--row-h)] items-center gap-3 text-[13px] hover:bg-default/40"
-                  href={`/t/${teamSlug}/issues/${issue.number}`}
-                >
-                  <span className="w-16 shrink-0 font-mono text-[11px] text-muted">
-                    {issueKey(teamSlug, issue.number)}
-                  </span>
-                  <span className="min-w-0 flex-1 truncate font-medium">
-                    {issue.title}
-                  </span>
-                  <StatusChip status={issue.status} />
-                </NextLink>
+              {[
+                ...project.milestones.map((milestone) => ({
+                  id: milestone.id,
+                  name: milestone.name,
+                  issues: project.issues.filter(
+                    (issue) => issue.milestoneId === milestone.id,
+                  ),
+                })),
+                {
+                  id: "none",
+                  name: "No milestone",
+                  issues: project.issues.filter((issue) => !issue.milestoneId),
+                },
+              ].map((group) => (
+                <div key={group.id} className="py-2">
+                  <p className="px-1 text-[11px] uppercase tracking-wide text-muted">
+                    {group.name}
+                  </p>
+                  {group.issues.map((issue) => (
+                    <NextLink
+                      key={issue.id}
+                      className="flex h-[var(--row-h)] items-center gap-3 text-[13px] hover:bg-default/40"
+                      href={`/t/${teamSlug}/issues/${issue.number}`}
+                    >
+                      <span className="w-16 shrink-0 font-mono text-[11px] text-muted">
+                        {issueKey(teamSlug, issue.number)}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate font-medium">
+                        {issue.title}
+                      </span>
+                      <StatusChip status={issue.status} />
+                    </NextLink>
+                  ))}
+                </div>
               ))}
               {project.issues.length === 0 ? (
                 <p className="py-6 text-[13px] text-muted">

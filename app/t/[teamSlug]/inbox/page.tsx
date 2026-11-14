@@ -7,13 +7,18 @@ import { ViewToolbar } from "@/components/page-header";
 import { auth } from "@/lib/auth";
 import { requireTeamBySlug } from "@/lib/rbac";
 import * as notifications from "@/lib/services/notifications";
+import { listPulse } from "@/lib/services/surface";
 
 export default async function InboxPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ teamSlug: string }>;
+  searchParams: Promise<{ view?: string }>;
 }) {
   const { teamSlug } = await params;
+  const { view } = await searchParams;
+  const showPulse = view === "pulse";
   let teamCtx: Awaited<ReturnType<typeof requireTeamBySlug>>;
 
   try {
@@ -28,7 +33,10 @@ export default async function InboxPage({
 
   const teamId = teamCtx.team.id;
   const userId = session.user.id;
-  const items = await notifications.listInbox(userId, teamId);
+  const [items, pulse] = await Promise.all([
+    notifications.listInbox(userId, teamId),
+    listPulse(teamId),
+  ]);
   const inboxPath = `/t/${teamSlug}/inbox`;
   const teamPath = `/t/${teamSlug}`;
 
@@ -54,7 +62,50 @@ export default async function InboxPage({
         }
         title="Inbox"
       />
-      {items.length === 0 ? (
+      <div className="flex gap-3 border-b border-separator px-4 py-2 text-[13px]">
+        <NextLink
+          className={showPulse ? "text-muted" : "font-medium text-foreground"}
+          href={`/t/${teamSlug}/inbox`}
+        >
+          Notifications
+        </NextLink>
+        <NextLink
+          className={showPulse ? "font-medium text-foreground" : "text-muted"}
+          href={`/t/${teamSlug}/inbox?view=pulse`}
+        >
+          Pulse
+        </NextLink>
+      </div>
+      {showPulse ? (
+        <section className="border-b border-separator px-4 py-3">
+          <h2 className="text-[12px] font-medium uppercase tracking-wide text-muted">
+            Pulse
+          </h2>
+          {pulse.length === 0 ? (
+            <p className="mt-2 text-[13px] text-muted">
+              No recent team activity.
+            </p>
+          ) : (
+            <ul className="mt-2 space-y-1 text-[13px]">
+              {pulse.map((item) => (
+                <li key={item.id}>
+                  <NextLink
+                    className="hover:text-accent"
+                    href={
+                      item.kind === "issue"
+                        ? `/t/${teamSlug}/issues/${item.href}`
+                        : `/t/${teamSlug}/projects/${item.href}`
+                    }
+                  >
+                    <span className="font-medium">{item.title}</span>
+                    <span className="text-muted"> · {item.detail}</span>
+                  </NextLink>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : items.length === 0 ? (
         <p className="px-4 py-8 text-[13px] text-muted">
           You&apos;re all caught up.
         </p>

@@ -1,19 +1,127 @@
+import type { Health, RoadmapNode } from "@/lib/roadmap";
+
 import NextLink from "next/link";
 import { notFound } from "next/navigation";
 
 import { ViewToolbar } from "@/components/page-header";
+import { RoadmapReschedule } from "@/components/roadmap-reschedule";
 import { requireTeamBySlug } from "@/lib/rbac";
-import * as projects from "@/lib/services/projects";
+import { getRoadmap } from "@/lib/services/roadmap";
 
-function monthKey(date: Date) {
-  return date.toISOString().slice(0, 7);
+const HEALTH: Record<Health, { label: string; className: string }> = {
+  ON_TRACK: { label: "On track", className: "text-success" },
+  AT_RISK: { label: "At risk", className: "text-warning" },
+  OFF_TRACK: { label: "Off track", className: "text-danger" },
+};
+
+function day(date: Date | null) {
+  return date ? date.toISOString().slice(0, 10) : "no date";
 }
 
-function monthLabel(key: string) {
-  const [year, month] = key.split("-");
-  const date = new Date(Number(year), Number(month) - 1, 1);
+function Bar({ percent }: { percent: number }) {
+  return (
+    <div
+      aria-label={`${percent}% done`}
+      className="h-1.5 w-24 shrink-0 overflow-hidden rounded-full bg-default"
+      role="img"
+    >
+      <div className="h-full bg-accent" style={{ width: `${percent}%` }} />
+    </div>
+  );
+}
 
-  return date.toLocaleString("en", { month: "short", year: "2-digit" });
+function HealthTag({
+  health,
+  declared,
+}: {
+  health: Health;
+  declared?: string;
+}) {
+  const info = HEALTH[health];
+  const differs = declared && declared !== health;
+
+  return (
+    <span className={`text-[12px] ${info.className}`}>
+      {info.label}
+      {differs ? (
+        <span className="text-muted">
+          {" "}
+          (set to {HEALTH[declared as Health]?.label.toLowerCase() ?? declared})
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
+function Node({
+  node,
+  teamSlug,
+  depth,
+  canEdit,
+}: {
+  node: RoadmapNode;
+  teamSlug: string;
+  depth: number;
+  canEdit: boolean;
+}) {
+  return (
+    <li>
+      <div
+        className="flex flex-wrap items-center gap-3 border-b border-separator px-4 py-2 text-[13px]"
+        style={{ paddingLeft: `${16 + depth * 20}px` }}
+      >
+        <span className="min-w-0 flex-1 truncate font-medium">{node.name}</span>
+        <Bar percent={node.rollup.percent} />
+        <span className="w-20 text-right text-[12px] text-muted">
+          {node.rollup.done}/{node.rollup.total} · {node.rollup.percent}%
+        </span>
+        <span className="w-24 text-[12px] text-muted">{day(node.target)}</span>
+        <HealthTag declared={node.declaredHealth} health={node.health} />
+      </div>
+      <ul>
+        {node.projects.map((project) => (
+          <li
+            key={project.id}
+            className="flex flex-wrap items-center gap-3 border-b border-separator/60 px-4 py-1.5 text-[13px]"
+            style={{ paddingLeft: `${36 + depth * 20}px` }}
+          >
+            <NextLink
+              className="min-w-0 flex-1 truncate hover:text-accent"
+              href={`/t/${teamSlug}/projects/${project.id}`}
+            >
+              {project.name}
+            </NextLink>
+            <Bar percent={project.rollup.percent} />
+            <span className="w-20 text-right text-[12px] text-muted">
+              {project.rollup.done}/{project.rollup.total} ·{" "}
+              {project.rollup.percent}%
+            </span>
+            <span className="w-24 text-[12px] text-muted">
+              {day(project.start)} → {day(project.target)}
+            </span>
+            <HealthTag health={project.health} />
+            {canEdit ? (
+              <RoadmapReschedule
+                projectId={project.id}
+                start={project.start ? day(project.start) : ""}
+                target={project.target ? day(project.target) : ""}
+                teamSlug={teamSlug}
+              />
+            ) : null}
+          </li>
+        ))}
+        {node.children.map((child) => (
+          <Node
+            key={child.id}
+            canEdit={canEdit}
+            depth={depth + 1}
+            node={child}
+            teamSlug={teamSlug}
+          />
+        ))}
+      </ul>
+    </li>
+  );
 }
 
 export default async function RoadmapPage({
@@ -29,87 +137,41 @@ export default async function RoadmapPage({
   } catch {
     notFound();
   }
-  const list = await projects.listProjects(teamCtx.team.id);
-  const dated = list.filter((project) => project.targetDate);
-
-  const months = [
-    ...new Set(dated.map((project) => monthKey(project.targetDate!))),
-  ].sort();
-  const groups = new Map<string, { name: string; projects: typeof dated }>();
-
-  for (const project of dated) {
-    const key = project.initiativeId ?? "none";
-    const name = project.initiative?.name ?? "No initiative";
-    const group = groups.get(key) ?? { name, projects: [] };
-
-    group.projects.push(project);
-    groups.set(key, group);
-  }
+  const { roots, loose } = await getRoadmap(teamCtx.team.id, teamCtx.user.id);
+  const empty = roots.length === 0 && loose.projects.length === 0;
+  const canEdit = teamCtx.membership.role !== "GUEST";
 
   return (
     <div className="flex min-h-full flex-col">
       <ViewToolbar
-        description="Projects by initiative and month"
+        description="Initiatives and their projects, with progress rolled up from issues. Health is computed from dates and progress; a manually set health is shown beside it."
         title="Roadmap"
       />
-      {dated.length === 0 ? (
+      {empty ? (
         <p className="px-4 py-8 text-[13px] text-muted">
-          No projects with a target date.
+          Nothing planned yet. Create an initiative and give projects a start
+          and target date.
         </p>
       ) : (
-        <div className="overflow-x-auto">
-          <div
-            className="min-w-[640px] grid gap-px border-b border-separator bg-separator"
-            style={{
-              gridTemplateColumns: `10rem repeat(${months.length}, minmax(7rem, 1fr))`,
-            }}
-          >
-            <div className="bg-surface px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-muted">
-              Initiative
-            </div>
-            {months.map((month) => (
-              <div
-                key={month}
-                className="bg-surface px-3 py-2 text-center text-xs font-medium text-muted"
-              >
-                {monthLabel(month)}
-              </div>
-            ))}
-            {[...groups.entries()].map(([groupKey, group]) => (
-              <div key={groupKey} className="contents">
-                <div className="bg-background px-3 py-3 text-sm font-medium">
-                  {group.name}
-                </div>
-                {months.map((month) => {
-                  const cell = group.projects.filter(
-                    (project) => monthKey(project.targetDate!) === month,
-                  );
-
-                  return (
-                    <div
-                      key={`${groupKey}-${month}`}
-                      className="relative min-h-16 bg-background px-2 py-2"
-                    >
-                      <div className="pointer-events-none absolute inset-y-3 left-1/2 w-px bg-separator/70" />
-                      <ul className="relative space-y-1">
-                        {cell.map((project) => (
-                          <li key={project.id}>
-                            <NextLink
-                              className="block rounded-md border border-accent/30 bg-accent/10 px-2 py-1 text-xs font-medium text-foreground hover:bg-accent/20"
-                              href={`/t/${teamSlug}/projects/${project.id}`}
-                            >
-                              {project.name}
-                            </NextLink>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        </div>
+        <ul className="overflow-x-auto">
+          {roots.map((root) => (
+            <Node
+              key={root.id}
+              canEdit={canEdit}
+              depth={0}
+              node={root}
+              teamSlug={teamSlug}
+            />
+          ))}
+          {loose.projects.length ? (
+            <Node
+              canEdit={canEdit}
+              depth={0}
+              node={loose}
+              teamSlug={teamSlug}
+            />
+          ) : null}
+        </ul>
       )}
     </div>
   );

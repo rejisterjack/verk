@@ -27,7 +27,7 @@ export default async function ProjectsPage({
   }
 
   const teamId = teamCtx.team.id;
-  const projects = await projectsService.listProjects(teamId);
+  const projects = await projectsService.listProjects(teamId, teamCtx.user.id);
   const initiatives = await projectsService.listInitiatives(teamId);
 
   async function createInitiative(formData: FormData) {
@@ -48,9 +48,13 @@ export default async function ProjectsPage({
     const name = String(formData.get("name") ?? "").trim();
 
     if (!name) return;
+    const startRaw = String(formData.get("startDate") ?? "");
+    const targetRaw = String(formData.get("targetDate") ?? "");
     const created = await projectsService.createProject(teamId, {
       name,
       summary: String(formData.get("summary") ?? ""),
+      startDate: startRaw ? new Date(startRaw) : null,
+      targetDate: targetRaw ? new Date(targetRaw) : null,
     });
 
     redirect(`/t/${teamSlug}/projects/${created.id}`);

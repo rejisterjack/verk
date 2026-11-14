@@ -59,6 +59,89 @@
   --ui-text: 0.8125rem;
 }
 
+/*
+ * Personal appearance (Settings → Appearance). `data-*` attributes on <html> are set before first
+ * paint from localStorage. Selectors carry two parts so they beat the plain :root / .dark blocks
+ * above regardless of order.
+ */
+:root[data-accent="blue"] {
+  --accent: oklch(0.52 0.16 255);
+  --accent-foreground: oklch(0.99 0.01 255);
+  --canvas-glow: oklch(0.52 0.16 255 / 0.12);
+}
+:root[data-accent="violet"] {
+  --accent: oklch(0.5 0.18 295);
+  --accent-foreground: oklch(0.99 0.01 295);
+  --canvas-glow: oklch(0.5 0.18 295 / 0.12);
+}
+:root[data-accent="rose"] {
+  --accent: oklch(0.55 0.19 10);
+  --accent-foreground: oklch(0.99 0.01 10);
+  --canvas-glow: oklch(0.55 0.19 10 / 0.12);
+}
+:root[data-accent="orange"] {
+  --accent: oklch(0.58 0.16 50);
+  --accent-foreground: oklch(0.99 0.01 50);
+  --canvas-glow: oklch(0.58 0.16 50 / 0.12);
+}
+:root[data-accent="green"] {
+  --accent: oklch(0.5 0.14 150);
+  --accent-foreground: oklch(0.99 0.01 150);
+  --canvas-glow: oklch(0.5 0.14 150 / 0.12);
+}
+:root[data-accent="graphite"] {
+  --accent: oklch(0.35 0.02 250);
+  --accent-foreground: oklch(0.99 0.005 250);
+  --canvas-glow: oklch(0.35 0.02 250 / 0.1);
+}
+
+.dark[data-accent="blue"] {
+  --accent: oklch(0.72 0.14 255);
+  --accent-foreground: oklch(0.14 0.02 255);
+  --canvas-glow: oklch(0.72 0.14 255 / 0.18);
+}
+.dark[data-accent="violet"] {
+  --accent: oklch(0.72 0.15 295);
+  --accent-foreground: oklch(0.14 0.02 295);
+  --canvas-glow: oklch(0.72 0.15 295 / 0.18);
+}
+.dark[data-accent="rose"] {
+  --accent: oklch(0.73 0.15 10);
+  --accent-foreground: oklch(0.14 0.02 10);
+  --canvas-glow: oklch(0.73 0.15 10 / 0.18);
+}
+.dark[data-accent="orange"] {
+  --accent: oklch(0.76 0.15 55);
+  --accent-foreground: oklch(0.14 0.02 55);
+  --canvas-glow: oklch(0.76 0.15 55 / 0.18);
+}
+.dark[data-accent="green"] {
+  --accent: oklch(0.74 0.16 150);
+  --accent-foreground: oklch(0.14 0.02 150);
+  --canvas-glow: oklch(0.74 0.16 150 / 0.18);
+}
+.dark[data-accent="graphite"] {
+  --accent: oklch(0.85 0.01 250);
+  --accent-foreground: oklch(0.14 0.01 250);
+  --canvas-glow: oklch(0.85 0.01 250 / 0.12);
+}
+
+:root[data-density="compact"] {
+  --toolbar-h: 2.5rem;
+  --filters-row-h: 2rem;
+  --row-h: 1.875rem;
+  --ui-text: 0.78rem;
+}
+
+:root[data-contrast="high"] {
+  --muted: oklch(0.36 0.02 250);
+  --separator: oklch(0.66 0.015 95);
+}
+.dark[data-contrast="high"] {
+  --muted: oklch(0.82 0.02 250);
+  --separator: oklch(0.45 0.02 250);
+}
+
 @layer utilities {
   .font-display {
     font-family: var(--font-display), -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", ui-sans-serif, system-ui, sans-serif;

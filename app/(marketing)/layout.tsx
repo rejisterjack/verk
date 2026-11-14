@@ -32,11 +32,9 @@ export default function MarketingLayout({
             </a>
             <a
               className="hover:text-foreground transition-colors"
-              href={siteConfig.links.demo}
-              rel="noopener noreferrer"
-              target="_blank"
+              href="/about"
             >
-              Demo
+              About
             </a>
             <a className="hover:text-foreground transition-colors" href="/docs">
               Docs

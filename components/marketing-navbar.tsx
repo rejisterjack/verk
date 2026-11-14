@@ -32,6 +32,7 @@ export function MarketingNavbar({
   const openCta = () => {
     if (ctaHref.startsWith("http")) {
       window.location.assign(ctaHref);
+
       return;
     }
 
@@ -107,6 +108,13 @@ export function MarketingNavbar({
               {item.label}
             </NextLink>
           ))}
+          <a
+            href={siteConfig.links.github}
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            GitHub
+          </a>
           <Button onPress={openCta}>{ctaLabel}</Button>
         </div>
       )}

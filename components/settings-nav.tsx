@@ -1,26 +1,58 @@
 "use client";
 
+import type { MessageKey } from "@/lib/i18n";
+
 import clsx from "clsx";
 import NextLink from "next/link";
 import { usePathname } from "next/navigation";
 
+import { useT } from "@/components/locale-provider";
+
 type SettingsLink = {
   key: string;
   path: string;
-  label: string;
+  label: MessageKey;
   adminOnly?: boolean;
 };
 
 const LINKS: SettingsLink[] = [
-  { key: "general", path: "", label: "General" },
-  { key: "members", path: "/members", label: "Members" },
-  { key: "labels", path: "/labels", label: "Labels" },
-  { key: "templates", path: "/templates", label: "Templates" },
-  { key: "views", path: "/views", label: "Views" },
-  { key: "workflow", path: "/workflow", label: "Workflow", adminOnly: true },
-  { key: "import", path: "/import", label: "Import" },
-  { key: "api-keys", path: "/api-keys", label: "API keys" },
-  { key: "webhooks", path: "/webhooks", label: "Webhooks", adminOnly: true },
+  { key: "general", path: "", label: "settings.general" },
+  { key: "appearance", path: "/appearance", label: "settings.appearance" },
+  {
+    key: "notifications",
+    path: "/notifications",
+    label: "settings.notifications",
+  },
+  { key: "members", path: "/members", label: "settings.members" },
+  { key: "labels", path: "/labels", label: "settings.labels" },
+  { key: "templates", path: "/templates", label: "settings.templates" },
+  { key: "views", path: "/views", label: "settings.views" },
+  {
+    key: "workflow",
+    path: "/workflow",
+    label: "settings.workflow",
+    adminOnly: true,
+  },
+  {
+    key: "automations",
+    path: "/automations",
+    label: "settings.automations",
+    adminOnly: true,
+  },
+  { key: "import", path: "/import", label: "settings.importLinear" },
+  { key: "import-csv", path: "/import/csv", label: "settings.importCsv" },
+  { key: "export", path: "/export", label: "settings.export" },
+  { key: "api-keys", path: "/api-keys", label: "settings.apiKeys" },
+  {
+    key: "webhooks",
+    path: "/webhooks",
+    label: "settings.webhooks",
+    adminOnly: true,
+  },
+  { key: "oauth", path: "/oauth", label: "settings.oauth", adminOnly: true },
+  { key: "ask", path: "/ask", label: "settings.ask", adminOnly: true },
+  { key: "agents", path: "/agents", label: "settings.agents", adminOnly: true },
+  { key: "audit", path: "/audit", label: "settings.audit", adminOnly: true },
 ];
 
 export function SettingsNav({
@@ -31,6 +63,7 @@ export function SettingsNav({
   canAdmin?: boolean;
 }) {
   const pathname = usePathname();
+  const { t } = useT();
   const base = `/t/${teamSlug}/settings`;
   const links = LINKS.filter((link) => !link.adminOnly || canAdmin);
 
@@ -57,7 +90,7 @@ export function SettingsNav({
             )}
             href={href}
           >
-            {link.label}
+            {t(link.label)}
           </NextLink>
         );
       })}

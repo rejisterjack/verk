@@ -34,8 +34,20 @@ export default async function WorkspacePage({
       workspace: {
         include: {
           teams: {
-            where: { memberships: { some: { userId: session.user.id } } },
-            select: { id: true, name: true, slug: true },
+            where: {
+              OR: [
+                { memberships: { some: { userId: session.user.id } } },
+                { isPrivate: false },
+              ],
+            },
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              parentId: true,
+              isPrivate: true,
+            },
+            orderBy: { name: "asc" },
           },
         },
       },
@@ -136,10 +148,11 @@ export default async function WorkspacePage({
         {membership.workspace.teams.map((team) => (
           <li key={team.id}>
             <NextLink
-              className="block px-4 py-2 text-[13px] hover:bg-default/40"
+              className={`block py-2 text-[13px] hover:bg-default/40 ${team.parentId ? "px-8" : "px-4"}`}
               href={`/t/${team.slug}/issues`}
             >
               {team.name}
+              {team.isPrivate ? " · private" : ""}
             </NextLink>
           </li>
         ))}

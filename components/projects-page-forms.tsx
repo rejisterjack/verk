@@ -14,7 +14,7 @@ export function CreateProjectForm({
   return (
     <Form
       action={action}
-      className="mb-4 grid gap-3 rounded-lg border border-separator p-3 sm:grid-cols-[1fr_1.4fr_auto] sm:items-end"
+      className="mb-4 grid gap-3 rounded-lg border border-separator p-3 sm:grid-cols-[1fr_1.4fr_auto_auto_auto] sm:items-end"
     >
       <TextField fullWidth isRequired name="name">
         <Label className="text-[12px] text-muted">Project name</Label>
@@ -23,6 +23,14 @@ export function CreateProjectForm({
       <TextField fullWidth name="summary">
         <Label className="text-[12px] text-muted">Summary</Label>
         <Input className={compactInput} placeholder="Optional summary" />
+      </TextField>
+      <TextField name="startDate" type="date">
+        <Label className="text-[12px] text-muted">Start</Label>
+        <Input className={compactInput} />
+      </TextField>
+      <TextField name="targetDate" type="date">
+        <Label className="text-[12px] text-muted">Target</Label>
+        <Input className={compactInput} />
       </TextField>
       <Button className="h-7 px-2.5 text-[12px]" size="sm" type="submit">
         Create project

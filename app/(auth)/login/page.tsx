@@ -1,5 +1,6 @@
 import { LoginForm } from "@/components/auth-form";
 import { isPrivateHost } from "@/lib/auth-allowlist";
+import { isSamlEnabled } from "@/lib/saml";
 import { isDemoMode } from "@/lib/utils";
 
 export default async function LoginPage({
@@ -15,7 +16,6 @@ export default async function LoginPage({
       accessDenied={params.error === "AccessDenied"}
       callbackUrl={params.callbackUrl ?? "/onboarding"}
       demoMode={demo}
-      privateHost={isPrivateHost()}
       githubEnabled={Boolean(
         process.env.AUTH_GITHUB_ID && process.env.AUTH_GITHUB_SECRET,
       )}
@@ -25,6 +25,9 @@ export default async function LoginPage({
       oidcEnabled={Boolean(
         process.env.AUTH_OIDC_ISSUER && process.env.AUTH_OIDC_CLIENT_ID,
       )}
+      privateHost={isPrivateHost()}
+      samlEnabled={isSamlEnabled()}
+      samlError={params.error?.startsWith("Saml") ? params.error : undefined}
     />
   );
 }

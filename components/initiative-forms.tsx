@@ -27,11 +27,13 @@ export function CreateInitiativeForm({
   className,
   submitLabel,
   variant,
+  parents = [],
 }: {
   action: (formData: FormData) => void | Promise<void>;
   className?: string;
   submitLabel: string;
   variant?: ButtonVariant;
+  parents?: { id: string; label: string }[];
 }) {
   return (
     <Form
@@ -48,6 +50,15 @@ export function CreateInitiativeForm({
           placeholder="e.g. Q4 Mobile App Launch"
         />
       </TextField>
+      {parents.length ? (
+        <SelectField
+          clearable
+          label="Parent"
+          name="parentId"
+          options={parents}
+          placeholder="Top level"
+        />
+      ) : null}
       <DatePicker defaultValue={null} name="targetDate">
         <Label className="text-[12px] text-muted">Target date</Label>
         <DateField.Group className="!h-7 !min-h-7 !max-h-7 !overflow-hidden !px-2.5 !py-0 text-[12px]">

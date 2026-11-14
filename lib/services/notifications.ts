@@ -1,6 +1,46 @@
 import type { NotificationType } from "@/lib/generated/prisma/client";
 
 import { prisma } from "@/lib/db";
+import { normalizeMuted, unmutedRecipients } from "@/lib/notification-prefs";
+
+export async function getMutedTypes(userId: string) {
+  const row = await prisma.notificationPreference.findUnique({
+    where: { userId },
+    select: { mutedTypes: true },
+  });
+
+  return normalizeMuted(row?.mutedTypes ?? []);
+}
+
+export async function setMutedTypes(userId: string, types: unknown) {
+  const mutedTypes = normalizeMuted(types);
+
+  await prisma.notificationPreference.upsert({
+    where: { userId },
+    create: { userId, mutedTypes },
+    update: { mutedTypes },
+  });
+
+  return mutedTypes;
+}
+
+/** Of these users, the ones who still want a notification of `type`. */
+export async function filterUnmuted(
+  userIds: string[],
+  type: NotificationType,
+): Promise<string[]> {
+  if (!userIds.length) return [];
+  const rows = await prisma.notificationPreference.findMany({
+    where: { userId: { in: userIds } },
+    select: { userId: true, mutedTypes: true },
+  });
+
+  return unmutedRecipients(
+    userIds,
+    type,
+    new Map(rows.map((row) => [row.userId, row.mutedTypes as string[]])),
+  );
+}
 
 export async function ensureSubscribed(issueId: string, userId: string) {
   await prisma.issueSubscription.upsert({
@@ -25,9 +65,16 @@ export async function notifyIssueSubscribers(opts: {
 
   if (!subs.length) return;
 
+  const recipients = await filterUnmuted(
+    subs.map((s) => s.userId),
+    opts.type,
+  );
+
+  if (!recipients.length) return;
+
   await prisma.notification.createMany({
-    data: subs.map((s) => ({
-      userId: s.userId,
+    data: recipients.map((userId) => ({
+      userId,
       teamId: opts.teamId,
       issueId: opts.issueId,
       type: opts.type,

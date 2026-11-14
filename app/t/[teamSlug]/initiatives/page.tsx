@@ -5,10 +5,12 @@ import {
   CreateInitiativeForm,
   EditInitiativeForm,
 } from "@/components/initiative-forms";
+import { CreateDocumentForm } from "@/components/docs-forms";
 import { ViewToolbar } from "@/components/page-header";
 import { SubmitButton as Button } from "@/components/submit-button";
 import { requireTeamBySlug } from "@/lib/rbac";
 import * as projectsService from "@/lib/services/projects";
+import { listDocuments, saveDocument } from "@/lib/services/surface";
 
 const HEALTH_CONFIG = {
   ON_TRACK: {
@@ -43,7 +45,10 @@ export default async function InitiativesPage({
 
   const teamId = teamCtx.team.id;
   const isGuest = teamCtx.membership.role === "GUEST";
-  const initiatives = await projectsService.listInitiatives(teamId);
+  const [initiatives, documents] = await Promise.all([
+    projectsService.listInitiatives(teamId),
+    listDocuments(teamId),
+  ]);
 
   async function createInitiative(formData: FormData) {
     "use server";
@@ -51,9 +56,12 @@ export default async function InitiativesPage({
     const targetRaw = String(formData.get("targetDate") ?? "");
 
     if (!name) return;
+    const parentId = String(formData.get("parentId") ?? "").trim();
+
     await projectsService.createInitiative(teamId, {
       name,
       targetDate: targetRaw ? new Date(targetRaw) : null,
+      parentId: parentId || null,
     });
     redirect(`/t/${teamSlug}/initiatives`);
   }
@@ -93,6 +101,10 @@ export default async function InitiativesPage({
         <section className="border-b border-separator px-4 py-3">
           <CreateInitiativeForm
             action={createInitiative}
+            parents={initiatives.map((item) => ({
+              id: item.id,
+              label: item.name,
+            }))}
             submitLabel="Create initiative"
           />
         </section>
@@ -156,6 +168,36 @@ export default async function InitiativesPage({
                           : "projects"}
                       </NextLink>
                     </div>
+                    <ul className="space-y-1 text-[12px] text-muted">
+                      {documents
+                        .filter((doc) => doc.initiativeId === initiative.id)
+                        .map((doc) => (
+                          <li key={doc.id}>
+                            <NextLink
+                              className="text-accent hover:underline"
+                              href={`/t/${teamSlug}/docs`}
+                            >
+                              {doc.title}
+                            </NextLink>
+                          </li>
+                        ))}
+                    </ul>
+                    {!isGuest ? (
+                      <CreateDocumentForm
+                        action={async (formData) => {
+                          "use server";
+                          await saveDocument(teamId, teamCtx.user.id, {
+                            title: String(formData.get("title") ?? ""),
+                            body: String(formData.get("body") ?? ""),
+                            initiativeId: String(
+                              formData.get("initiativeId") ?? "",
+                            ),
+                          });
+                          redirect(`/t/${teamSlug}/initiatives`);
+                        }}
+                        hiddenInitiativeId={initiative.id}
+                      />
+                    ) : null}
                   </div>
 
                   {!isGuest ? (

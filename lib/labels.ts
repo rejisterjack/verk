@@ -32,8 +32,10 @@ export const ESTIMATE_LABELS: Record<Estimate, string> = {
   ONE: "1",
   TWO: "2",
   THREE: "3",
+  FOUR: "4",
   FIVE: "5",
   EIGHT: "8",
+  SIXTEEN: "16",
   THIRTEEN: "13",
 };
 

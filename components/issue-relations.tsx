@@ -10,8 +10,18 @@ import { SelectField } from "@/components/ui/select-field";
 type Rel = {
   id: string;
   type: string;
-  fromIssue: { id: string; number: number; title: string };
-  toIssue: { id: string; number: number; title: string };
+  fromIssue: { id: string; number: number; title: string; status?: string };
+  toIssue: { id: string; number: number; title: string; status?: string };
+};
+
+const RELATION_LABELS: Record<string, string> = {
+  BLOCKS: "Blocks",
+  BLOCKED_BY: "Blocked by",
+  RELATED: "Related",
+  PARENT: "Parent",
+  CHILD: "Child",
+  DUPLICATE: "Duplicate of",
+  DUPLICATED_BY: "Duplicated by",
 };
 
 export function IssueRelations({
@@ -97,35 +107,15 @@ export function IssueRelations({
     await load();
   }
 
-  const subIssues = relations.filter(
-    (relation) => relation.type === "CHILD" || relation.type === "PARENT",
-  );
+  // Parent and sub-issues have their own panel (IssueSubIssues). Only show the other kinds here.
+  const visible = relations.filter((relation) => relation.type !== "CHILD");
 
   return (
     <section className="mt-10 space-y-8 border-t border-separator pt-6">
-      {subIssues.length > 0 ? (
-        <div>
-          <h2 className="text-sm font-semibold">Sub-issues</h2>
-          <ul className="mt-2 space-y-1 text-sm">
-            {subIssues.map((relation) => {
-              const other =
-                relation.fromIssue.id === issueId
-                  ? relation.toIssue
-                  : relation.fromIssue;
-
-              return (
-                <li key={relation.id}>
-                  {relation.type}: {other.title}
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      ) : null}
       <div>
         <h2 className="text-sm font-semibold">Relations</h2>
         <ul className="mt-3 space-y-2 text-sm">
-          {relations.map((r) => {
+          {visible.map((r) => {
             const other = r.fromIssue.id === issueId ? r.toIssue : r.fromIssue;
 
             return (
@@ -134,7 +124,9 @@ export function IssueRelations({
                 className="flex items-center justify-between rounded-lg border border-separator px-3 py-2"
               >
                 <span>
-                  <span className="text-xs text-muted">{r.type}</span>{" "}
+                  <span className="text-xs text-muted">
+                    {RELATION_LABELS[r.type] ?? r.type}
+                  </span>{" "}
                   <a
                     className="text-accent hover:underline"
                     href={`/t/${teamSlug}/issues/${other.number}`}
@@ -149,7 +141,7 @@ export function IssueRelations({
               </li>
             );
           })}
-          {relations.length === 0 ? (
+          {visible.length === 0 ? (
             <li className="text-muted">No relations yet.</li>
           ) : null}
         </ul>
@@ -163,6 +155,8 @@ export function IssueRelations({
               { id: "BLOCKED_BY", label: "Blocked by" },
               { id: "PARENT", label: "Parent" },
               { id: "CHILD", label: "Child" },
+              { id: "DUPLICATE", label: "Duplicate of" },
+              { id: "DUPLICATED_BY", label: "Duplicated by" },
             ]}
             value={type}
             onChange={(key) => setType(key ?? "RELATED")}

@@ -1,13 +1,18 @@
 import NextLink from "next/link";
 import { notFound } from "next/navigation";
 
+import { BurndownChart, ScopeSummary } from "@/components/cycle-charts";
 import { UpdateCycleForm } from "@/components/cycle-forms";
+import { FavoriteButton } from "@/components/favorite-button";
 import { SubmitButton as Button } from "@/components/submit-button";
 import { ViewToolbar } from "@/components/page-header";
 import { PriorityChip, StatusChip } from "@/components/status-chip";
 import { deleteCycleAction, updateCycleAction } from "@/lib/actions/cycles";
 import { requireTeamBySlug } from "@/lib/rbac";
+import { cycleAnalytics } from "@/lib/services/cycle-analytics";
 import * as cyclesService from "@/lib/services/cycles";
+import { favoriteIds } from "@/lib/services/favorites";
+import { estimatePoints } from "@/lib/estimate-points";
 import { issueKey } from "@/lib/utils";
 
 export default async function CycleDetailPage({
@@ -28,52 +33,70 @@ export default async function CycleDetailPage({
 
   if (!cycle) notFound();
 
+  const [starred, analytics] = await Promise.all([
+    favoriteIds(teamCtx.user.id, teamCtx.team.id, "cycle"),
+    cycleAnalytics(teamCtx.team.id, cycleId),
+  ]);
+  const usePoints = analytics.points.some((p) => p.scope > 0);
   const done = cycle.issues.filter((i) => i.status === "DONE").length;
   const total = cycle.issues.length;
+  const points = cycle.issues.reduce(
+    (sum, issue) => sum + estimatePoints(issue.estimate),
+    0,
+  );
 
   return (
     <div className="flex min-h-full flex-col">
       <ViewToolbar
-        description={`${cycle.startDate.toISOString().slice(0, 10)} → ${cycle.endDate.toISOString().slice(0, 10)} · ${done}/${total} done`}
+        actions={
+          <FavoriteButton
+            initial={starred.has(cycleId)}
+            kind="cycle"
+            targetId={cycleId}
+            teamSlug={teamSlug}
+          />
+        }
+        description={`${cycle.startDate.toISOString().slice(0, 10)} → ${cycle.endDate.toISOString().slice(0, 10)} · ${done}/${total} done · ${points}${cycle.capacityPoints == null ? "" : `/${cycle.capacityPoints}`} pts`}
         title={cycle.name}
       />
       <div className="flex flex-1 flex-col lg:flex-row">
         <div className="min-w-0 flex-1">
-          <div className="border-b border-separator px-4 py-3">
-            <svg
-              className="h-12 w-full text-accent"
-              role="img"
-              viewBox="0 0 80 40"
-            >
-              <title>Issues completed by day</title>
-              {Array.from({ length: 8 }).map((_, index) => {
-                const day = new Date(cycle.endDate);
-
-                day.setDate(day.getDate() - (7 - index));
-                const count = cycle.issues.filter((issue) => {
-                  if (issue.status !== "DONE") return false;
-                  const updated = issue.updatedAt;
-
-                  return (
-                    updated.getUTCFullYear() === day.getUTCFullYear() &&
-                    updated.getUTCMonth() === day.getUTCMonth() &&
-                    updated.getUTCDate() === day.getUTCDate()
-                  );
-                }).length;
-                const height = Math.min(36, count * 8);
-
-                return (
-                  <rect
-                    key={index}
-                    fill="currentColor"
-                    height={height}
-                    width="6"
-                    x={index * 10}
-                    y={38 - height}
-                  />
-                );
-              })}
-            </svg>
+          <div className="space-y-4 border-b border-separator px-4 py-3">
+            <div>
+              <h2 className="mb-1 text-[12px] font-medium uppercase tracking-wide text-muted">
+                Burndown
+              </h2>
+              <BurndownChart
+                data={usePoints ? analytics.points : analytics.issueCount}
+                unit={usePoints ? "pts" : "issues"}
+              />
+            </div>
+            <ScopeSummary scope={analytics.scope} />
+            {analytics.people.length ? (
+              <div>
+                <h2 className="mb-1 text-[12px] font-medium uppercase tracking-wide text-muted">
+                  By assignee
+                </h2>
+                <ul className="space-y-1 text-[12px]">
+                  {analytics.people.map((person) => (
+                    <li key={person.name} className="flex items-center gap-2">
+                      <span className="w-32 truncate">{person.name}</span>
+                      <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-default">
+                        <span
+                          className="block h-full bg-accent"
+                          style={{
+                            width: `${person.assigned ? Math.round((person.done / person.assigned) * 100) : 0}%`,
+                          }}
+                        />
+                      </span>
+                      <span className="w-24 text-right text-muted">
+                        {person.done}/{person.assigned} pts
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
             <p className="mt-2 text-[11px] text-muted">
               {Object.entries(
                 cycle.issues.reduce<Record<string, number>>((acc, issue) => {

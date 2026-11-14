@@ -7,7 +7,8 @@ import { headers } from "next/headers";
 import { isPrivateHost } from "@/lib/auth-allowlist";
 import { signIn, signOut } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { rateLimit } from "@/lib/rate-limit";
+import { rateLimitShared } from "@/lib/rate-limit";
+import { isTwoFactorEnabled } from "@/lib/services/two-factor";
 import { isDemoMode } from "@/lib/utils";
 import { registerSchema } from "@/lib/validators";
 
@@ -15,7 +16,7 @@ async function authThrottle(action: string) {
   const h = await headers();
   const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "local";
 
-  return rateLimit(`auth:${action}:${ip}`, 30, 60_000);
+  return rateLimitShared(`auth:${action}:${ip}`, 30, 60_000);
 }
 
 export async function registerAction(formData: FormData) {
@@ -87,17 +88,58 @@ export async function loginAction(formData: FormData) {
 
   const email = String(formData.get("email") ?? "").toLowerCase();
   const password = String(formData.get("password") ?? "");
+  const code = String(formData.get("code") ?? "").trim();
   const callbackUrl = String(formData.get("callbackUrl") ?? "/onboarding");
+
+  // Ask for the second factor only after the password is right, so a wrong password never
+  // reveals whether an account has 2FA.
+  if (!code) {
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    if (
+      user?.passwordHash &&
+      !user.disabled &&
+      (await bcrypt.compare(password, user.passwordHash)) &&
+      (await isTwoFactorEnabled(user.id))
+    ) {
+      return { needsCode: true as const };
+    }
+  }
 
   try {
     await signIn("credentials", {
       email,
       password,
+      code,
       redirectTo: callbackUrl,
     });
   } catch (error) {
     if (error instanceof AuthError) {
-      return { error: "Invalid email or password" };
+      return {
+        error: code
+          ? "Invalid code, or too many attempts. Try again in a few minutes."
+          : "Invalid email or password",
+        ...(code ? { needsCode: true as const } : {}),
+      };
+    }
+    throw error;
+  }
+}
+
+/** Finish a passkey sign-in: the browser's signed assertion is checked inside the provider. */
+export async function passkeySignInAction(
+  assertion: string,
+  callbackUrl = "/onboarding",
+) {
+  const throttle = await authThrottle("passkey");
+
+  if (!throttle.ok) return { error: "Too many attempts. Try again shortly." };
+
+  try {
+    await signIn("passkey", { assertion, redirectTo: callbackUrl });
+  } catch (error) {
+    if (error instanceof AuthError) {
+      return { error: "That passkey could not be verified. Try again." };
     }
     throw error;
   }

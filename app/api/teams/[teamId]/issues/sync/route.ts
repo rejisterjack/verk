@@ -10,7 +10,7 @@ export async function GET(
   try {
     const { teamId } = await context.params;
 
-    await authenticateRequest(request, teamId);
+    await authenticateRequest(request, teamId, "GUEST");
     const since = new URL(request.url).searchParams.get("since");
 
     if (!since) {

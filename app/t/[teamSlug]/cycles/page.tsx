@@ -1,12 +1,19 @@
 import NextLink from "next/link";
 import { notFound } from "next/navigation";
 
+import { VelocityChart } from "@/components/cycle-charts";
 import { CreateCycleForm } from "@/components/cycle-forms";
 import { SubmitButton as Button } from "@/components/submit-button";
 import { EmptyState } from "@/components/empty-state";
 import { ViewToolbar } from "@/components/page-header";
-import { createCycleAction, setActiveCycleAction } from "@/lib/actions/cycles";
+import {
+  advanceCycleAction,
+  createCycleAction,
+  scheduleNextCycleAction,
+  setActiveCycleAction,
+} from "@/lib/actions/cycles";
 import { requireTeamBySlug } from "@/lib/rbac";
+import { teamVelocity } from "@/lib/services/cycle-analytics";
 import * as cyclesService from "@/lib/services/cycles";
 
 export default async function CyclesPage({
@@ -26,7 +33,10 @@ export default async function CyclesPage({
     notFound();
   }
   const { team } = teamCtx;
-  const cycles = await cyclesService.listCycles(team.id);
+  const [cycles, velocity] = await Promise.all([
+    cyclesService.listCycles(team.id),
+    teamVelocity(team.id),
+  ]);
 
   const now = new Date();
   const upcoming = cycles.filter(
@@ -54,15 +64,7 @@ export default async function CyclesPage({
           <form
             action={async () => {
               "use server";
-              const ctx = await requireTeamBySlug(teamSlug);
-
-              await cyclesService.advanceCycle(
-                ctx.team.id,
-                ctx.membership.role,
-                {
-                  carryOver: true,
-                },
-              );
+              await advanceCycleAction(teamSlug);
             }}
           >
             <Button size="sm" type="submit" variant="secondary">
@@ -72,6 +74,17 @@ export default async function CyclesPage({
         }
         title="Cycles"
       />
+      <form
+        action={async () => {
+          "use server";
+          await scheduleNextCycleAction(teamSlug);
+        }}
+        className="border-b border-separator px-4 py-2"
+      >
+        <Button size="sm" type="submit" variant="tertiary">
+          Schedule upcoming cycle
+        </Button>
+      </form>
 
       <div className="border-b border-separator px-4 py-3">
         <CreateCycleForm
@@ -81,6 +94,19 @@ export default async function CyclesPage({
           }}
         />
       </div>
+
+      {velocity.points.length > 1 ? (
+        <div className="border-b border-separator px-4 py-3">
+          <h2 className="mb-1 text-[12px] font-medium uppercase tracking-wide text-muted">
+            Velocity
+          </h2>
+          <VelocityChart
+            average={velocity.average}
+            points={velocity.points}
+            unit="pts"
+          />
+        </div>
+      ) : null}
 
       {cycles.length === 0 ? (
         <EmptyState

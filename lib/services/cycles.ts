@@ -7,8 +7,8 @@ export async function listCycles(teamId: string) {
   const cycles = await prisma.cycle.findMany({
     where: { teamId },
     include: {
-      _count: { select: { issues: true } },
-      issues: { select: { status: true } },
+      _count: { select: { issues: { where: { archivedAt: null } } } },
+      issues: { select: { status: true }, where: { archivedAt: null } },
     },
     orderBy: [{ isActive: "desc" }, { startDate: "desc" }],
   });
@@ -35,6 +35,7 @@ export async function getCycle(teamId: string, cycleId: string) {
     where: { id: cycleId, teamId },
     include: {
       issues: {
+        where: { archivedAt: null },
         include: {
           assignee: {
             select: { id: true, name: true, email: true, image: true },
@@ -42,7 +43,7 @@ export async function getCycle(teamId: string, cycleId: string) {
         },
         orderBy: [{ status: "asc" }, { order: "asc" }],
       },
-      _count: { select: { issues: true } },
+      _count: { select: { issues: { where: { archivedAt: null } } } },
     },
   });
 }
@@ -125,6 +126,22 @@ export async function advanceDueCycles() {
     include: { team: { select: { cycleCooldownDays: true } } },
   });
   const advanced: string[] = [];
+  const teams = await prisma.team.findMany({
+    where: { cyclesEnabled: true },
+    select: { id: true },
+  });
+
+  for (const team of teams) {
+    for (let i = 0; i < 2; i += 1) {
+      const upcoming = await prisma.cycle.count({
+        where: { teamId: team.id, startDate: { gt: new Date() } },
+      });
+
+      if (upcoming >= 1) break;
+      await scheduleNextCycle(team.id, "OWNER");
+      advanced.push(team.id);
+    }
+  }
 
   for (const cycle of due) {
     const ready = new Date(cycle.endDate);
@@ -198,6 +215,32 @@ export async function advanceCycle(
     });
 
     return next;
+  });
+}
+
+export async function scheduleNextCycle(teamId: string, role: Role) {
+  assertRole(role, "MEMBER");
+  const team = await prisma.team.findUniqueOrThrow({ where: { id: teamId } });
+  const latest = await prisma.cycle.findFirst({
+    where: { teamId },
+    orderBy: { endDate: "desc" },
+  });
+  const start = latest ? new Date(latest.endDate) : new Date();
+
+  start.setDate(start.getDate() + (team.cycleCooldownDays || 0));
+  const end = new Date(start);
+
+  end.setDate(end.getDate() + (team.cycleDurationWeeks || 2) * 7);
+  const count = await prisma.cycle.count({ where: { teamId } });
+
+  return prisma.cycle.create({
+    data: {
+      teamId,
+      name: `Cycle ${count + 1}`,
+      startDate: start,
+      endDate: end,
+      isActive: !latest,
+    },
   });
 }
 

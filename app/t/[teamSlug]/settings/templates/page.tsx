@@ -49,7 +49,10 @@ export default async function TemplatesPage({
         description="Apply these from the new-issue form"
         title="Templates"
       />
-      <CreateTemplateForm action={create} />
+      <CreateTemplateForm
+        action={create}
+        estimateScale={teamCtx.team.estimateScale}
+      />
       {templates.length === 0 ? (
         <EmptyState
           description="Create a template to speed up new issues."
@@ -74,6 +77,7 @@ export default async function TemplatesPage({
                   });
                   redirect(`/t/${teamSlug}/settings/templates`);
                 }}
+                estimateScale={teamCtx.team.estimateScale}
                 template={template}
               />
               <form

@@ -7,7 +7,21 @@ import { useEffect, useState } from "react";
 
 import { SelectField } from "@/components/ui/select-field";
 
-type Link = { id: string; kind: string; url: string };
+function hostOf(url: string) {
+  try {
+    return new URL(url).host;
+  } catch {
+    return url;
+  }
+}
+
+type Link = {
+  id: string;
+  kind: string;
+  url: string;
+  title?: string;
+  description?: string;
+};
 
 export function IssueLinks({
   teamId,
@@ -40,30 +54,42 @@ export function IssueLinks({
       <h2 className="text-sm font-semibold">Links</h2>
       <ul className="mt-2 space-y-1 text-sm">
         {links.map((link) => (
-          <li key={link.id} className="flex items-center gap-2">
-            <span className="text-muted">{link.kind}</span>{" "}
-            <a
-              className="text-accent"
-              href={link.url}
-              rel="noreferrer"
-              target="_blank"
-            >
-              {link.url}
-            </a>
-            <Button
-              size="sm"
-              variant="danger"
-              onPress={() => {
-                void fetch(`/api/teams/${teamId}/issues/${issueId}/links`, {
-                  method: "DELETE",
-                  credentials: "same-origin",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ id: link.id }),
-                }).then(() => load());
-              }}
-            >
-              Remove
-            </Button>
+          <li
+            key={link.id}
+            className="rounded-lg border border-separator px-3 py-2"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <a
+                className="min-w-0"
+                href={link.url}
+                rel="noreferrer"
+                target="_blank"
+              >
+                <p className="text-[11px] uppercase tracking-wide text-muted">
+                  {link.kind} · {hostOf(link.url)}
+                </p>
+                <p className="font-medium text-accent">
+                  {link.title || link.url}
+                </p>
+                {link.description ? (
+                  <p className="text-[12px] text-muted">{link.description}</p>
+                ) : null}
+              </a>
+              <Button
+                size="sm"
+                variant="danger"
+                onPress={() => {
+                  void fetch(`/api/teams/${teamId}/issues/${issueId}/links`, {
+                    method: "DELETE",
+                    credentials: "same-origin",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ id: link.id }),
+                  }).then(() => load());
+                }}
+              >
+                Remove
+              </Button>
+            </div>
           </li>
         ))}
       </ul>

@@ -17,12 +17,12 @@ export default function HomePage() {
       <section className="relative overflow-hidden pt-14 pb-20 verk-grain verk-grid">
         <div className="relative z-20 mx-auto max-w-6xl px-6 text-center">
           {/* Eyebrow Badge */}
-          <div className="animate-verk-rise inline-flex items-center gap-2.5 rounded-full border border-separator/80 bg-surface/90 px-3.5 py-1 text-xs font-medium text-foreground backdrop-blur-md shadow-xs">
+          <div className="animate-verk-rise inline-flex max-w-full flex-wrap items-center justify-center gap-x-2.5 gap-y-1 rounded-2xl border border-separator/80 bg-surface/90 px-3.5 py-1.5 text-xs font-medium text-foreground backdrop-blur-md shadow-xs">
             <VerkIcon glow={false} size={15} />
             <span>Next.js 16 + Neon Serverless Postgres</span>
-            <span className="text-muted/60">|</span>
+            <span className="hidden text-muted/60 sm:inline">|</span>
             <a
-              className="flex items-center gap-1 font-mono text-[11px] text-accent hover:underline"
+              className="hidden items-center gap-1 font-mono text-[11px] text-accent hover:underline sm:flex"
               href={siteConfig.links.github}
               rel="noopener noreferrer"
               target="_blank"
@@ -61,15 +61,6 @@ export default function HomePage() {
               </svg>
               Deploy to Vercel
               <ArrowRightIcon className="h-4 w-4" />
-            </a>
-
-            <a
-              className="inline-flex items-center gap-2 rounded-xl border border-separator/80 bg-surface/80 px-6 py-3.5 text-sm font-medium text-foreground backdrop-blur-md transition-all hover:border-foreground/30 hover:bg-surface hover:-translate-y-0.5"
-              href={siteConfig.links.demo}
-              rel="noopener noreferrer"
-              target="_blank"
-            >
-              Test Live Demo
             </a>
 
             <NextLink

@@ -1,12 +1,9 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
 import { ViewToolbar } from "@/components/page-header";
-import {
-  AddWorkflowStatusForm,
-  WorkflowStatusRow,
-} from "@/components/workflow-settings-forms";
+import { WorkflowEditor } from "@/components/workflow-editor";
 import { requireTeamBySlug } from "@/lib/rbac";
-import * as workspaces from "@/lib/services/workspaces";
+import { getWorkflow, statusIssueCounts } from "@/lib/services/workflow";
 
 export default async function WorkflowSettingsPage({
   params,
@@ -23,67 +20,28 @@ export default async function WorkflowSettingsPage({
   }
 
   const teamId = teamCtx.team.id;
-  const statuses = await workspaces.listWorkflowStatuses(teamId);
-
-  async function addStatus(formData: FormData) {
-    "use server";
-    await workspaces.createWorkflowStatus(teamId, {
-      name: String(formData.get("name") ?? ""),
-      key: String(formData.get("key") ?? ""),
-      type: String(formData.get("type") ?? "unstarted"),
-    });
-    redirect(`/t/${teamSlug}/settings/workflow`);
-  }
-
-  async function rename(formData: FormData) {
-    "use server";
-    const id = String(formData.get("id") ?? "");
-    const name = String(formData.get("name") ?? "");
-
-    await workspaces.renameWorkflowStatus(teamId, id, name);
-    redirect(`/t/${teamSlug}/settings/workflow`);
-  }
-
-  async function move(formData: FormData) {
-    "use server";
-    const id = String(formData.get("id") ?? "");
-    const direction = String(formData.get("direction") ?? "");
-    const current = await workspaces.listWorkflowStatuses(teamId);
-    const idx = current.findIndex((s) => s.id === id);
-
-    if (idx < 0) return;
-    const next = [...current];
-    const swapWith = direction === "up" ? idx - 1 : idx + 1;
-
-    if (swapWith < 0 || swapWith >= next.length) return;
-    [next[idx], next[swapWith]] = [next[swapWith], next[idx]];
-    await workspaces.reorderWorkflowStatuses(
-      teamId,
-      next.map((s) => s.id),
-    );
-    redirect(`/t/${teamSlug}/settings/workflow`);
-  }
+  const [statuses, counts] = await Promise.all([
+    getWorkflow(teamId),
+    statusIssueCounts(teamId),
+  ]);
 
   return (
-    <div className="px-4 py-3 max-w-lg">
+    <div className="max-w-2xl px-4 py-3">
       <ViewToolbar
-        description="Rename, reorder, or add a status. New statuses use a workflow key and map onto the nearest built-in column type."
+        description="Statuses are grouped by type: backlog, unstarted, started, completed, canceled. The type decides what a status means (for example, completed counts as done in cycles and insights). Rename, recolor, reorder within a type, add your own, or delete one by moving its issues to another status of the same type."
         title="Workflow"
       />
-      <AddWorkflowStatusForm action={addStatus} />
-      <ul className="space-y-3">
-        {statuses.map((s, i) => (
-          <WorkflowStatusRow
-            key={s.id}
-            index={i}
-            moveDownAction={move}
-            moveUpAction={move}
-            renameAction={rename}
-            status={s}
-            total={statuses.length}
-          />
-        ))}
-      </ul>
+      <WorkflowEditor
+        statuses={statuses.map((status) => ({
+          id: status.id,
+          name: status.name,
+          key: status.key,
+          type: status.type,
+          color: status.color,
+          count: counts.get(status.id) ?? 0,
+        }))}
+        teamSlug={teamSlug}
+      />
     </div>
   );
 }

@@ -5,7 +5,7 @@ import type { IssueStatus, Priority } from "@/lib/generated/prisma/client";
 import { Chip } from "@heroui/react";
 import clsx from "clsx";
 
-import { PRIORITY_LABELS, STATUS_LABELS } from "@/lib/labels";
+import { useT } from "@/components/locale-provider";
 
 const statusColor: Record<
   IssueStatus,
@@ -41,6 +41,9 @@ export function StatusChip({
   status: IssueStatus;
   quiet?: boolean;
 }) {
+  const { t } = useT();
+  const label = t(`status.${status}`);
+
   if (quiet) {
     return (
       <span className="inline-flex items-center gap-1.5 text-[12px] text-muted">
@@ -48,14 +51,14 @@ export function StatusChip({
           aria-hidden
           className={clsx("size-1.5 shrink-0 rounded-full", statusDot[status])}
         />
-        <span className="truncate">{STATUS_LABELS[status]}</span>
+        <span className="truncate">{label}</span>
       </span>
     );
   }
 
   return (
     <Chip color={statusColor[status]} size="sm" variant="soft">
-      {STATUS_LABELS[status]}
+      {label}
     </Chip>
   );
 }
@@ -67,6 +70,9 @@ export function PriorityChip({
   priority: Priority;
   quiet?: boolean;
 }) {
+  const { t } = useT();
+  const label = t(`priority.${priority}`);
+
   if (priority === "NONE") {
     return <span className="text-[12px] text-muted">—</span>;
   }
@@ -79,7 +85,7 @@ export function PriorityChip({
           priorityTone[priority],
         )}
       >
-        {PRIORITY_LABELS[priority]}
+        {label}
       </span>
     );
   }
@@ -93,7 +99,7 @@ export function PriorityChip({
 
   return (
     <Chip color={color} size="sm" variant="soft">
-      {PRIORITY_LABELS[priority]}
+      {label}
     </Chip>
   );
 }

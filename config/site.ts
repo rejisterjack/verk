@@ -15,7 +15,6 @@ export const siteConfig = {
   ],
   links: {
     github: "https://github.com/rejisterjack/verk",
-    demo: "https://verk.rejisterjack.com",
     deploy:
       "https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Frejisterjack%2Fverk&env=DATABASE_URL,DIRECT_URL,AUTH_SECRET,AUTH_URL&envDescription=Required%3A%20DATABASE_URL%20(Neon%20pooled)%2C%20DIRECT_URL%20(Neon%20direct)%2C%20AUTH_SECRET%2C%20AUTH_URL&project-name=verk&repository-name=verk",
   },

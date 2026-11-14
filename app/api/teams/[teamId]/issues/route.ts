@@ -10,23 +10,31 @@ export async function GET(
   try {
     const { teamId } = await context.params;
 
-    await authenticateRequest(request, teamId);
+    const auth = await authenticateRequest(request, teamId);
     const url = new URL(request.url);
     const status = url.searchParams.getAll("status");
     const triageRaw = url.searchParams.get("triage");
-    const result = await issuesService.listIssues(teamId, {
-      status:
-        status.length === 1 ? status[0] : status.length ? status : undefined,
-      priority: url.searchParams.get("priority") ?? undefined,
-      cycleId: url.searchParams.get("cycleId") ?? undefined,
-      assigneeId: url.searchParams.get("assigneeId") ?? undefined,
-      projectId: url.searchParams.get("projectId") ?? undefined,
-      number: url.searchParams.get("number") ?? undefined,
-      triage: triageRaw == null ? undefined : triageRaw,
-      search: url.searchParams.get("search") ?? undefined,
-      cursor: url.searchParams.get("cursor") ?? undefined,
-      take: url.searchParams.get("take") ?? undefined,
-    });
+    const result = await issuesService.listIssues(
+      teamId,
+      {
+        status:
+          status.length === 1 ? status[0] : status.length ? status : undefined,
+        priority: url.searchParams.get("priority") ?? undefined,
+        cycleId: url.searchParams.get("cycleId") ?? undefined,
+        assigneeId: url.searchParams.get("assigneeId") ?? undefined,
+        projectId: url.searchParams.get("projectId") ?? undefined,
+        number: url.searchParams.get("number") ?? undefined,
+        triage: triageRaw == null ? undefined : triageRaw,
+        archived: url.searchParams.get("archived") ?? undefined,
+        parentId: url.searchParams.get("parentId") ?? undefined,
+        topLevel: url.searchParams.get("topLevel") ?? undefined,
+        filter: url.searchParams.get("filter") ?? undefined,
+        search: url.searchParams.get("search") ?? undefined,
+        cursor: url.searchParams.get("cursor") ?? undefined,
+        take: url.searchParams.get("take") ?? undefined,
+      },
+      { userId: auth.user.id },
+    );
 
     return Response.json(result);
   } catch (error) {

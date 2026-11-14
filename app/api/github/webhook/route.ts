@@ -1,23 +1,30 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
-
 import { prisma } from "@/lib/db";
-import { rateLimit } from "@/lib/rate-limit";
+import {
+  classifyPullRequest,
+  findMentions,
+  type PullRequestPayload,
+  pullRequestText,
+} from "@/lib/github-events";
+import { verifyGithubSignature } from "@/lib/github";
+import { rateLimitShared } from "@/lib/rate-limit";
 import { addComment } from "@/lib/services/comments";
+import { issueKey } from "@/lib/utils";
 
-function safeEqual(a: string, b: string) {
-  const left = Buffer.from(a);
-  const right = Buffer.from(b);
-
-  if (left.length !== right.length) return false;
-
-  return timingSafeEqual(left, right);
-}
-
+/**
+ * GitHub webhook (set the content type to JSON and send `pull_request` events).
+ *
+ * For every issue key a pull request mentions in a team linked to that repository:
+ *  - the pull request is linked on the issue once, with a comment;
+ *  - opening it (not as a draft) or marking it ready moves a backlog or todo issue to In progress;
+ *  - merging it finishes the issue when the text says "fixes/closes/resolves ENG-12", or when the
+ *    team turned on "merging completes issues".
+ * Only teams whose `githubRepo` matches `repository.full_name` are ever touched.
+ */
 export async function POST(request: Request) {
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
 
-  if (!rateLimit(`github-webhook:${ip}`).ok) {
+  if (!(await rateLimitShared(`github-webhook:${ip}`)).ok) {
     return Response.json({ error: "Too many requests" }, { status: 429 });
   }
   const secret = process.env.GITHUB_WEBHOOK_SECRET;
@@ -26,86 +33,100 @@ export async function POST(request: Request) {
 
   const raw = await request.text();
   const signature = request.headers.get("x-hub-signature-256") ?? "";
-  const expected = `sha256=${createHmac("sha256", secret).update(raw).digest("hex")}`;
 
-  if (!signature || !safeEqual(signature, expected)) {
+  if (!signature || !verifyGithubSignature(secret, raw, signature)) {
     return Response.json({ error: "Invalid signature" }, { status: 401 });
   }
+  if (request.headers.get("x-github-event") === "ping") {
+    return Response.json({ ok: true, pong: true });
+  }
+  let event: PullRequestPayload;
 
-  const event = JSON.parse(raw) as {
-    action?: string;
-    pull_request?: {
-      title?: string;
-      html_url?: string;
-      merged?: boolean;
-      head?: { ref?: string };
-    };
-    repository?: { full_name?: string };
-  };
+  try {
+    event = JSON.parse(raw) as PullRequestPayload;
+  } catch {
+    return Response.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+  const action = classifyPullRequest(event);
+  const repo = event.repository?.full_name;
 
-  if (
-    event.action !== "opened" &&
-    event.action !== "edited" &&
-    event.action !== "closed"
-  ) {
+  if (action.kind === "ignore" || !repo) {
     return Response.json({ ok: true, skipped: true });
   }
-
-  const repo = event.repository?.full_name;
-  const text = `${event.pull_request?.title ?? ""} ${event.pull_request?.head?.ref ?? ""}`;
-  const match = text.match(/([A-Za-z0-9]+)-(\d+)/);
-
-  if (!repo || !match) return Response.json({ ok: true, linked: false });
-
-  const number = Number(match[2]);
-  const team = await prisma.team.findFirst({
-    where: { githubRepo: repo },
-  });
-
-  if (!team) return Response.json({ ok: true, linked: false });
-
-  const issue = await prisma.issue.findFirst({
-    where: { teamId: team.id, number },
-  });
-
-  if (!issue) return Response.json({ ok: true, linked: false });
-
-  const owner = await prisma.membership.findFirst({
-    where: { teamId: team.id, role: "OWNER" },
-  });
-
-  if (!owner) return Response.json({ ok: true, linked: false });
-
+  const teams = await prisma.team.findMany({ where: { githubRepo: repo } });
+  const text = pullRequestText(event);
   const url = event.pull_request?.html_url;
+  const touched: string[] = [];
 
-  if (url) {
-    const existing = await prisma.issueLink.findFirst({
-      where: { issueId: issue.id, kind: "github", url },
+  for (const team of teams) {
+    const mentions = findMentions(text, team.slug);
+
+    if (!mentions.length) continue;
+    const owner = await prisma.membership.findFirst({
+      where: { teamId: team.id, role: "OWNER" },
+      select: { userId: true },
     });
 
-    if (!existing) {
-      await prisma.issueLink.create({
-        data: { issueId: issue.id, kind: "github", url },
+    if (!owner) continue;
+
+    for (const mention of mentions) {
+      const issue = await prisma.issue.findFirst({
+        where: { teamId: team.id, number: mention.number, archivedAt: null },
+        select: { id: true, status: true },
       });
-      await addComment(team.id, issue.id, owner.userId, {
-        body: `GitHub pull request mentions ${match[0]} in ${repo}.`,
-      });
+
+      if (!issue) continue;
+      const key = issueKey(team.slug, mention.number);
+
+      if (url) {
+        const existing = await prisma.issueLink.findFirst({
+          where: { issueId: issue.id, kind: "github", url },
+        });
+
+        if (!existing) {
+          await prisma.issueLink.create({
+            data: { issueId: issue.id, kind: "github", url },
+          });
+          await addComment(team.id, issue.id, owner.userId, {
+            body: `GitHub pull request ${url} mentions ${key} in ${repo}.`,
+          });
+        }
+      }
+      const { updateIssue } = await import("@/lib/services/issues");
+
+      if (
+        action.kind === "started" &&
+        (issue.status === "BACKLOG" || issue.status === "TODO")
+      ) {
+        await updateIssue(
+          team.id,
+          issue.id,
+          { status: "IN_PROGRESS" },
+          "OWNER",
+          owner.userId,
+        );
+      }
+      if (
+        action.kind === "merged" &&
+        (mention.closes || team.githubMergeCompletes) &&
+        issue.status !== "DONE" &&
+        issue.status !== "CANCELLED"
+      ) {
+        await updateIssue(
+          team.id,
+          issue.id,
+          { status: "DONE" },
+          "OWNER",
+          owner.userId,
+        );
+      }
+      touched.push(key);
     }
   }
 
-  const merged = event.action === "closed" && event.pull_request?.merged;
-
-  if (merged && team.githubMergeCompletes) {
-    const { updateIssue } = await import("@/lib/services/issues");
-
-    await updateIssue(
-      team.id,
-      issue.id,
-      { status: "DONE" },
-      "OWNER",
-      owner.userId,
-    );
-  }
-
-  return Response.json({ ok: true, linked: true });
+  return Response.json({
+    ok: true,
+    linked: touched.length > 0,
+    issues: touched,
+  });
 }

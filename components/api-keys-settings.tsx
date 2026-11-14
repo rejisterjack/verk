@@ -10,6 +10,7 @@ type KeyRow = {
   id: string;
   name: string;
   prefix: string;
+  role: string;
   createdAt: Date | string;
   lastUsedAt: Date | string | null;
 };
@@ -21,14 +22,23 @@ function formatUtcStamp(value: Date | string) {
   return `${iso.slice(0, 16).replace("T", " ")} UTC`;
 }
 
+const ROLE_HINT: Record<string, string> = {
+  GUEST: "Read-only",
+  MEMBER: "Create and edit issues, comments, projects",
+  ADMIN: "Everything a team admin can do",
+};
+
 export function ApiKeysSettings({
   teamSlug,
   keys,
   canAdmin,
+  grantableRoles = ["GUEST", "MEMBER", "ADMIN"],
 }: {
   teamSlug: string;
   keys: KeyRow[];
   canAdmin: boolean;
+  /** Roles the current user may give a new key (never above their own). */
+  grantableRoles?: string[];
 }) {
   const router = useRouter();
   const [plaintext, setPlaintext] = useState<string | null>(null);
@@ -65,6 +75,22 @@ export function ApiKeysSettings({
           <Label>Name</Label>
           <Input placeholder="Cursor agent" />
         </TextField>
+        <label className="text-sm text-muted">
+          Role
+          <select
+            className="mt-1 block h-10 rounded-lg border border-separator bg-background px-2 text-sm text-foreground"
+            defaultValue="MEMBER"
+            name="role"
+            title="A key never has more power than its creator"
+          >
+            {grantableRoles.map((role) => (
+              <option key={role} value={role}>
+                {role.charAt(0) + role.slice(1).toLowerCase()} ·{" "}
+                {ROLE_HINT[role]}
+              </option>
+            ))}
+          </select>
+        </label>
         <Button type="submit">Create key</Button>
         {error ? <p className="w-full text-sm text-danger">{error}</p> : null}
         {plaintext ? (
@@ -96,6 +122,7 @@ export function ApiKeysSettings({
             <tr>
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">Prefix</th>
+              <th className="px-4 py-3">Role</th>
               <th className="px-4 py-3">Last used</th>
               <th className="px-4 py-3" />
             </tr>
@@ -108,6 +135,9 @@ export function ApiKeysSettings({
               >
                 <td className="px-4 py-3">{key.name}</td>
                 <td className="px-4 py-3 font-mono text-xs">{key.prefix}…</td>
+                <td className="px-4 py-3 text-xs">
+                  {key.role.charAt(0) + key.role.slice(1).toLowerCase()}
+                </td>
                 <td className="px-4 py-3 text-muted">
                   {key.lastUsedAt ? formatUtcStamp(key.lastUsedAt) : "Never"}
                 </td>

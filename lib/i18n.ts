@@ -1,0 +1,376 @@
+/**
+ * Minimal, dependency-free i18n. English is the source of truth: every other language is a
+ * partial dictionary, and a missing key falls back to English, so a half-translated language is
+ * safe to ship. Keys are typed, so a typo in a `t("...")` call is a compile error.
+ *
+ * Coverage is the shared vocabulary the whole app reuses (statuses, priorities, navigation, common
+ * buttons and the shortcut help). Long-form screens are still English.
+ */
+
+export const LOCALES = [
+  { id: "en", label: "English" },
+  { id: "de", label: "Deutsch" },
+  { id: "fr", label: "Français" },
+  { id: "es", label: "Español" },
+] as const;
+
+export type Locale = (typeof LOCALES)[number]["id"];
+export const DEFAULT_LOCALE: Locale = "en";
+export const LOCALE_COOKIE = "verk-locale";
+
+const en = {
+  "status.BACKLOG": "Backlog",
+  "status.TODO": "Todo",
+  "status.IN_PROGRESS": "In progress",
+  "status.DONE": "Done",
+  "status.CANCELLED": "Cancelled",
+  "priority.URGENT": "Urgent",
+  "priority.HIGH": "High",
+  "priority.MEDIUM": "Medium",
+  "priority.LOW": "Low",
+  "priority.NONE": "No priority",
+  "nav.inbox": "Inbox",
+  "nav.myIssues": "My issues",
+  "nav.issues": "Issues",
+  "nav.cycles": "Cycles",
+  "nav.projects": "Projects",
+  "nav.views": "Views",
+  "nav.triage": "Triage",
+  "nav.drafts": "Drafts",
+  "nav.initiatives": "Initiatives",
+  "nav.roadmap": "Roadmap",
+  "nav.timeline": "Timeline",
+  "nav.insights": "Insights",
+  "nav.releases": "Releases",
+  "nav.settings": "Settings",
+  "action.create": "Create",
+  "action.cancel": "Cancel",
+  "action.save": "Save",
+  "action.delete": "Delete",
+  "action.search": "Search",
+  "action.newIssue": "New issue",
+  "action.saveDraft": "Save draft",
+  "empty.caughtUp": "You're all caught up.",
+  "empty.noResults": "No results",
+  "settings.language": "Language",
+  "settings.languageHint":
+    "The language of the app's menus and labels. Saved in this browser.",
+  "shortcuts.title": "Keyboard shortcuts",
+  "shortcuts.openCommand": "Open command menu",
+  "shortcuts.createIssue": "Create issue",
+  "settings.general": "General",
+  "settings.appearance": "Appearance",
+  "settings.notifications": "Notifications",
+  "settings.members": "Members",
+  "settings.labels": "Labels",
+  "settings.templates": "Templates",
+  "settings.views": "Views",
+  "settings.workflow": "Workflow",
+  "settings.automations": "Automations",
+  "settings.importLinear": "Import (Linear)",
+  "settings.importCsv": "Import (CSV)",
+  "settings.export": "Export",
+  "settings.apiKeys": "API keys",
+  "settings.webhooks": "Webhooks",
+  "settings.oauth": "OAuth apps",
+  "settings.ask": "Ask link",
+  "settings.audit": "Audit log",
+  "settings.agents": "Agents",
+  "display.group": "Group",
+  "display.sort": "Sort",
+  "group.none": "No grouping",
+  "group.status": "Status",
+  "group.priority": "Priority",
+  "group.assignee": "Assignee",
+  "group.project": "Project",
+  "group.cycle": "Cycle",
+  "sort.manual": "Default order",
+  "sort.priority": "Priority",
+  "sort.newest": "Newest first",
+  "sort.oldest": "Oldest first",
+  "sort.title": "Title A–Z",
+  "group.unassigned": "Unassigned",
+  "group.noProject": "No project",
+  "group.noCycle": "No cycle",
+} as const;
+
+export type MessageKey = keyof typeof en;
+
+const de: Partial<Record<MessageKey, string>> = {
+  "status.BACKLOG": "Backlog",
+  "status.TODO": "Zu erledigen",
+  "status.IN_PROGRESS": "In Arbeit",
+  "status.DONE": "Erledigt",
+  "status.CANCELLED": "Abgebrochen",
+  "priority.URGENT": "Dringend",
+  "priority.HIGH": "Hoch",
+  "priority.MEDIUM": "Mittel",
+  "priority.LOW": "Niedrig",
+  "priority.NONE": "Keine Priorität",
+  "nav.inbox": "Posteingang",
+  "nav.myIssues": "Meine Tickets",
+  "nav.issues": "Tickets",
+  "nav.cycles": "Zyklen",
+  "nav.projects": "Projekte",
+  "nav.views": "Ansichten",
+  "nav.triage": "Triage",
+  "nav.drafts": "Entwürfe",
+  "nav.initiatives": "Initiativen",
+  "nav.roadmap": "Roadmap",
+  "nav.timeline": "Zeitleiste",
+  "nav.insights": "Auswertungen",
+  "nav.releases": "Releases",
+  "nav.settings": "Einstellungen",
+  "action.create": "Erstellen",
+  "action.cancel": "Abbrechen",
+  "action.save": "Speichern",
+  "action.delete": "Löschen",
+  "action.search": "Suchen",
+  "action.newIssue": "Neues Ticket",
+  "action.saveDraft": "Entwurf speichern",
+  "empty.caughtUp": "Alles erledigt.",
+  "empty.noResults": "Keine Ergebnisse",
+  "settings.language": "Sprache",
+  "settings.languageHint":
+    "Die Sprache der Menüs und Beschriftungen. Wird in diesem Browser gespeichert.",
+  "shortcuts.title": "Tastenkürzel",
+  "shortcuts.openCommand": "Befehlsmenü öffnen",
+  "shortcuts.createIssue": "Ticket erstellen",
+  "settings.general": "Allgemein",
+  "settings.appearance": "Darstellung",
+  "settings.notifications": "Benachrichtigungen",
+  "settings.members": "Mitglieder",
+  "settings.labels": "Labels",
+  "settings.templates": "Vorlagen",
+  "settings.views": "Ansichten",
+  "settings.workflow": "Workflow",
+  "settings.automations": "Automatisierungen",
+  "settings.importLinear": "Import (Linear)",
+  "settings.importCsv": "Import (CSV)",
+  "settings.export": "Export",
+  "settings.apiKeys": "API-Schlüssel",
+  "settings.webhooks": "Webhooks",
+  "settings.oauth": "OAuth-Apps",
+  "settings.ask": "Ask-Link",
+  "settings.audit": "Audit-Protokoll",
+  "settings.agents": "Agenten",
+  "display.group": "Gruppieren",
+  "display.sort": "Sortieren",
+  "group.none": "Keine Gruppierung",
+  "group.status": "Status",
+  "group.priority": "Priorität",
+  "group.assignee": "Zuständig",
+  "group.project": "Projekt",
+  "group.cycle": "Zyklus",
+  "sort.manual": "Standardreihenfolge",
+  "sort.priority": "Priorität",
+  "sort.newest": "Neueste zuerst",
+  "sort.oldest": "Älteste zuerst",
+  "sort.title": "Titel A–Z",
+  "group.unassigned": "Nicht zugewiesen",
+  "group.noProject": "Kein Projekt",
+  "group.noCycle": "Kein Zyklus",
+};
+
+const fr: Partial<Record<MessageKey, string>> = {
+  "status.BACKLOG": "Backlog",
+  "status.TODO": "À faire",
+  "status.IN_PROGRESS": "En cours",
+  "status.DONE": "Terminé",
+  "status.CANCELLED": "Annulé",
+  "priority.URGENT": "Urgente",
+  "priority.HIGH": "Haute",
+  "priority.MEDIUM": "Moyenne",
+  "priority.LOW": "Basse",
+  "priority.NONE": "Aucune priorité",
+  "nav.inbox": "Boîte de réception",
+  "nav.myIssues": "Mes tickets",
+  "nav.issues": "Tickets",
+  "nav.cycles": "Cycles",
+  "nav.projects": "Projets",
+  "nav.views": "Vues",
+  "nav.triage": "Tri",
+  "nav.drafts": "Brouillons",
+  "nav.initiatives": "Initiatives",
+  "nav.roadmap": "Feuille de route",
+  "nav.timeline": "Chronologie",
+  "nav.insights": "Analyses",
+  "nav.releases": "Versions",
+  "nav.settings": "Paramètres",
+  "action.create": "Créer",
+  "action.cancel": "Annuler",
+  "action.save": "Enregistrer",
+  "action.delete": "Supprimer",
+  "action.search": "Rechercher",
+  "action.newIssue": "Nouveau ticket",
+  "action.saveDraft": "Enregistrer le brouillon",
+  "empty.caughtUp": "Tout est à jour.",
+  "empty.noResults": "Aucun résultat",
+  "settings.language": "Langue",
+  "settings.languageHint":
+    "La langue des menus et des libellés. Enregistrée dans ce navigateur.",
+  "shortcuts.title": "Raccourcis clavier",
+  "shortcuts.openCommand": "Ouvrir le menu de commandes",
+  "shortcuts.createIssue": "Créer un ticket",
+  "settings.general": "Général",
+  "settings.appearance": "Apparence",
+  "settings.notifications": "Notifications",
+  "settings.members": "Membres",
+  "settings.labels": "Étiquettes",
+  "settings.templates": "Modèles",
+  "settings.views": "Vues",
+  "settings.workflow": "Flux de travail",
+  "settings.automations": "Automatisations",
+  "settings.importLinear": "Import (Linear)",
+  "settings.importCsv": "Import (CSV)",
+  "settings.export": "Export",
+  "settings.apiKeys": "Clés d'API",
+  "settings.webhooks": "Webhooks",
+  "settings.oauth": "Applications OAuth",
+  "settings.ask": "Lien de demande",
+  "settings.audit": "Journal d'audit",
+  "settings.agents": "Agents",
+  "display.group": "Grouper",
+  "display.sort": "Trier",
+  "group.none": "Aucun regroupement",
+  "group.status": "Statut",
+  "group.priority": "Priorité",
+  "group.assignee": "Assigné",
+  "group.project": "Projet",
+  "group.cycle": "Cycle",
+  "sort.manual": "Ordre par défaut",
+  "sort.priority": "Priorité",
+  "sort.newest": "Plus récents d'abord",
+  "sort.oldest": "Plus anciens d'abord",
+  "sort.title": "Titre A–Z",
+  "group.unassigned": "Non assigné",
+  "group.noProject": "Aucun projet",
+  "group.noCycle": "Aucun cycle",
+};
+
+const es: Partial<Record<MessageKey, string>> = {
+  "status.BACKLOG": "Backlog",
+  "status.TODO": "Por hacer",
+  "status.IN_PROGRESS": "En curso",
+  "status.DONE": "Hecho",
+  "status.CANCELLED": "Cancelado",
+  "priority.URGENT": "Urgente",
+  "priority.HIGH": "Alta",
+  "priority.MEDIUM": "Media",
+  "priority.LOW": "Baja",
+  "priority.NONE": "Sin prioridad",
+  "nav.inbox": "Bandeja de entrada",
+  "nav.myIssues": "Mis incidencias",
+  "nav.issues": "Incidencias",
+  "nav.cycles": "Ciclos",
+  "nav.projects": "Proyectos",
+  "nav.views": "Vistas",
+  "nav.triage": "Triaje",
+  "nav.drafts": "Borradores",
+  "nav.initiatives": "Iniciativas",
+  "nav.roadmap": "Hoja de ruta",
+  "nav.timeline": "Cronología",
+  "nav.insights": "Análisis",
+  "nav.releases": "Versiones",
+  "nav.settings": "Ajustes",
+  "action.create": "Crear",
+  "action.cancel": "Cancelar",
+  "action.save": "Guardar",
+  "action.delete": "Eliminar",
+  "action.search": "Buscar",
+  "action.newIssue": "Nueva incidencia",
+  "action.saveDraft": "Guardar borrador",
+  "empty.caughtUp": "Estás al día.",
+  "empty.noResults": "Sin resultados",
+  "settings.language": "Idioma",
+  "settings.languageHint":
+    "El idioma de los menús y etiquetas. Se guarda en este navegador.",
+  "shortcuts.title": "Atajos de teclado",
+  "shortcuts.openCommand": "Abrir el menú de comandos",
+  "shortcuts.createIssue": "Crear incidencia",
+  "settings.general": "General",
+  "settings.appearance": "Apariencia",
+  "settings.notifications": "Notificaciones",
+  "settings.members": "Miembros",
+  "settings.labels": "Etiquetas",
+  "settings.templates": "Plantillas",
+  "settings.views": "Vistas",
+  "settings.workflow": "Flujo de trabajo",
+  "settings.automations": "Automatizaciones",
+  "settings.importLinear": "Importar (Linear)",
+  "settings.importCsv": "Importar (CSV)",
+  "settings.export": "Exportar",
+  "settings.apiKeys": "Claves de API",
+  "settings.webhooks": "Webhooks",
+  "settings.oauth": "Apps OAuth",
+  "settings.ask": "Enlace de solicitudes",
+  "settings.audit": "Registro de auditoría",
+  "settings.agents": "Agentes",
+  "display.group": "Agrupar",
+  "display.sort": "Ordenar",
+  "group.none": "Sin agrupar",
+  "group.status": "Estado",
+  "group.priority": "Prioridad",
+  "group.assignee": "Responsable",
+  "group.project": "Proyecto",
+  "group.cycle": "Ciclo",
+  "sort.manual": "Orden predeterminado",
+  "sort.priority": "Prioridad",
+  "sort.newest": "Más recientes primero",
+  "sort.oldest": "Más antiguos primero",
+  "sort.title": "Título A–Z",
+  "group.unassigned": "Sin asignar",
+  "group.noProject": "Sin proyecto",
+  "group.noCycle": "Sin ciclo",
+};
+
+const DICTIONARIES: Record<Locale, Partial<Record<MessageKey, string>>> = {
+  en,
+  de,
+  fr,
+  es,
+};
+
+export function isLocale(value: unknown): value is Locale {
+  return LOCALES.some((locale) => locale.id === value);
+}
+
+/** The best supported language for an `Accept-Language` header, or the default. */
+export function pickLocale(acceptLanguage: string | null | undefined): Locale {
+  if (!acceptLanguage) return DEFAULT_LOCALE;
+  const wanted = acceptLanguage
+    .split(",")
+    .map((part) => {
+      const [tag, q] = part.trim().split(";q=");
+
+      return {
+        tag: (tag ?? "").toLowerCase().split("-")[0] ?? "",
+        q: q ? Number(q) : 1,
+      };
+    })
+    .filter((entry) => entry.tag && Number.isFinite(entry.q))
+    .sort((a, b) => b.q - a.q);
+
+  for (const entry of wanted) {
+    if (isLocale(entry.tag)) return entry.tag;
+  }
+
+  return DEFAULT_LOCALE;
+}
+
+/** Look up a message, falling back to English, then to the key itself. */
+export function translate(locale: Locale, key: MessageKey): string {
+  return DICTIONARIES[locale]?.[key] ?? en[key] ?? key;
+}
+
+/** A bound translator for one locale: `const t = translator("de"); t("nav.inbox")`. */
+export function translator(locale: Locale) {
+  return (key: MessageKey) => translate(locale, key);
+}
+
+/** Keys a language has not translated yet (for checking coverage). */
+export function missingKeys(locale: Locale): MessageKey[] {
+  const dictionary = DICTIONARIES[locale];
+
+  return (Object.keys(en) as MessageKey[]).filter((key) => !dictionary[key]);
+}

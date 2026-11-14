@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 type Row = {
   id: string;
+  kind?: "change" | "comment";
   field: string;
   fromValue: string;
   toValue: string;
@@ -36,8 +37,9 @@ export function IssueActivityList({
       <ul className="mt-2 space-y-1 text-xs text-muted">
         {rows.map((row) => (
           <li key={row.id}>
-            {row.actor.name ?? row.actor.email} changed {row.field} from{" "}
-            {row.fromValue || "empty"} to {row.toValue || "empty"}
+            {row.kind === "comment"
+              ? `${row.actor.name ?? row.actor.email} commented: ${row.toValue}`
+              : `${row.actor.name ?? row.actor.email} changed ${row.field} from ${row.fromValue || "empty"} to ${row.toValue || "empty"}`}
           </li>
         ))}
       </ul>

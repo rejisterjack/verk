@@ -3,6 +3,7 @@ import { z } from "zod";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { prisma } from "@/lib/db";
 import { AuthError } from "@/lib/errors";
+import { guestIssueScope } from "@/lib/services/guest-scope";
 
 const projectStatusSchema = z.enum([
   "BACKLOG",
@@ -17,6 +18,7 @@ export const createProjectSchema = z.object({
   summary: z.string().max(10000).optional().default(""),
   status: projectStatusSchema.optional(),
   leadId: z.string().cuid().nullable().optional(),
+  startDate: z.coerce.date().nullable().optional(),
   targetDate: z.coerce.date().nullable().optional(),
 });
 
@@ -24,9 +26,23 @@ export const updateProjectSchema = createProjectSchema.partial().extend({
   initiativeId: z.string().cuid().nullable().optional(),
 });
 
-export async function listProjects(teamId: string) {
+function assertDateOrder(start?: Date | null, target?: Date | null) {
+  if (start && target && start.getTime() > target.getTime()) {
+    throw new AuthError(
+      "Start date must be on or before the target date",
+      "BAD_REQUEST",
+      400,
+    );
+  }
+}
+
+export async function listProjects(teamId: string, userId?: string | null) {
+  const guestScope = await guestIssueScope(teamId, userId);
+  const allowed = guestScope
+    ? (guestScope.projectId as { in: string[] }).in
+    : null;
   const projects = await prisma.project.findMany({
-    where: { teamId },
+    where: { teamId, ...(allowed ? { id: { in: allowed } } : {}) },
     include: {
       lead: { select: { id: true, name: true, email: true } },
       initiative: { select: { id: true, name: true } },
@@ -47,12 +63,14 @@ export async function getProject(teamId: string, projectId: string) {
       initiative: { select: { id: true, name: true } },
       milestones: { orderBy: { sortOrder: "asc" } },
       issues: {
+        where: { archivedAt: null },
         select: {
           id: true,
           number: true,
           title: true,
           status: true,
           priority: true,
+          milestoneId: true,
           assignee: { select: { id: true, name: true, email: true } },
         },
         orderBy: { number: "desc" },
@@ -64,6 +82,8 @@ export async function getProject(teamId: string, projectId: string) {
 export async function createProject(teamId: string, input: unknown) {
   const data = createProjectSchema.parse(input);
 
+  assertDateOrder(data.startDate, data.targetDate);
+
   return prisma.project.create({
     data: {
       teamId,
@@ -71,6 +91,7 @@ export async function createProject(teamId: string, input: unknown) {
       summary: data.summary ?? "",
       status: data.status ?? "BACKLOG",
       leadId: data.leadId ?? null,
+      startDate: data.startDate ?? null,
       targetDate: data.targetDate ?? null,
     },
   });
@@ -87,6 +108,12 @@ export async function updateProject(
 
   if (!existing) throw new AuthError("Project not found", "NOT_FOUND", 404);
   const data = updateProjectSchema.parse(input);
+
+  // Compare against whichever side this update doesn't touch.
+  assertDateOrder(
+    data.startDate !== undefined ? data.startDate : existing.startDate,
+    data.targetDate !== undefined ? data.targetDate : existing.targetDate,
+  );
 
   return prisma.project.update({
     where: { id: projectId },
@@ -117,7 +144,8 @@ export async function listInitiatives(teamId: string) {
   return prisma.initiative.findMany({
     where: { teamId },
     include: {
-      _count: { select: { projects: true } },
+      parent: { select: { id: true, name: true } },
+      _count: { select: { projects: true, children: true } },
       projects: {
         select: { id: true, name: true, targetDate: true, status: true },
       },
@@ -131,6 +159,7 @@ export async function createInitiative(teamId: string, input: unknown) {
     .object({
       name: z.string().min(1).max(120),
       targetDate: z.coerce.date().nullable().optional(),
+      parentId: z.string().cuid().nullable().optional(),
     })
     .parse(input);
 
@@ -139,6 +168,7 @@ export async function createInitiative(teamId: string, input: unknown) {
       teamId,
       name: data.name,
       targetDate: data.targetDate ?? null,
+      parentId: data.parentId ?? null,
     },
   });
 }

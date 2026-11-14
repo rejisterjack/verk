@@ -19,21 +19,32 @@ import { useEffect, useState } from "react";
 
 import { IssueActivityList } from "@/components/issue-activity";
 import { LabelChecklist } from "@/components/label-checklist";
+import { FavoriteButton } from "@/components/favorite-button";
 import { IssueAttachments } from "@/components/issue-attachments";
+import { IssueSummary } from "@/components/issue-summary";
 import { IssueLinks } from "@/components/issue-links";
 import { MarkdownField } from "@/components/markdown-field";
+import { IssueBranch } from "@/components/issue-branch";
+import { IssueViewers } from "@/components/issue-viewers";
 import { IssueComments } from "@/components/issue-comments";
 import { IssueRelations } from "@/components/issue-relations";
+import { IssueSubIssues } from "@/components/issue-sub-issues";
+import { IssueReleaseField } from "@/components/issue-release-field";
 import { ViewToolbar } from "@/components/page-header";
 import { ConflictModal } from "@/components/pwa/conflict-modal";
 import { SelectField } from "@/components/ui/select-field";
-import { deleteIssueAction, updateIssueAction } from "@/lib/actions/issues";
 import {
-  ESTIMATE_LABELS,
+  archiveIssueAction,
+  deleteIssueAction,
+  restoreIssueAction,
+  updateIssueAction,
+} from "@/lib/actions/issues";
+import {
   PRIORITY_LABELS,
   STATUS_LABELS,
   statusToWorkflowKey,
 } from "@/lib/labels";
+import { estimateOptions, normalizeScale } from "@/lib/estimate-points";
 import { isOfflineEnabled } from "@/lib/offline/feature";
 import {
   deleteIssueLocal,
@@ -70,11 +81,15 @@ export function IssueEditor({
   workflows = [],
   initialLabelIds = [],
   canDelete,
+  archived = false,
+  favorite = false,
+  estimateScale,
   readOnly = false,
   currentUserId,
   slaHours,
   slaWindow,
   createdAt,
+  githubRepo = null,
 }: {
   teamId: string;
   teamSlug: string;
@@ -104,11 +119,18 @@ export function IssueEditor({
   workflows?: WorkflowOpt[];
   initialLabelIds?: string[];
   canDelete: boolean;
+  /** The issue is in the archive. The page shows a banner and a Restore button. */
+  archived?: boolean;
+  /** Whether the signed-in user starred this issue. */
+  favorite?: boolean;
+  /** The team's estimate scale (`off`, `linear`, ...). Defaults to Fibonacci. */
+  estimateScale?: string;
   readOnly?: boolean;
   currentUserId?: string;
   slaHours?: unknown;
   slaWindow?: SlaWindow;
   createdAt?: string | null;
+  githubRepo?: string | null;
 }) {
   const router = useRouter();
   const [issue, setIssue] = useState(initialIssue);
@@ -269,6 +291,24 @@ export function IssueEditor({
     }
   }
 
+  async function onArchiveToggle() {
+    if (issue.number == null || pending) return;
+    setPending(true);
+    setError(null);
+    const result = archived
+      ? await restoreIssueAction(teamSlug, issue.number)
+      : await archiveIssueAction(teamSlug, issue.number);
+
+    setPending(false);
+    if (result && "error" in result && result.error) {
+      setError(result.error);
+
+      return;
+    }
+    if (!archived) router.push(`/t/${teamSlug}/issues`);
+    router.refresh();
+  }
+
   const dueValue = issue.dueDate ? issue.dueDate.slice(0, 10) : "";
   const statusDefault = (() => {
     if (!workflows.length) return issue.status;
@@ -299,6 +339,25 @@ export function IssueEditor({
                 {pending ? "Saving…" : error ? "Error" : "Saved"}
               </span>
             )}
+            {issue.number != null ? (
+              <FavoriteButton
+                initial={favorite}
+                kind="issue"
+                targetId={issue.id}
+                teamSlug={teamSlug}
+              />
+            ) : null}
+            {!readOnly ? (
+              <Button
+                isDisabled={pending}
+                size="sm"
+                type="button"
+                variant="secondary"
+                onPress={onArchiveToggle}
+              >
+                {archived ? "Restore" : "Archive"}
+              </Button>
+            ) : null}
             {canDelete && !readOnly ? (
               <Button
                 size="sm"
@@ -376,13 +435,23 @@ export function IssueEditor({
           {error ? <p className="text-sm text-danger">{error}</p> : null}
           {!readOnly ? (
             <>
+              <IssueSubIssues
+                issueId={issue.id}
+                teamId={teamId}
+                teamSlug={teamSlug}
+              />
               <IssueRelations
                 issueId={issue.id}
                 teamId={teamId}
                 teamSlug={teamSlug}
               />
               <IssueLinks issueId={issue.id} teamId={teamId} />
-              <IssueAttachments issueId={issue.id} teamId={teamId} />
+              <IssueSummary issueId={issue.id} teamId={teamId} />
+              <IssueAttachments
+                issueId={issue.id}
+                readOnly={readOnly}
+                teamId={teamId}
+              />
             </>
           ) : null}
           <IssueActivityList issueId={issue.id} teamId={teamId} />
@@ -431,10 +500,10 @@ export function IssueEditor({
             defaultValue={issue.estimate ?? "NONE"}
             label="Estimate"
             name="estimate"
-            options={Object.entries(ESTIMATE_LABELS).map(([id, label]) => ({
-              id,
-              label,
-            }))}
+            options={estimateOptions(
+              normalizeScale(estimateScale),
+              issue.estimate,
+            )}
           />
           <DatePicker
             className="w-full"
@@ -498,6 +567,17 @@ export function IssueEditor({
             options={projects.map((p) => ({ id: p.id, label: p.name }))}
             placeholder="No project"
           />
+          {githubRepo && issue.number != null ? (
+            <IssueBranch
+              githubRepo={githubRepo}
+              number={issue.number}
+              teamId={teamId}
+              teamSlug={teamSlug}
+              title={issue.title}
+            />
+          ) : null}
+          <IssueViewers issueId={issue.id} teamId={teamId} />
+          <IssueReleaseField issueId={issue.id} teamId={teamId} />
           <SelectField
             clearable
             defaultValue={issue.milestoneId ?? undefined}

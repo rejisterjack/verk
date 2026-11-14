@@ -1,6 +1,7 @@
 "use client";
 
 import { Command } from "cmdk";
+import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
@@ -13,6 +14,28 @@ type SearchIssue = {
   status: string;
   priority: string;
   assigneeId: string | null;
+};
+
+type SearchHit = {
+  kind: string;
+  id: string;
+  title: string;
+  subtitle?: string;
+  snippet?: string;
+  href: string;
+  number?: number;
+  status?: string;
+  priority?: string;
+};
+
+const KIND_HEADINGS: Record<string, string> = {
+  issue: "Issues",
+  project: "Projects",
+  initiative: "Initiatives",
+  doc: "Docs",
+  customer: "Customers",
+  cycle: "Cycles",
+  person: "People",
 };
 
 type Member = { id: string; name: string | null; email: string };
@@ -31,9 +54,11 @@ export function CommandPalette({
   onCreateIssue: () => void;
 }) {
   const router = useRouter();
+  const { setTheme } = useTheme();
   const base = `/t/${teamSlug}`;
   const [query, setQuery] = useState("");
   const [issues, setIssues] = useState<SearchIssue[]>([]);
+  const [otherHits, setOtherHits] = useState<SearchHit[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [selectedIssue, setSelectedIssue] = useState<SearchIssue | null>(null);
   const [savingView, setSavingView] = useState(false);
@@ -69,20 +94,45 @@ export function CommandPalette({
     if (!open || !teamId) return;
     if (query.trim().length < 1) {
       setIssues([]);
+      setOtherHits([]);
 
       return;
     }
+    const controller = new AbortController();
     const handle = window.setTimeout(() => {
       void fetch(
-        `/api/teams/${teamId}/issues?search=${encodeURIComponent(query)}&take=8`,
-        { credentials: "same-origin" },
+        `/api/teams/${teamId}/search?q=${encodeURIComponent(query)}&limit=24`,
+        { credentials: "same-origin", signal: controller.signal },
       )
         .then((r) => (r.ok ? r.json() : null))
-        .then((data) => setIssues(data?.issues ?? []))
-        .catch(() => setIssues([]));
+        .then((data: { hits?: SearchHit[] } | null) => {
+          const hits = data?.hits ?? [];
+
+          setIssues(
+            hits
+              .filter((hit) => hit.kind === "issue" && hit.number != null)
+              .slice(0, 8)
+              .map((hit) => ({
+                id: hit.id,
+                number: hit.number!,
+                title: hit.title,
+                status: hit.status ?? "",
+                priority: hit.priority ?? "",
+                assigneeId: null,
+              })),
+          );
+          setOtherHits(hits.filter((hit) => hit.kind !== "issue").slice(0, 12));
+        })
+        .catch(() => {
+          setIssues([]);
+          setOtherHits([]);
+        });
     }, 150);
 
-    return () => window.clearTimeout(handle);
+    return () => {
+      window.clearTimeout(handle);
+      controller.abort();
+    };
   }, [query, open, teamId]);
 
   useEffect(() => {
@@ -196,7 +246,7 @@ export function CommandPalette({
             placeholder={
               selectedIssue
                 ? `Actions for ${teamSlug.slice(0, 3).toUpperCase()}-${selectedIssue.number}…`
-                : "Type a command or search…"
+                : "Search, or try assignee:me status:todo…"
             }
             value={query}
             onValueChange={setQuery}
@@ -313,6 +363,35 @@ export function CommandPalette({
                     ))}
                   </Command.Group>
                 ) : null}
+                {Object.entries(KIND_HEADINGS)
+                  .filter(([kind]) => kind !== "issue")
+                  .map(([kind, heading]) => {
+                    const rows = otherHits.filter((hit) => hit.kind === kind);
+
+                    return rows.length ? (
+                      <Command.Group
+                        key={kind}
+                        className="mt-2 text-[11px] font-medium uppercase tracking-wide text-muted"
+                        heading={heading}
+                      >
+                        {rows.map((hit) => (
+                          <Command.Item
+                            key={`${kind}-${hit.id}`}
+                            className="flex cursor-pointer flex-col rounded-md px-3 py-1.5 text-[13px] aria-selected:bg-accent/15"
+                            value={`${hit.kind} ${hit.title} ${hit.id}`}
+                            onSelect={() => go(hit.href)}
+                          >
+                            <span className="truncate">{hit.title}</span>
+                            {hit.snippet || hit.subtitle ? (
+                              <span className="truncate text-[11px] font-normal normal-case text-muted">
+                                {hit.snippet || hit.subtitle}
+                              </span>
+                            ) : null}
+                          </Command.Item>
+                        ))}
+                      </Command.Group>
+                    ) : null;
+                  })}
                 <Command.Group
                   className="text-[11px] font-medium uppercase tracking-wide text-muted"
                   heading="Navigate"
@@ -367,6 +446,18 @@ export function CommandPalette({
                   </Command.Item>
                   <Command.Item
                     className="flex cursor-pointer items-center rounded-md px-3 py-1.5 text-[13px] aria-selected:bg-accent/15"
+                    onSelect={() => go(`${base}/timeline`)}
+                  >
+                    Go to Timeline
+                  </Command.Item>
+                  <Command.Item
+                    className="flex cursor-pointer items-center rounded-md px-3 py-1.5 text-[13px] aria-selected:bg-accent/15"
+                    onSelect={() => go(`${base}/drafts`)}
+                  >
+                    Go to Drafts
+                  </Command.Item>
+                  <Command.Item
+                    className="flex cursor-pointer items-center rounded-md px-3 py-1.5 text-[13px] aria-selected:bg-accent/15"
                     onSelect={() => go(`${base}/settings/import`)}
                   >
                     Import from Linear
@@ -393,6 +484,37 @@ export function CommandPalette({
                     }}
                   >
                     Save current filters as view
+                  </Command.Item>
+                </Command.Group>
+                <Command.Group
+                  className="mt-2 text-[11px] font-medium uppercase tracking-wide text-muted"
+                  heading="Appearance"
+                >
+                  {(
+                    [
+                      ["light", "Switch to light theme"],
+                      ["dark", "Switch to dark theme"],
+                      ["system", "Match system theme"],
+                    ] as const
+                  ).map(([value, label]) => (
+                    <Command.Item
+                      key={value}
+                      className="flex cursor-pointer items-center rounded-md px-3 py-1.5 text-[13px] aria-selected:bg-accent/15"
+                      value={`theme ${label}`}
+                      onSelect={() => {
+                        setTheme(value);
+                        onOpenChange(false);
+                      }}
+                    >
+                      {label}
+                    </Command.Item>
+                  ))}
+                  <Command.Item
+                    className="flex cursor-pointer items-center rounded-md px-3 py-1.5 text-[13px] aria-selected:bg-accent/15"
+                    value="appearance accent color density settings"
+                    onSelect={() => go(`${base}/settings/appearance`)}
+                  >
+                    Appearance settings (accent, density)
                   </Command.Item>
                 </Command.Group>
               </>

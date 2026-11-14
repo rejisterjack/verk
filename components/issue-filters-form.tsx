@@ -162,6 +162,10 @@ export function SaveViewForm({
           placeholder="Save view…"
         />
       </TextField>
+      <label className="flex items-center gap-1 text-[11px] text-muted">
+        <input defaultChecked name="shared" type="checkbox" />
+        Shared
+      </label>
       <Button
         className="h-7 px-2 text-[12px]"
         size="sm"

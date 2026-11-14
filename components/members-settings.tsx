@@ -7,6 +7,7 @@ import { SelectField } from "@/components/ui/select-field";
 import {
   inviteMemberAction,
   removeMemberAction,
+  resendInviteAction,
   revokeInviteAction,
   updateMemberRoleAction,
 } from "@/lib/actions/members";
@@ -194,15 +195,31 @@ export function MembersSettings({
                   {invite.email} · {ROLE_LABELS[invite.role]}
                 </span>
                 {canAdmin ? (
-                  <Button
-                    size="sm"
-                    variant="tertiary"
-                    onPress={async () => {
-                      await revokeInviteAction(teamSlug, invite.id);
-                    }}
-                  >
-                    Revoke
-                  </Button>
+                  <span className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="tertiary"
+                      onPress={async () => {
+                        const result = await resendInviteAction(
+                          teamSlug,
+                          invite.id,
+                        );
+
+                        if (result.inviteUrl) setInviteUrl(result.inviteUrl);
+                      }}
+                    >
+                      Resend
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="tertiary"
+                      onPress={async () => {
+                        await revokeInviteAction(teamSlug, invite.id);
+                      }}
+                    >
+                      Revoke
+                    </Button>
+                  </span>
                 ) : null}
               </li>
             ))}

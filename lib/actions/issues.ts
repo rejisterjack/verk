@@ -191,6 +191,93 @@ export async function deleteIssueAction(teamSlug: string, issueNumber: number) {
   }
 }
 
+function revalidateIssueViews(teamSlug: string, issueNumber?: number) {
+  revalidatePath(`/t/${teamSlug}/issues`);
+  revalidatePath(`/t/${teamSlug}/board`);
+  if (issueNumber != null) {
+    revalidatePath(`/t/${teamSlug}/issues/${issueNumber}`);
+  }
+}
+
+export async function archiveIssueAction(
+  teamSlug: string,
+  issueNumber: number,
+) {
+  const { team, membership, user } = await requireTeamBySlug(teamSlug);
+  const existing = await issuesService.getIssueByNumber(team.id, issueNumber);
+
+  if (!existing) return { error: "Issue not found" };
+  try {
+    await issuesService.archiveIssue(
+      team.id,
+      existing.id,
+      membership.role,
+      user.id,
+    );
+    revalidateIssueViews(teamSlug, issueNumber);
+
+    return { ok: true as const };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Failed to archive issue",
+    };
+  }
+}
+
+export async function restoreIssueAction(
+  teamSlug: string,
+  issueNumber: number,
+) {
+  const { team, membership, user } = await requireTeamBySlug(teamSlug);
+  const existing = await issuesService.getIssueByNumber(team.id, issueNumber);
+
+  if (!existing) return { error: "Issue not found" };
+  try {
+    await issuesService.restoreIssue(
+      team.id,
+      existing.id,
+      membership.role,
+      user.id,
+    );
+    revalidateIssueViews(teamSlug, issueNumber);
+
+    return { ok: true as const };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Failed to restore issue",
+    };
+  }
+}
+
+/** Bulk edit from the list. Returns per-issue results so the UI can show failures. */
+export async function bulkIssuesAction(
+  teamSlug: string,
+  input: {
+    ids: string[];
+    action: "update" | "archive" | "restore" | "delete";
+    patch?: Record<string, unknown>;
+  },
+) {
+  const { team, membership, user } = await requireTeamBySlug(teamSlug);
+
+  try {
+    const result = await issuesService.bulkUpdateIssues(
+      team.id,
+      input,
+      membership.role,
+      user.id,
+    );
+
+    revalidateIssueViews(teamSlug);
+
+    return { ok: result.ok, failed: result.failed };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Bulk update failed",
+    };
+  }
+}
+
 export async function reorderIssueAction(
   teamSlug: string,
   issueId: string,

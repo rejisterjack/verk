@@ -1,3 +1,4 @@
+import NextLink from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import {
@@ -33,7 +34,7 @@ export default async function CustomersPage({
   const [customers, issues] = await Promise.all([
     listCustomers(teamId),
     prisma.issue.findMany({
-      where: { teamId },
+      where: { teamId, archivedAt: null },
       select: { number: true, title: true },
       orderBy: { number: "desc" },
       take: 200,
@@ -51,7 +52,27 @@ export default async function CustomersPage({
 
   return (
     <div className="flex min-h-full flex-col">
-      <ViewToolbar title="Customers" />
+      <ViewToolbar
+        actions={
+          <NextLink
+            className="rounded px-2 py-1 text-[12px] text-accent hover:bg-default"
+            href={`/t/${teamSlug}/customers/demand`}
+          >
+            See demand by issue →
+          </NextLink>
+        }
+        title="Customers"
+      />
+      <section className="border-b border-separator px-4 py-3 text-[12px] text-muted">
+        <p className="font-medium text-foreground">Intake endpoint</p>
+        <p className="mt-1 font-mono">POST /api/teams/{teamId}/intake</p>
+        <p>Authorization: Bearer $INTAKE_TOKEN</p>
+        <pre className="mt-2 whitespace-pre-wrap">{`{
+  "title": "Request title",
+  "customer": "Customer name",
+  "detail": "What they asked for"
+}`}</pre>
+      </section>
       <div className="border-b border-separator px-4 py-3">
         <CreateCustomerForm action={create} />
       </div>

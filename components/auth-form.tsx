@@ -19,7 +19,17 @@ import {
   registerAction,
 } from "@/lib/actions/auth";
 import { siteConfig } from "@/config/site";
+import { PasskeySignIn } from "@/components/passkey-sign-in";
 import { VerkIcon } from "@/components/verk-logo";
+
+const SAML_ERROR_TEXT: Record<string, string> = {
+  SamlInvalid:
+    "We couldn't verify that sign-in with your identity provider. Try again.",
+  SamlNoEmail: "Your identity provider didn't send an email address.",
+  SamlDomain: "That email domain isn't allowed to sign in to this host.",
+  SamlDisabled: "This account has been deactivated.",
+  SamlPrivateHost: "This host is private. SAML sign-in is not available.",
+};
 
 export function LoginForm({
   callbackUrl = "/onboarding",
@@ -29,6 +39,8 @@ export function LoginForm({
   githubEnabled,
   googleEnabled,
   oidcEnabled,
+  samlEnabled,
+  samlError,
 }: {
   callbackUrl?: string;
   demoMode?: boolean;
@@ -37,116 +49,157 @@ export function LoginForm({
   githubEnabled: boolean;
   googleEnabled?: boolean;
   oidcEnabled?: boolean;
+  samlEnabled?: boolean;
+  samlError?: string;
 }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [needsCode, setNeedsCode] = useState(false);
 
   return (
     <div className="mx-auto w-full max-w-[420px]">
       <div className="rounded-2xl border border-separator/80 bg-surface/90 p-8 shadow-xl shadow-black/5 backdrop-blur-md">
-      <VerkIcon glow={false} size={44} />
-      <div className="mt-5">
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground">
-          Log in to Verk
-        </h1>
-        {privateHost ? (
-          <p className="mt-2 text-sm leading-relaxed text-muted">
-            This host is private. Only its GitHub account can open the app.
-          </p>
-        ) : demoMode ? (
-          <p className="mt-2 text-sm leading-relaxed text-muted">
-            Public demo credentials:{" "}
-            <code className="font-mono text-foreground">demo@verk.dev</code> /{" "}
-            <code className="font-mono text-foreground">demo1234</code>. Open
-            registration is off on this host.
-          </p>
-        ) : (
-          <p className="mt-2 text-sm leading-relaxed text-muted">
-            No account?{" "}
-            <NextLink className="text-accent underline" href="/register">
-              Register
-            </NextLink>
-          </p>
-        )}
-      </div>
+        <VerkIcon glow={false} size={44} />
+        <div className="mt-5">
+          <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground">
+            Log in to Verk
+          </h1>
+          {privateHost ? (
+            <p className="mt-2 text-sm leading-relaxed text-muted">
+              This host is private. Only its GitHub account can open the app.
+            </p>
+          ) : demoMode ? (
+            <p className="mt-2 text-sm leading-relaxed text-muted">
+              Public demo credentials:{" "}
+              <code className="font-mono text-foreground">demo@verk.dev</code> /{" "}
+              <code className="font-mono text-foreground">demo1234</code>. Open
+              registration is off on this host.
+            </p>
+          ) : (
+            <p className="mt-2 text-sm leading-relaxed text-muted">
+              No account?{" "}
+              <NextLink className="text-accent underline" href="/register">
+                Register
+              </NextLink>
+            </p>
+          )}
+        </div>
 
-      {accessDenied ? (
-        <p className="mt-4 rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
-          That GitHub account cannot use this host.
-        </p>
-      ) : null}
-      {githubEnabled ? (
-        <form action={githubSignInAction} className="mt-6">
-          <input name="callbackUrl" type="hidden" value={callbackUrl} />
-          <Button
-            className="h-11 w-full bg-accent text-accent-foreground shadow-lg shadow-accent/20"
-            type="submit"
+        {accessDenied ? (
+          <p className="mt-4 rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
+            That GitHub account cannot use this host.
+          </p>
+        ) : null}
+        {samlError ? (
+          <p className="mt-4 rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
+            {SAML_ERROR_TEXT[samlError] ?? SAML_ERROR_TEXT.SamlInvalid}
+          </p>
+        ) : null}
+        {githubEnabled ? (
+          <form action={githubSignInAction} className="mt-6">
+            <input name="callbackUrl" type="hidden" value={callbackUrl} />
+            <Button
+              className="h-11 w-full bg-accent text-accent-foreground shadow-lg shadow-accent/20"
+              type="submit"
+            >
+              <GitHubMark />
+              Continue with GitHub
+            </Button>
+          </form>
+        ) : null}
+        {!privateHost && googleEnabled ? (
+          <form action={googleSignInAction}>
+            <input name="callbackUrl" type="hidden" value={callbackUrl} />
+            <Button className="w-full" type="submit" variant="secondary">
+              Continue with Google
+            </Button>
+          </form>
+        ) : null}
+        {!privateHost && oidcEnabled ? (
+          <form action={oidcSignInAction}>
+            <input name="callbackUrl" type="hidden" value={callbackUrl} />
+            <Button className="w-full" type="submit" variant="secondary">
+              Continue with SSO
+            </Button>
+          </form>
+        ) : null}
+
+        {!privateHost && samlEnabled ? (
+          <a
+            className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-xl border border-separator bg-surface px-4 text-sm font-medium text-foreground transition-colors hover:bg-default/40"
+            href={`/api/auth/saml/login?callbackUrl=${encodeURIComponent(callbackUrl)}`}
           >
-            <GitHubMark />
-            Continue with GitHub
-          </Button>
-        </form>
-      ) : null}
-      {!privateHost && googleEnabled ? (
-        <form action={googleSignInAction}>
-          <input name="callbackUrl" type="hidden" value={callbackUrl} />
-          <Button className="w-full" type="submit" variant="secondary">
-            Continue with Google
-          </Button>
-        </form>
-      ) : null}
-      {!privateHost && oidcEnabled ? (
-        <form action={oidcSignInAction}>
-          <input name="callbackUrl" type="hidden" value={callbackUrl} />
-          <Button className="w-full" type="submit" variant="secondary">
-            Continue with SSO
-          </Button>
-        </form>
-      ) : null}
+            Continue with SAML
+          </a>
+        ) : null}
 
-      {privateHost ? null : (
-        <Form
-          className="mt-6 flex flex-col gap-4"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            setPending(true);
-            setError(null);
-            const formData = new FormData(e.currentTarget);
+        {privateHost ? null : (
+          <Form
+            className="mt-6 flex flex-col gap-4"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setPending(true);
+              setError(null);
+              const formData = new FormData(e.currentTarget);
 
-            formData.set("callbackUrl", callbackUrl);
-            const result = await loginAction(formData);
+              formData.set("callbackUrl", callbackUrl);
+              const result = await loginAction(formData);
 
-            if (result?.error) setError(result.error);
-            setPending(false);
-          }}
-        >
-          <TextField isRequired name="email" type="email">
-            <Label>Email</Label>
-            <Input placeholder="you@company.com" />
-            <FieldError />
-          </TextField>
-          <TextField isRequired name="password" type="password">
-            <Label>Password</Label>
-            <Input placeholder="••••••••" />
-            <FieldError />
-          </TextField>
-          {error ? <p className="text-danger text-sm">{error}</p> : null}
-          <Button className="h-11 w-full" isDisabled={pending} type="submit">
-            {pending ? "Signing in…" : "Sign in"}
-          </Button>
-        </Form>
-      )}
-      {privateHost ? (
-        <a
-          className="mt-4 inline-flex w-full items-center justify-center gap-1.5 text-sm text-muted transition-colors hover:text-foreground"
-          href={siteConfig.links.deploy}
-          rel="noopener noreferrer"
-          target="_blank"
-        >
-          Deploy your own
-          <span aria-hidden>→</span>
-        </a>
-      ) : null}
+              if (result && "needsCode" in result && result.needsCode) {
+                setNeedsCode(true);
+              }
+              if (result && "error" in result && result.error) {
+                setError(result.error);
+              }
+              setPending(false);
+            }}
+          >
+            {/* Email and password stay in the form (hidden) while the code is asked for. */}
+            <div className={needsCode ? "hidden" : "contents"}>
+              <TextField isRequired name="email" type="email">
+                <Label>Email</Label>
+                <Input placeholder="you@company.com" />
+                <FieldError />
+              </TextField>
+              <TextField isRequired name="password" type="password">
+                <Label>Password</Label>
+                <Input placeholder="••••••••" />
+                <FieldError />
+              </TextField>
+            </div>
+            {needsCode ? (
+              <TextField isRequired name="code">
+                <Label>Authentication code</Label>
+                <Input
+                  // eslint-disable-next-line jsx-a11y/no-autofocus -- the code is the only thing left to enter
+                  autoFocus
+                  autoComplete="one-time-code"
+                  inputMode="text"
+                  placeholder="6-digit code or a recovery code"
+                />
+                <FieldError />
+              </TextField>
+            ) : null}
+            {error ? <p className="text-danger text-sm">{error}</p> : null}
+            <Button className="h-11 w-full" isDisabled={pending} type="submit">
+              {pending ? "Signing in…" : needsCode ? "Verify" : "Sign in"}
+            </Button>
+          </Form>
+        )}
+        {privateHost || demoMode ? null : (
+          <PasskeySignIn callbackUrl={callbackUrl} />
+        )}
+        {privateHost ? (
+          <a
+            className="mt-4 inline-flex w-full items-center justify-center gap-1.5 text-sm text-muted transition-colors hover:text-foreground"
+            href={siteConfig.links.deploy}
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            Deploy your own
+            <span aria-hidden>→</span>
+          </a>
+        ) : null}
       </div>
     </div>
   );
