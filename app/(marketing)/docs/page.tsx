@@ -162,10 +162,21 @@ npm run dev`}</pre>
   }
 }`}</pre>
             <p className="text-sm leading-relaxed text-muted">
-              Tools: list_issues, get_issue, create_issue, update_issue,
-              list_cycles, list_members, list_projects, create_project,
-              update_project, list_labels, add_comment, list_comments,
-              delete_comment, add_relation. REST lives under /api/teams.
+              47 tools. Issues: list_issues, get_issue, create_issue,
+              update_issue, archive_issue, restore_issue, bulk_update_issues,
+              add_comment, list_comments, delete_comment, add_relation, search,
+              find_similar_issues, create_sub_issue, set_parent_issue,
+              list_sub_issues. Planning: list_cycles, list_members,
+              list_projects, create_project, update_project, list_labels,
+              list_statuses, create_status, list_initiatives, create_initiative,
+              update_initiative, list_releases, create_release,
+              set_issue_release, list_documents, save_document, list_customers,
+              add_customer_request, set_customer_value, list_views,
+              list_project_dependencies, add_project_dependency,
+              remove_project_dependency. Admin keys only: list_automations,
+              list_audit_log. AI: summarize_issue, suggest_triage. Agents:
+              claim_issue, agent_heartbeat, report_result, release_issue. REST
+              lives under /api/teams.
             </p>
           </DocCard>
 

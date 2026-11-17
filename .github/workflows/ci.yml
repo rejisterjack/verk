@@ -8,6 +8,9 @@ on:
 jobs:
   quality:
     runs-on: ubuntu-latest
+    env:
+      # The `secrets` context is not allowed in a step-level `if:`, so expose the one bit we need.
+      HAS_E2E_DB: ${{ secrets.DATABASE_URL != '' && 'true' || 'false' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -32,9 +35,16 @@ jobs:
           test -f public/manifest.webmanifest
           test -f public/sw.js
           test -f public/icons/icon-192.png
-      # E2E / migrate tests need DATABASE_URL — skip when secret absent (no Docker services)
-      - name: Migrate + Playwright
-        if: ${{ secrets.DATABASE_URL != '' }}
+      # E2E needs a Postgres database (use a throwaway Neon branch, never production: the seed
+      # resets the demo team's data). Without the secret the job still passes, but says so loudly.
+      - name: E2E skipped (no DATABASE_URL secret)
+        if: ${{ env.HAS_E2E_DB != 'true' }}
+        run: |
+          echo "::warning title=E2E skipped::Set the DATABASE_URL, DIRECT_URL and AUTH_SECRET repository secrets (a throwaway Neon branch) to run the Playwright suite."
+          echo "### E2E skipped" >> "$GITHUB_STEP_SUMMARY"
+          echo "No \`DATABASE_URL\` secret, so \`tests/e2e\` did not run. Unit tests, types, lint and the build did." >> "$GITHUB_STEP_SUMMARY"
+      - name: Migrate, seed + Playwright
+        if: ${{ env.HAS_E2E_DB == 'true' }}
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DIRECT_URL: ${{ secrets.DIRECT_URL }}
@@ -42,5 +52,13 @@ jobs:
           AUTH_URL: http://localhost:3000
         run: |
           npx prisma migrate deploy
+          npm run db:seed
           npx playwright install --with-deps chromium
           npm run test:e2e
+      - name: Upload Playwright report on failure
+        if: ${{ failure() && env.HAS_E2E_DB == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: test-results
+          if-no-files-found: ignore

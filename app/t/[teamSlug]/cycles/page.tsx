@@ -50,16 +50,15 @@ export default async function CyclesPage({
   const isUpcomingView = scope === "upcoming";
   const isScopedView = isCurrentView || isUpcomingView;
 
-  const sections =
-    isCurrentView
-      ? [{ label: "Current", rows: current }]
-      : isUpcomingView
-        ? [{ label: "Upcoming", rows: upcoming }]
-        : [
-            { label: "Current", rows: current },
-            { label: "Upcoming", rows: upcoming },
-            { label: "Past", rows: past },
-          ];
+  const sections = isCurrentView
+    ? [{ label: "Current", rows: current }]
+    : isUpcomingView
+      ? [{ label: "Upcoming", rows: upcoming }]
+      : [
+          { label: "Current", rows: current },
+          { label: "Upcoming", rows: upcoming },
+          { label: "Past", rows: past },
+        ];
 
   const visibleRows = sections.flatMap((section) => section.rows);
 
@@ -164,20 +163,18 @@ export default async function CyclesPage({
       ) : visibleRows.length === 0 ? (
         <EmptyState
           action={
-            isCurrentView ? (
-              advanceForm
-            ) : isUpcomingView ? (
-              scheduleForm
-            ) : undefined
+            isCurrentView
+              ? advanceForm
+              : isUpcomingView
+                ? scheduleForm
+                : undefined
           }
           description={
             isCurrentView
               ? "Start the next cycle or mark a past cycle as active."
               : "Schedule the next cycle from team settings or add one manually."
           }
-          title={
-            isCurrentView ? "No active cycle" : "No upcoming cycles"
-          }
+          title={isCurrentView ? "No active cycle" : "No upcoming cycles"}
         />
       ) : (
         <div>

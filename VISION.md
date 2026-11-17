@@ -56,7 +56,7 @@ Linear is the best project management tool available but it costs money, and the
 - Neon for serverless Postgres
 - Prisma as the ORM, handles migrations automatically on deploy
 - NextAuth for authentication
-- Tailwind CSS for styling, kept minimal and fast
+- HeroUI (react-aria components) on Tailwind CSS 4 for the UI, kept minimal and fast
 - MCP server built as a Next.js API route so no extra service is needed
 
 ## What done looks like

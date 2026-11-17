@@ -1,7 +1,8 @@
 "use client";
 
-import { Button, Spinner } from "@heroui/react";
 import type { ComponentProps, ReactNode } from "react";
+
+import { Button, Spinner } from "@heroui/react";
 import { useFormStatus } from "react-dom";
 
 type Props = ComponentProps<typeof Button> & {

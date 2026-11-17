@@ -12,6 +12,7 @@ import {
 
 import { prisma } from "@/lib/db";
 import { AuthError } from "@/lib/errors";
+import { assertRole } from "@/lib/roles";
 import * as comments from "@/lib/services/comments";
 import * as cycles from "@/lib/services/cycles";
 import * as issues from "@/lib/services/issues";
@@ -103,6 +104,87 @@ export const typeDefs = /* GraphQL */ `
     nextCursor: String
   }
 
+  type Initiative {
+    id: ID!
+    name: String!
+    targetDate: String
+    health: String!
+    parentId: ID
+    projects: [Project!]!
+  }
+  type Pipeline {
+    id: ID!
+    name: String!
+  }
+  type PipelineStage {
+    id: ID!
+    name: String!
+    position: Int!
+  }
+  type ReleaseIssue {
+    id: ID!
+    number: Int!
+    title: String!
+    status: String!
+  }
+  type Release {
+    id: ID!
+    name: String!
+    targetDate: String
+    pipeline: Pipeline
+    stage: PipelineStage
+    issues: [ReleaseIssue!]!
+  }
+  type SavedView {
+    id: ID!
+    name: String!
+    layout: String!
+    pinned: Boolean!
+    """
+    The stored filter tree as JSON text. Pass it as IssueFilterInput.filter.
+    """
+    filter: String!
+  }
+  type Document {
+    id: ID!
+    title: String!
+    body: String!
+    projectId: ID
+    initiativeId: ID
+    updatedAt: String!
+  }
+  type CustomerRequest {
+    id: ID!
+    body: String!
+    issueId: ID
+  }
+  type Customer {
+    id: ID!
+    name: String!
+    domain: String!
+    tier: String!
+    arr: Int!
+    requests: [CustomerRequest!]!
+  }
+  type ProjectDependency {
+    id: ID!
+    projectId: ID!
+    projectName: String!
+    dependsOnId: ID!
+    dependsOnName: String!
+  }
+  type DependencyConflict {
+    projectId: ID!
+    dependsOnId: ID!
+    kind: String!
+    message: String!
+  }
+  type DependencyReport {
+    dependencies: [ProjectDependency!]!
+    conflicts: [DependencyConflict!]!
+    ready: [ID!]!
+  }
+
   input IssueFilterInput {
     status: [IssueStatus!]
     priority: Priority
@@ -138,6 +220,23 @@ export const typeDefs = /* GraphQL */ `
     revision: Int
   }
 
+  input CreateInitiativeInput {
+    name: String!
+    targetDate: String
+    parentId: ID
+  }
+  input UpdateInitiativeInput {
+    name: String
+    targetDate: String
+    health: String
+  }
+  input CreateReleaseInput {
+    name: String!
+    targetDate: String
+    pipelineId: ID
+    stageId: ID
+  }
+
   type Query {
     issue(id: ID, number: Int): Issue
     issues(filter: IssueFilterInput): IssuePage!
@@ -146,12 +245,25 @@ export const typeDefs = /* GraphQL */ `
     labels: [Label!]!
     members: [User!]!
     workflowStatuses: [WorkflowStatus!]!
+    initiatives: [Initiative!]!
+    releases: [Release!]!
+    views: [SavedView!]!
+    documents: [Document!]!
+    customers: [Customer!]!
+    projectDependencies: DependencyReport!
   }
 
   type Mutation {
     createIssue(input: CreateIssueInput!): Issue!
     updateIssue(id: ID!, input: UpdateIssueInput!): Issue!
     addComment(issueId: ID!, body: String!): Comment!
+    createInitiative(input: CreateInitiativeInput!): Initiative!
+    updateInitiative(id: ID!, input: UpdateInitiativeInput!): Initiative!
+    createRelease(input: CreateReleaseInput!): Release!
+    setIssueRelease(issueId: ID!, releaseId: ID, stageId: ID): Boolean!
+    setCustomerValue(customerId: ID!, tier: String, arr: Int): Customer!
+    addProjectDependency(projectId: ID!, dependsOnId: ID!): Boolean!
+    removeProjectDependency(projectId: ID!, dependsOnId: ID!): Boolean!
   }
 `;
 
@@ -175,6 +287,16 @@ function shapeIssue(row: Json) {
     labels: ((row.labels as { label: Json }[] | undefined) ?? []).map(
       (entry) => entry.label,
     ),
+  };
+}
+
+function shapeRelease(row: Json) {
+  const issueRows = (row.issues as { issue: Json }[] | undefined) ?? [];
+
+  return {
+    ...row,
+    targetDate: iso(row.targetDate),
+    issues: issueRows.map((entry) => entry.issue),
   };
 }
 
@@ -235,6 +357,180 @@ export const rootValue = {
   },
   workflowStatuses: (_args: unknown, ctx: GqlContext) =>
     getWorkflow(ctx.teamId),
+
+  // The planning surface can expose projects, issues and customer detail that a project-scoped
+  // guest must not see, so it needs MEMBER or above, same as the MCP tools.
+  async initiatives(_args: unknown, ctx: GqlContext) {
+    assertRole(ctx.role, "MEMBER");
+    const rows = await projects.listInitiatives(ctx.teamId);
+
+    return rows.map((row) => ({
+      ...row,
+      targetDate: iso(row.targetDate),
+      projects: row.projects.map((project) => ({
+        ...project,
+        summary: "",
+        startDate: null,
+        targetDate: iso(project.targetDate),
+      })),
+    }));
+  },
+  async releases(_args: unknown, ctx: GqlContext) {
+    assertRole(ctx.role, "MEMBER");
+    const { listReleases } = await import("@/lib/services/releases");
+
+    return (await listReleases(ctx.teamId)).map((row) =>
+      shapeRelease(row as unknown as Json),
+    );
+  },
+  async views(_args: unknown, ctx: GqlContext) {
+    assertRole(ctx.role, "MEMBER");
+    const { listViews } = await import("@/lib/services/views");
+    const rows = await listViews(ctx.teamId);
+
+    return rows
+      .filter((row) => row.shared || row.ownerId === ctx.userId)
+      .map((row) => ({
+        id: row.id,
+        name: row.name,
+        layout: row.layout,
+        pinned: row.pinned,
+        filter: JSON.stringify(row.filterJson ?? {}),
+      }));
+  },
+  async documents(_args: unknown, ctx: GqlContext) {
+    assertRole(ctx.role, "MEMBER");
+    const { listDocuments } = await import("@/lib/services/surface");
+
+    return (await listDocuments(ctx.teamId)).map((row) => ({
+      id: row.id,
+      title: row.title,
+      body: row.body,
+      projectId: row.projectId,
+      initiativeId: row.initiativeId,
+      updatedAt: iso(row.updatedAt),
+    }));
+  },
+
+  async customers(_args: unknown, ctx: GqlContext) {
+    assertRole(ctx.role, "MEMBER");
+    const { listCustomers } = await import("@/lib/services/surface");
+
+    return listCustomers(ctx.teamId);
+  },
+  async projectDependencies(_args: unknown, ctx: GqlContext) {
+    assertRole(ctx.role, "MEMBER");
+    const service = await import("@/lib/services/project-dependencies");
+    const [dependencies, report] = await Promise.all([
+      service.listDependencies(ctx.teamId, ctx.userId),
+      service.dependencyReport(ctx.teamId, ctx.userId),
+    ]);
+
+    return { dependencies, ...report };
+  },
+  async setCustomerValue(
+    args: { customerId: string; tier?: string | null; arr?: number | null },
+    ctx: GqlContext,
+  ) {
+    assertRole(ctx.role, "MEMBER");
+    const { updateCustomerValue, listCustomers } =
+      await import("@/lib/services/surface");
+
+    await updateCustomerValue(
+      ctx.teamId,
+      args.customerId,
+      {
+        ...(args.tier != null ? { tier: args.tier } : {}),
+        ...(args.arr != null ? { arr: args.arr } : {}),
+      },
+      ctx.role,
+    );
+
+    return (await listCustomers(ctx.teamId)).find(
+      (customer) => customer.id === args.customerId,
+    );
+  },
+  async addProjectDependency(
+    args: { projectId: string; dependsOnId: string },
+    ctx: GqlContext,
+  ) {
+    assertRole(ctx.role, "MEMBER");
+    const service = await import("@/lib/services/project-dependencies");
+
+    await service.addDependency(
+      ctx.teamId,
+      args.projectId,
+      args.dependsOnId,
+      ctx.role,
+    );
+
+    return true;
+  },
+  async removeProjectDependency(
+    args: { projectId: string; dependsOnId: string },
+    ctx: GqlContext,
+  ) {
+    assertRole(ctx.role, "MEMBER");
+    const service = await import("@/lib/services/project-dependencies");
+
+    await service.removeDependency(
+      ctx.teamId,
+      args.projectId,
+      args.dependsOnId,
+      ctx.role,
+    );
+
+    return true;
+  },
+
+  async createInitiative(args: { input: Json }, ctx: GqlContext) {
+    assertRole(ctx.role, "MEMBER");
+    const row = await projects.createInitiative(ctx.teamId, args.input);
+
+    return { ...row, targetDate: iso(row.targetDate), projects: [] };
+  },
+  async updateInitiative(args: { id: string; input: Json }, ctx: GqlContext) {
+    assertRole(ctx.role, "MEMBER");
+    const row = await projects.updateInitiative(
+      ctx.teamId,
+      args.id,
+      args.input,
+    );
+
+    return { ...row, targetDate: iso(row.targetDate), projects: [] };
+  },
+  async createRelease(args: { input: Json }, ctx: GqlContext) {
+    assertRole(ctx.role, "MEMBER");
+    const { createRelease } = await import("@/lib/services/releases");
+    const row = await createRelease(ctx.teamId, args.input);
+
+    return shapeRelease({
+      ...row,
+      pipeline: null,
+      stage: null,
+      issues: [],
+    } as unknown as Json);
+  },
+  async setIssueRelease(
+    args: {
+      issueId: string;
+      releaseId?: string | null;
+      stageId?: string | null;
+    },
+    ctx: GqlContext,
+  ) {
+    assertRole(ctx.role, "MEMBER");
+    const { setIssueRelease } = await import("@/lib/services/releases");
+
+    await setIssueRelease(
+      ctx.teamId,
+      args.issueId,
+      args.releaseId ?? null,
+      args.stageId,
+    );
+
+    return true;
+  },
 
   async createIssue(args: { input: Json }, ctx: GqlContext) {
     const created = await issues.createIssue(

@@ -42,17 +42,18 @@ Demo (fake data): [verk.rejisterjack.com](https://verk.rejisterjack.com)
 - GitLab: merge requests that mention `ENG-12` link to the issue, opening one starts it, and merging finishes it ("fixes ENG-12", or the team's merge-completes switch) — the same rules as GitHub. Set the team's GitLab project, `GITLAB_WEBHOOK_SECRET`, and add `/api/gitlab/webhook` with the "Merge request events" trigger and that secret as the token
 - Privacy and compliance: Account → Your data downloads everything Verk holds about you as JSON (no secrets) and can erase your account (password-confirmed, off on the demo; identity is removed, issues and comments stay as "Deleted user", and a sole owner must hand over or delete the team first). Teams choose how long to keep audit entries (30 days to 2 years, or forever), and admins can download the audit log as CSV. This is tooling, not a certification: SOC 2 and similar are audits of your own processes
 - Concurrent document edits: if someone saves a document while you edit it, the two changes are merged by line when they touch different places, and refused with a clear message when they touch the same lines, never silently overwritten. Issues use revision checks with a keep-mine/keep-theirs dialog
-- Installed-app shortcuts (New issue, My issues, Inbox) and "Share to Verk": share a link or text from another app to start a pre-filled issue. A desktop shell for macOS, Windows and Linux lives in `desktop/` (Electron around your site; unsigned, see its README); the iOS and Android shells use Capacitor (`npm run mobile:sync`)
+- Installed-app shortcuts (New issue, My issues, Inbox) and "Share to Verk": share a link or text from another app to start a pre-filled issue. Verk is PWA-only — install it from the browser instead of maintaining separate desktop or mobile shells
 - Issue list display options: group by
  status, priority, assignee, project or cycle, and sort by priority, newest, oldest or title. The choice lives in the URL (`?listGroup=assignee&listSort=priority`) and is saved with a view. Keyboard focus and range-select follow what is on screen
 - Roadmap rescheduling: move a project a week earlier or later, or edit its dates, right on the Roadmap page. Saved insight reports: name a builder query, keep it private or share it with the team
-- GraphQL API (`POST /api/teams/{id}/graphql`) with the same API-key auth and role checks as REST;
+- GraphQL API (`POST /api/teams/{id}/graphql`) with the same API-key auth and role checks as REST. Queries: `issue`, `issues`, `projects`, `cycles`, `labels`, `members`, `workflowStatuses`, plus `initiatives`, `releases`, `views`, `documents`, `customers` and `projectDependencies` (these need a `MEMBER` key). Mutations: `createIssue`, `updateIssue`, `addComment`, `createInitiative`, `updateInitiative`, `createRelease`, `setIssueRelease`, `setCustomerValue`, `addProjectDependency`, `removeProjectDependency`. Automations and the audit log are REST and MCP only;
  query depth and size are limited
 - OAuth apps (Settings → OAuth apps): authorization-code flow with PKCE (`/oauth/authorize`, `POST /api/oauth/token`). Issued tokens are ordinary scoped API keys tied to the app, so revoking the app revokes them
 - Guest access: a guest can be limited to specific projects (Settings → Members). Every issue read path (lists, search, live updates, export, demand) is filtered by that scope
 - Generic CSV import (Settings → Import → CSV): upload any CSV, map columns to fields, preview, then import
 - AI assist: summaries on issues and triage suggestions (status, priority, labels, assignee). Set `AI_API_KEY` (and optionally `AI_API_URL`, `AI_MODEL`) for an OpenAI-compatible model; without it a keyword/extractive fallback is used. Also in MCP (`summarize_issue`, `suggest_triage`)
-- Webhook delivery log (Settings → Webhooks): every delivery with status and response, automatic retries with backoff, manual retry, and an SSRF guard that refuses private addresses (set `WEBHOOK_ALLOW_PRIVATE=1` only for local development). Zapier-style REST hooks: `/api/teams/{id}/hooks` (subscribe/unsubscribe, sample payloads)
+- Webhook delivery log (Settings → Webhooks): every delivery with status and response, automatic retries with backoff (a team's overdue retries run whenever it fires another event, and the daily cron sweeps the rest, since Vercel Hobby crons run once a day), manual retry,
+ and an SSRF guard that refuses private addresses (set `WEBHOOK_ALLOW_PRIVATE=1` only for local development). Zapier-style REST hooks: `/api/teams/{id}/hooks` (subscribe/unsubscribe, sample payloads)
 - Slack link unfurls (needs scopes `links:read`, `links:write`; see `docs/slack-app-manifest.json`) and GitHub PR automation: a PR that says "fixes ENG-12" links, starts and (on merge) closes the issue
 - Agent platform: `GET /api/teams/{id}/agent/next` hands a coding agent the next unblocked issue, and `/.well-known/verk-agent.json` describes the endpoints
 - Live updates over server-sent events with heartbeat, resume (`Last-Event-ID`), guest scoping and pausing when the tab is hidden
@@ -115,11 +116,12 @@ Copy [`.env.example`](.env.example). Core + integrations for full product surfac
 | `DEMO_RESET_SECRET` | Header `x-demo-reset-secret` for `POST /api/demo/reset` when `DEMO_MODE=true` |
 | `CRON_SECRET` | Bearer for the Vercel crons `/api/cron/cycles` and `/api/cron/demo-reset`. Without it both return 404 |
 | `INTAKE_TOKEN` | Bearer for `POST /api/teams/{teamId}/intake` (create an issue from an outside form) |
+| `EMAIL_INTAKE_TOKEN` | Bearer for `POST /api/teams/{teamId}/email`. Turns inbound email into a triage issue. See [Email intake](#email-intake) |
+| `SENTRY_WEBHOOK_SECRET` | Client secret of a Sentry internal integration. Turns on `POST /api/teams/{teamId}/sentry`. See [Sentry](#sentry) |
 | `SCIM_TOKEN` | Bearer for `/api/scim/*`. Without it SCIM is off |
 | `SAML_IDP_SSO_URL` / `SAML_IDP_CERT` | Turn on SAML single sign-on. See [SAML](#saml-single-sign-on) |
 | `SLACK_SIGNING_SECRET` / `SLACK_BOT_TOKEN` | Turn on the Slack app. See [Slack](#slack) |
 | `AI_API_KEY` | Turns on `POST /api/agent` and the Triage suggestions button |
-| `CAPACITOR_SERVER_URL` | Native shell URL. Defaults to `https://verk.rejisterjack.com` |
 
 Every variable the code reads is listed in [`.env.example`](.env.example).
 
@@ -151,10 +153,17 @@ Example Cursor / Claude config:
 }
 ```
 
-Tools (21):
+Tools (47):
 
-- Read: `list_issues` (pass `archived: true` for the archive), `get_issue`, `list_cycles`, `list_members`, `list_projects`, `list_labels`, `list_comments`
-- Write: `create_issue`, `update_issue`, `archive_issue`, `restore_issue`, `bulk_update_issues`, `create_project`, `update_project`, `add_comment`, `delete_comment`, `add_relation`, `find_similar_issues`, `create_sub_issue`, `set_parent_issue`; read: `list_sub_issues`
+- Issues, read: `list_issues` (pass `archived: true` for the archive), `get_issue`, `list_comments`, `list_sub_issues`, `search`, `find_similar_issues`
+- Issues, write: `create_issue`, `update_issue`, `archive_issue`, `restore_issue`, `bulk_update_issues`, `add_comment`, `delete_comment`, `add_relation`, `create_sub_issue`, `set_parent_issue`
+- Teams and planning, read: `list_cycles`, `list_members`, `list_projects`, `list_labels`, `list_statuses`, `list_initiatives`
+- Teams and planning, write: `create_project`, `update_project`, `create_status`, `create_initiative`, `update_initiative`, `add_project_dependency`, `remove_project_dependency`, `set_customer_value`
+- Project dependencies, read: `list_project_dependencies` (also lists scheduling conflicts and the projects ready to start; needs a `MEMBER` key)
+- Admin only (an `ADMIN` key, like the settings pages): `list_automations`, `list_audit_log`
+- Releases, documents, customers, views: `list_releases`, `create_release`, `set_issue_release`, `list_documents`, `save_document` (pass `baseBody` so a save made in between is merged, not overwritten), `list_customers`, `add_customer_request`, `list_views`. The read tools here need a `MEMBER` key or above, because they can show detail a project-scoped guest must not see
+- AI: `summarize_issue`, `suggest_triage`
+- Coding-agent delegation: `claim_issue`, `agent_heartbeat`, `report_result`, `release_issue`
 
 Resources: `verk://backlog`, `verk://cycles`.
 
@@ -179,7 +188,7 @@ On seeded `acme-engineering` after migrate + seed:
 
 ## CI / Playwright
 
-GitHub Actions lint, typecheck, unit tests, and a production build always run. The **Migrate + Playwright** step runs only when repository secret `DATABASE_URL` is set (plus `DIRECT_URL` / `AUTH_SECRET` for that job). Without those secrets, e2e is skipped — there is no Docker Postgres in CI.
+GitHub Actions lint, typecheck, unit tests, and a production build always run. The **Migrate, seed + Playwright** step runs only when repository secret `DATABASE_URL` is set (plus `DIRECT_URL` / `AUTH_SECRET`). Use a throwaway Neon branch: the seed resets the `acme-engineering` demo team. Without those secrets the job still passes, but it prints an "E2E skipped" warning and step summary, so a green check is never mistaken for a tested UI. There is no Docker Postgres in CI.
 
 ## SCIM
 
@@ -215,9 +224,34 @@ Create the app from [`docs/slack-app-manifest.json`](docs/slack-app-manifest.jso
 - **Notifications.** Creation, assignment, status changes and comments post once to the team's channel (or `SLACK_CHANNEL`) through the bot; without a bot they use the team's incoming webhook. Never both.
 - Requests older than 5 minutes are rejected, so a captured signed request cannot be replayed.
 
-## Capacitor (native shell)
+## Email intake
 
-Capacitor wraps the hosted web app — it is a remote shell over `CAPACITOR_SERVER_URL` (default `https://verk.rejisterjack.com`), not an offline-native client. `npm run mobile:sync` then `npm run mobile:ios` / `mobile:android`. App id `com.rejisterjack.verk`. Store submission still needs your Apple/Google developer accounts, signing, and privacy listings.
+Let people email a request straight into triage. Verk does not run a mail server; a provider does, and posts each message to Verk as JSON (Postmark, Resend, SendGrid and Mailgun inbound webhooks all can).
+
+1. Set `EMAIL_INTAKE_TOKEN`. Until it is set the route answers 404.
+2. Point the provider's inbound webhook at `POST {AUTH_URL}/api/teams/{teamId}/email` with header `Authorization: Bearer $EMAIL_INTAKE_TOKEN`.
+3. A message becomes a backlog issue (so it shows in Triage): the subject is the title (`Re:`/`Fwd:` removed), the body is the description with quoted replies and signatures cut, and the sender is noted at the top. If the sender's company domain matches a customer's domain, the request is recorded against that customer; a new customer is created otherwise. Free webmail domains (gmail.com and similar) never match.
+4. Auto-replies, bounces, no-reply senders and mailing-list traffic are dropped (the route answers 200 so the provider does not retry), so two robots cannot loop. A provider retry of the same message id returns the same issue instead of a second one. Limited to 60 requests per minute per IP.
+
+The email body is stored as plain text and shown through the Markdown renderer, which does not run HTML. Attachments are not imported.
+
+## Sentry
+
+Turn a new Sentry error into a triage issue. Create an **internal integration** in Sentry, set its webhook URL to `{AUTH_URL}/api/teams/{teamId}/sentry`, subscribe it to **Issue** (and, if you want alert-rule events, **Event alerts**), and set `SENTRY_WEBHOOK_SECRET` to its client secret. Until it is set the route answers 404.
+
+- Requests are trusted only if `Sentry-Hook-Signature` is the HMAC-SHA256 of the raw body.
+- Only `issue` → `created` and `event_alert` are handled; assigned, resolved, comments and metric alerts are ignored with a 200.
+- `fatal` → Urgent, `error` → High, `warning` → Medium, anything else Low. The Sentry link is attached to the issue.
+- Each Sentry issue id is the idempotency key, so a retry, a repeat alert and the "created" event for the same error make one Verk issue.
+
+## Project dependencies and customer revenue
+
+- **Dependencies.** On a project page, "Depends on" lists the projects that should finish first and "Blocks" lists the ones waiting on it. Loops, duplicates and self-dependencies are refused. The Roadmap shows a banner when a project starts, or is due, before a project it waits on is due, or waits on a cancelled one. API: MCP `list_project_dependencies`, `add_project_dependency`, `remove_project_dependency`; GraphQL `projectDependencies`, `addProjectDependency`, `removeProjectDependency`. There is no drawn dependency graph and no automatic rescheduling.
+- **Customer revenue.** Give a customer a tier and annual revenue on the Customers page (or MCP `set_customer_value`, GraphQL `setCustomerValue`). Customer demand can be ranked by breadth (default) or by revenue; each customer counts once per issue however often they asked. Revenue is a number you enter; there is no billing integration.
+
+## Install as an app (PWA only)
+
+Verk has no Electron, iOS, or Android shell to build, sign, and publish separately. Install it from your browser — on desktop or mobile — and it runs in its own app window with the offline outbox and installed-app shortcuts. This keeps one release channel and avoids native store accounts and certificates.
 
 ## Honest caveats
 
@@ -228,7 +262,7 @@ Capacitor wraps the hosted web app — it is a remote shell over `CAPACITOR_SERV
 - Offline outbox covers issue CRUD plus comments, labels, estimate, due date, and project.
 - Initiatives, SLA hour targets, and GitHub pull-request links are included. Status changes comment on linked pull requests when `GITHUB_TOKEN` is set. Verk does not merge pull requests.
 - MCP, SCIM, SAML, Linear import, the GitHub webhook, Slack, the issue agent, sign-in and demo reset are limited to 20 requests per minute per client IP (30 for sign-in routes). The counter lives in Postgres, so it is shared by every serverless instance, and the 21st request returns 429. If the database is briefly unreachable the limiter falls back to a per-instance counter instead of failing requests.
-- `GET /api/teams/{teamId}/export` downloads the team's issues as CSV (number, title, status, priority, assignee, labels). It does not include descriptions, dates or comments.
+- `GET /api/teams/{teamId}/export` downloads the team's issues as CSV or JSON (number, title, description, status, priority, estimate, people, project, cycle, labels, parent, due date and timestamps). It does not include comments, attachments or activity history.
 - Releases belong to a pipeline, and each pipeline has its own ordered stages (rename, reorder and delete them on the Releases page). Deleting a stage moves its issues to the first remaining stage.
 
 ## Stack

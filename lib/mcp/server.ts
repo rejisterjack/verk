@@ -802,6 +802,392 @@ export function createVerkMcpServer(ctx: McpContext) {
     },
   );
 
+  // ---- Planning surface: initiatives, releases, documents, customers, saved views. ----
+  // Reads that can expose issue or customer detail need MEMBER, so a project-scoped guest key
+  // cannot see more through these tools than it can through list_issues.
+  const json = (value: unknown) => ({
+    content: [{ type: "text" as const, text: JSON.stringify(value, null, 2) }],
+  });
+
+  server.registerTool(
+    "list_initiatives",
+    {
+      title: "List initiatives",
+      description:
+        "List initiatives with their parent, child count, target date, health and projects",
+      inputSchema: {},
+    },
+    async () =>
+      json({ initiatives: await projectsService.listInitiatives(ctx.teamId) }),
+  );
+
+  server.registerTool(
+    "create_initiative",
+    {
+      title: "Create initiative",
+      description:
+        "Create an initiative. Pass parentId to nest it under another initiative; targetDate is an ISO date",
+      inputSchema: {
+        name: z.string(),
+        targetDate: z.string().nullable().optional(),
+        parentId: z.string().nullable().optional(),
+      },
+    },
+    async (args) => {
+      requireWrite(ctx);
+
+      return json(await projectsService.createInitiative(ctx.teamId, args));
+    },
+  );
+
+  server.registerTool(
+    "update_initiative",
+    {
+      title: "Update initiative",
+      description:
+        "Rename an initiative, move its target date or set its health",
+      inputSchema: {
+        id: z.string(),
+        name: z.string().optional(),
+        targetDate: z.string().nullable().optional(),
+        health: z.enum(["ON_TRACK", "AT_RISK", "OFF_TRACK"]).optional(),
+      },
+    },
+    async (args) => {
+      requireWrite(ctx);
+      const { id, ...patch } = args;
+
+      return json(
+        await projectsService.updateInitiative(ctx.teamId, id, patch),
+      );
+    },
+  );
+
+  server.registerTool(
+    "list_releases",
+    {
+      title: "List releases",
+      description:
+        "List releases with their pipeline, current stage and the issues in each",
+      inputSchema: {},
+    },
+    async () => {
+      requireWrite(ctx, "MEMBER");
+      const { listReleases } = await import("@/lib/services/releases");
+
+      return json({ releases: await listReleases(ctx.teamId) });
+    },
+  );
+
+  server.registerTool(
+    "create_release",
+    {
+      title: "Create release",
+      description:
+        "Create a release in a pipeline (the first pipeline and its first stage by default)",
+      inputSchema: {
+        name: z.string(),
+        targetDate: z.string().nullable().optional(),
+        pipelineId: z.string().optional(),
+        stageId: z.string().optional(),
+      },
+    },
+    async (args) => {
+      requireWrite(ctx);
+      const { createRelease } = await import("@/lib/services/releases");
+
+      return json(await createRelease(ctx.teamId, args));
+    },
+  );
+
+  server.registerTool(
+    "set_issue_release",
+    {
+      title: "Put an issue in a release",
+      description:
+        "Move an issue into a release (and optionally a stage of its pipeline). Pass releaseId null to remove it from its release",
+      inputSchema: {
+        issueId: z.string(),
+        releaseId: z.string().nullable(),
+        stageId: z.string().nullable().optional(),
+      },
+    },
+    async (args) => {
+      requireWrite(ctx);
+      const { setIssueRelease } = await import("@/lib/services/releases");
+
+      return json({
+        release: await setIssueRelease(
+          ctx.teamId,
+          args.issueId,
+          args.releaseId,
+          args.stageId,
+        ),
+      });
+    },
+  );
+
+  server.registerTool(
+    "list_documents",
+    {
+      title: "List documents",
+      description:
+        "List team documents with their project or initiative and comments",
+      inputSchema: {},
+    },
+    async () => {
+      requireWrite(ctx, "MEMBER");
+      const { listDocuments } = await import("@/lib/services/surface");
+
+      return json({ documents: await listDocuments(ctx.teamId) });
+    },
+  );
+
+  server.registerTool(
+    "save_document",
+    {
+      title: "Create or update a document",
+      description:
+        "Create a document, or update one when id is given. Pass baseBody (the body you started from) when updating so a save made in between is merged by line instead of overwritten. Attach to a project or initiative with projectId / initiativeId",
+      inputSchema: {
+        id: z.string().optional(),
+        title: z.string(),
+        body: z.string().optional(),
+        baseBody: z.string().optional(),
+        projectId: z.string().nullable().optional(),
+        initiativeId: z.string().nullable().optional(),
+      },
+    },
+    async (args) => {
+      requireWrite(ctx);
+      const { saveDocument } = await import("@/lib/services/surface");
+      const { id, ...input } = args;
+
+      return json(await saveDocument(ctx.teamId, ctx.userId, input, id));
+    },
+  );
+
+  server.registerTool(
+    "list_customers",
+    {
+      title: "List customers",
+      description: "List customers and the requests each has made",
+      inputSchema: {},
+    },
+    async () => {
+      requireWrite(ctx, "MEMBER");
+      const { listCustomers } = await import("@/lib/services/surface");
+
+      return json({ customers: await listCustomers(ctx.teamId) });
+    },
+  );
+
+  server.registerTool(
+    "add_customer_request",
+    {
+      title: "Record a customer request",
+      description:
+        "Record that a customer asked for something, optionally linked to an issue by number. Pass customerName to create the customer on the fly",
+      inputSchema: {
+        customerId: z.string().optional(),
+        customerName: z.string().optional(),
+        body: z.string(),
+        issueNumber: z.number().int().positive().optional(),
+      },
+    },
+    async (args) => {
+      requireWrite(ctx);
+      const { addCustomerRequest, createCustomer, listCustomers } =
+        await import("@/lib/services/surface");
+      let customerId = args.customerId;
+
+      if (!customerId) {
+        const name = args.customerName?.trim();
+
+        if (!name) {
+          return {
+            isError: true,
+            content: [
+              {
+                type: "text" as const,
+                text: "Pass customerId or customerName",
+              },
+            ],
+          };
+        }
+        const existing = (await listCustomers(ctx.teamId)).find(
+          (customer) => customer.name.toLowerCase() === name.toLowerCase(),
+        );
+
+        customerId = (existing ?? (await createCustomer(ctx.teamId, { name })))
+          .id;
+      }
+
+      return json(
+        await addCustomerRequest(ctx.teamId, customerId, {
+          body: args.body,
+          issueNumber: args.issueNumber,
+        }),
+      );
+    },
+  );
+
+  server.registerTool(
+    "list_views",
+    {
+      title: "List saved views",
+      description:
+        "List saved issue views (name, layout and the filter each stores). Pass a view's filter to list_issues to run it",
+      inputSchema: {},
+    },
+    async () => {
+      requireWrite(ctx, "MEMBER");
+      const { listViews } = await import("@/lib/services/views");
+
+      return json({ views: await listViews(ctx.teamId) });
+    },
+  );
+
+  // ---- Project dependencies and customer value. ----
+  server.registerTool(
+    "list_project_dependencies",
+    {
+      title: "List project dependencies",
+      description:
+        "List which projects depend on which, plus scheduling conflicts (a project that starts or is due before the project it waits on) and the projects that are ready to start",
+      inputSchema: {},
+    },
+    async () => {
+      requireWrite(ctx, "MEMBER");
+      const service = await import("@/lib/services/project-dependencies");
+      const [dependencies, report] = await Promise.all([
+        service.listDependencies(ctx.teamId, ctx.userId),
+        service.dependencyReport(ctx.teamId, ctx.userId),
+      ]);
+
+      return json({ dependencies, ...report });
+    },
+  );
+
+  server.registerTool(
+    "add_project_dependency",
+    {
+      title: "Make a project depend on another",
+      description:
+        "projectId depends on dependsOnId (the second should finish first). Loops, duplicates and self-dependencies are refused",
+      inputSchema: { projectId: z.string(), dependsOnId: z.string() },
+    },
+    async (args) => {
+      requireWrite(ctx);
+      const service = await import("@/lib/services/project-dependencies");
+
+      try {
+        return json(
+          await service.addDependency(
+            ctx.teamId,
+            args.projectId,
+            args.dependsOnId,
+            ctx.role,
+          ),
+        );
+      } catch (error) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text" as const,
+              text: error instanceof Error ? error.message : "Request failed",
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  server.registerTool(
+    "remove_project_dependency",
+    {
+      title: "Remove a project dependency",
+      description: "Stop projectId depending on dependsOnId",
+      inputSchema: { projectId: z.string(), dependsOnId: z.string() },
+    },
+    async (args) => {
+      requireWrite(ctx);
+      const service = await import("@/lib/services/project-dependencies");
+
+      await service.removeDependency(
+        ctx.teamId,
+        args.projectId,
+        args.dependsOnId,
+        ctx.role,
+      );
+
+      return json({ removed: true });
+    },
+  );
+
+  server.registerTool(
+    "set_customer_value",
+    {
+      title: "Set a customer's tier and revenue",
+      description:
+        "Record a customer's plan (tier, free text) and annual revenue (whole currency units). Customer demand can then be ranked by revenue",
+      inputSchema: {
+        customerId: z.string(),
+        tier: z.string().optional(),
+        arr: z.number().int().min(0).optional(),
+      },
+    },
+    async (args) => {
+      requireWrite(ctx);
+      const { updateCustomerValue } = await import("@/lib/services/surface");
+      const { customerId, ...value } = args;
+
+      return json(
+        await updateCustomerValue(ctx.teamId, customerId, value, ctx.role),
+      );
+    },
+  );
+
+  // ---- Admin tools: the same role the settings pages need. ----
+  server.registerTool(
+    "list_automations",
+    {
+      title: "List automations",
+      description:
+        "List the team's automation rules (trigger, conditions, actions, run count). Admin only",
+      inputSchema: {},
+    },
+    async () => {
+      requireWrite(ctx, "ADMIN");
+      const { listAutomations } = await import("@/lib/services/automations");
+
+      return json({ automations: await listAutomations(ctx.teamId) });
+    },
+  );
+
+  server.registerTool(
+    "list_audit_log",
+    {
+      title: "List the audit log",
+      description:
+        "Who changed members, keys, hooks and settings, newest first. Filter by action and ISO day (YYYY-MM-DD); pass the returned nextCursor to page back. Admin only",
+      inputSchema: {
+        action: z.string().optional(),
+        from: z.string().optional(),
+        to: z.string().optional(),
+        cursor: z.string().optional(),
+        take: z.number().int().min(1).max(200).optional(),
+      },
+    },
+    async (args) => {
+      requireWrite(ctx, "ADMIN");
+      const { listAuditLog } = await import("@/lib/services/audit");
+
+      return json(await listAuditLog(ctx.teamId, args));
+    },
+  );
+
   // ---- Delegating work to a coding agent: claim, keep alive, report back. ----
   const claimText = (value: unknown) => ({
     content: [{ type: "text" as const, text: JSON.stringify(value, null, 2) }],

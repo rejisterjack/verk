@@ -170,3 +170,46 @@ export function PostProjectUpdateForm({
     </Form>
   );
 }
+
+export function AddDependencyForm({
+  action,
+  options,
+}: {
+  action: (formData: FormData) => void | Promise<void>;
+  options: { id: string; label: string }[];
+}) {
+  if (options.length === 0) {
+    return (
+      <p className="mt-2 text-[12px] text-muted">
+        No other projects to depend on yet.
+      </p>
+    );
+  }
+
+  return (
+    <Form
+      data-compact-form
+      action={action}
+      className="mt-3 flex flex-wrap items-center gap-2"
+    >
+      <SelectField
+        hideLabel
+        isRequired
+        className="min-w-48 flex-1"
+        label="Depends on"
+        name="dependsOnId"
+        options={options}
+        placeholder="Depends on…"
+        size="sm"
+      />
+      <Button
+        className="h-7 px-2.5 text-[12px]"
+        size="sm"
+        type="submit"
+        variant="tertiary"
+      >
+        Add dependency
+      </Button>
+    </Form>
+  );
+}

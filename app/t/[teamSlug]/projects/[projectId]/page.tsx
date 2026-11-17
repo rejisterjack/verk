@@ -9,6 +9,7 @@ import {
 } from "@/components/docs-forms";
 import { MarkdownBody } from "@/components/markdown-body";
 import {
+  AddDependencyForm,
   AddMilestoneForm,
   PostProjectUpdateForm,
   ProjectSettingsForm,
@@ -19,6 +20,7 @@ import { requireTeamBySlug } from "@/lib/rbac";
 import { favoriteIds } from "@/lib/services/favorites";
 import * as membersService from "@/lib/services/members";
 import * as projectsService from "@/lib/services/projects";
+import * as dependencyService from "@/lib/services/project-dependencies";
 import {
   addProjectUpdate,
   deleteDocument,
@@ -51,16 +53,39 @@ export default async function ProjectDetailPage({
   const canAdmin =
     teamCtx.membership.role === "ADMIN" || teamCtx.membership.role === "OWNER";
 
-  const [updates, members, initiatives, documents, starred] = await Promise.all(
-    [
-      listProjectUpdates(teamId, projectId),
-      membersService.listMembers(teamId),
-      projectsService.listInitiatives(teamId),
-      listDocuments(teamId),
-      favoriteIds(teamCtx.user.id, teamId, "project"),
-    ],
-  );
+  const [
+    updates,
+    members,
+    initiatives,
+    documents,
+    starred,
+    allProjects,
+    dependencies,
+    report,
+  ] = await Promise.all([
+    listProjectUpdates(teamId, projectId),
+    membersService.listMembers(teamId),
+    projectsService.listInitiatives(teamId),
+    listDocuments(teamId),
+    favoriteIds(teamCtx.user.id, teamId, "project"),
+    projectsService.listProjects(teamId, teamCtx.user.id),
+    dependencyService.listDependencies(teamId, teamCtx.user.id),
+    dependencyService.dependencyReport(teamId, teamCtx.user.id),
+  ]);
   const projectDocs = documents.filter((doc) => doc.projectId === projectId);
+  const waitsOn = dependencies.filter((dep) => dep.projectId === projectId);
+  const blocks = dependencies.filter((dep) => dep.dependsOnId === projectId);
+  const conflicts = report.conflicts.filter(
+    (item) => item.projectId === projectId,
+  );
+  const canEdit = teamCtx.membership.role !== "GUEST";
+  const dependencyOptions = allProjects
+    .filter(
+      (item) =>
+        item.id !== projectId &&
+        !waitsOn.some((dep) => dep.dependsOnId === item.id),
+    )
+    .map((item) => ({ id: item.id, label: item.name }));
 
   async function postUpdate(formData: FormData) {
     "use server";
@@ -68,6 +93,35 @@ export default async function ProjectDetailPage({
       body: String(formData.get("body") ?? ""),
       health: String(formData.get("health") ?? "ON_TRACK"),
     });
+    redirect(`/t/${teamSlug}/projects/${projectId}`);
+  }
+
+  async function addDependency(formData: FormData) {
+    "use server";
+    const dependsOnId = String(formData.get("dependsOnId") ?? "");
+
+    if (!dependsOnId) return;
+    try {
+      await dependencyService.addDependency(
+        teamId,
+        projectId,
+        dependsOnId,
+        teamCtx.membership.role,
+      );
+    } catch {
+      // A loop, duplicate or unknown project: the list below simply stays as it was.
+    }
+    redirect(`/t/${teamSlug}/projects/${projectId}`);
+  }
+
+  async function removeDependency(formData: FormData) {
+    "use server";
+    await dependencyService.removeDependency(
+      teamId,
+      projectId,
+      String(formData.get("dependsOnId") ?? ""),
+      teamCtx.membership.role,
+    );
     redirect(`/t/${teamSlug}/projects/${projectId}`);
   }
 
@@ -283,6 +337,73 @@ export default async function ProjectDetailPage({
                 </li>
               ))}
             </ul>
+          </section>
+          <section className="border-b border-separator px-4 py-3">
+            <h2 className="mb-2 text-[12px] font-medium uppercase tracking-wide text-muted">
+              Dependencies
+            </h2>
+            {conflicts.map((item) => (
+              <p
+                key={item.dependsOnId + item.kind}
+                className="mb-1 text-[12px] text-warning"
+              >
+                {item.message}
+              </p>
+            ))}
+            <p className="text-[11px] uppercase tracking-wide text-muted">
+              Depends on
+            </p>
+            <ul className="mb-2 space-y-1 text-[13px]">
+              {waitsOn.map((dep) => (
+                <li key={dep.id} className="flex items-center gap-2">
+                  <NextLink
+                    className="flex-1 hover:text-accent"
+                    href={`/t/${teamSlug}/projects/${dep.dependsOnId}`}
+                  >
+                    {dep.dependsOnName}
+                  </NextLink>
+                  {canEdit ? (
+                    <form action={removeDependency}>
+                      <input
+                        name="dependsOnId"
+                        type="hidden"
+                        value={dep.dependsOnId}
+                      />
+                      <Button size="sm" type="submit" variant="danger">
+                        Remove
+                      </Button>
+                    </form>
+                  ) : null}
+                </li>
+              ))}
+              {waitsOn.length === 0 ? (
+                <li className="text-muted">Nothing.</li>
+              ) : null}
+            </ul>
+            <p className="text-[11px] uppercase tracking-wide text-muted">
+              Blocks
+            </p>
+            <ul className="space-y-1 text-[13px]">
+              {blocks.map((dep) => (
+                <li key={dep.id}>
+                  <NextLink
+                    className="hover:text-accent"
+                    href={`/t/${teamSlug}/projects/${dep.projectId}`}
+                  >
+                    {dep.projectName}
+                  </NextLink>
+                </li>
+              ))}
+              {blocks.length === 0 ? (
+                <li className="text-muted">Nothing.</li>
+              ) : null}
+            </ul>
+            {canEdit ? (
+              <AddDependencyForm
+                action={addDependency}
+                options={dependencyOptions}
+              />
+            ) : null}
           </section>
           <section className="px-4 py-3">
             <h2 className="mb-2 text-[12px] font-medium uppercase tracking-wide text-muted">

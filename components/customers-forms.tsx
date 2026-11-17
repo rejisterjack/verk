@@ -15,7 +15,7 @@ export function CreateCustomerForm({
   action: (formData: FormData) => void | Promise<void>;
 }) {
   return (
-    <Form action={action} className="flex h-7 flex-wrap items-center gap-2">
+    <Form action={action} className="flex flex-wrap items-center gap-2">
       <TextField isRequired name="name">
         <Label className="sr-only">Name</Label>
         <Input className={compactInput} placeholder="Name" />
@@ -24,8 +24,55 @@ export function CreateCustomerForm({
         <Label className="sr-only">Domain</Label>
         <Input className={compactInput} placeholder="domain.com" />
       </TextField>
+      <TextField name="tier">
+        <Label className="sr-only">Tier</Label>
+        <Input className={compactInput} placeholder="Tier (Enterprise)" />
+      </TextField>
+      <TextField name="arr">
+        <Label className="sr-only">Annual revenue</Label>
+        <Input
+          className={compactInput}
+          inputMode="numeric"
+          placeholder="Annual revenue"
+        />
+      </TextField>
       <Button className="h-7 px-2.5 text-[12px]" size="sm" type="submit">
         Add
+      </Button>
+    </Form>
+  );
+}
+
+export function CustomerValueForm({
+  action,
+  tier,
+  arr,
+}: {
+  action: (formData: FormData) => void | Promise<void>;
+  tier: string;
+  arr: number;
+}) {
+  return (
+    <Form action={action} className="flex flex-wrap items-center gap-2">
+      <TextField defaultValue={tier} name="tier">
+        <Label className="sr-only">Tier</Label>
+        <Input className={compactInput} placeholder="Tier" />
+      </TextField>
+      <TextField defaultValue={arr ? String(arr) : ""} name="arr">
+        <Label className="sr-only">Annual revenue</Label>
+        <Input
+          className={compactInput}
+          inputMode="numeric"
+          placeholder="Annual revenue"
+        />
+      </TextField>
+      <Button
+        className="h-7 px-2.5 text-[12px]"
+        size="sm"
+        type="submit"
+        variant="tertiary"
+      >
+        Save value
       </Button>
     </Form>
   );

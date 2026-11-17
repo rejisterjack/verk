@@ -99,7 +99,12 @@ export function CreateCycleForm({
       action={action}
       className="grid w-full max-w-3xl items-end gap-x-3 gap-y-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.35fr)_9.75rem_9.75rem_3.5rem_auto]"
     >
-      <TextField fullWidth isRequired className="sm:col-span-2 lg:col-span-1" name="name">
+      <TextField
+        fullWidth
+        isRequired
+        className="sm:col-span-2 lg:col-span-1"
+        name="name"
+      >
         <Label className="text-[12px] text-muted">Name</Label>
         <Input className={compactInput} placeholder="Cycle 2" />
       </TextField>

@@ -290,12 +290,29 @@ export async function dispatchWebhooks(
       await attemptDelivery(delivery.id);
     }),
   );
+
+  // Vercel Hobby crons run once a day, which is too slow for a 1-minute backoff. Teams that use
+  // webhooks are by definition generating events, so use them to also retry that team's overdue
+  // deliveries. Small, index-backed, and never allowed to fail the write that triggered it.
+  if (hooks.length > 0) {
+    await retryDueDeliveries(5, teamId).catch(() => 0);
+  }
 }
 
-/** Retry deliveries whose time has come. Returns how many were attempted. */
-export async function retryDueDeliveries(limit = 100): Promise<number> {
+/**
+ * Retry deliveries whose time has come. Returns how many were attempted. Pass `teamId` to limit
+ * the sweep to one team (used by `dispatchWebhooks`); the daily cron sweeps everyone.
+ */
+export async function retryDueDeliveries(
+  limit = 100,
+  teamId?: string,
+): Promise<number> {
   const due = await prisma.webhookDelivery.findMany({
-    where: { status: "pending", nextAttemptAt: { lte: new Date() } },
+    where: {
+      status: "pending",
+      nextAttemptAt: { lte: new Date() },
+      ...(teamId ? { teamId } : {}),
+    },
     orderBy: { nextAttemptAt: "asc" },
     take: limit,
     select: { id: true },

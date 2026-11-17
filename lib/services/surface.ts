@@ -1,8 +1,11 @@
+import type { Role } from "@/lib/generated/prisma/client";
+
 import { z } from "zod";
 
 import { prisma } from "@/lib/db";
 import { AuthError } from "@/lib/errors";
 import { isValidEmoji, MAX_DISTINCT_EMOJI } from "@/lib/reactions";
+import { assertRole } from "@/lib/roles";
 import { postSlackMessage } from "@/lib/slack";
 import { mergeThreeWay } from "@/lib/three-way-merge";
 
@@ -389,20 +392,57 @@ export async function listCustomers(teamId: string) {
       _count: { select: { requests: true } },
       requests: { select: { id: true, body: true, issueId: true } },
     },
-    orderBy: { name: "asc" },
+    orderBy: [{ arr: "desc" }, { name: "asc" }],
   });
 }
+
+const customerValueSchema = {
+  tier: z.string().trim().max(60).optional(),
+  /** Whole currency units per year. Accepts "50000" from a form. */
+  arr: z.coerce.number().int().min(0).max(1_000_000_000_000).optional(),
+};
 
 export async function createCustomer(teamId: string, input: unknown) {
   const data = z
     .object({
       name: z.string().min(1).max(120),
       domain: z.string().max(120).optional().default(""),
+      ...customerValueSchema,
     })
     .parse(input);
 
   return prisma.customer.create({
-    data: { teamId, name: data.name, domain: data.domain },
+    data: {
+      teamId,
+      name: data.name,
+      domain: data.domain,
+      tier: data.tier ?? "",
+      arr: data.arr ?? 0,
+    },
+  });
+}
+
+/** Change a customer's tier or annual revenue. Scoped to the team. */
+export async function updateCustomerValue(
+  teamId: string,
+  customerId: string,
+  input: unknown,
+  role: Role,
+) {
+  assertRole(role, "MEMBER");
+  const existing = await prisma.customer.findFirst({
+    where: { id: customerId, teamId },
+  });
+
+  if (!existing) throw new AuthError("Customer not found", "NOT_FOUND", 404);
+  const data = z.object(customerValueSchema).parse(input);
+
+  return prisma.customer.update({
+    where: { id: customerId },
+    data: {
+      ...(data.tier !== undefined ? { tier: data.tier } : {}),
+      ...(data.arr !== undefined ? { arr: data.arr } : {}),
+    },
   });
 }
 

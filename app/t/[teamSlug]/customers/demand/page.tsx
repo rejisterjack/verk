@@ -2,7 +2,7 @@ import NextLink from "next/link";
 import { notFound } from "next/navigation";
 
 import { ViewToolbar } from "@/components/page-header";
-import { rankDemand } from "@/lib/demand";
+import { formatArr, rankDemand } from "@/lib/demand";
 import { prisma } from "@/lib/db";
 import { requireTeamBySlug } from "@/lib/rbac";
 import { guestIssueScope } from "@/lib/services/guest-scope";
@@ -13,7 +13,7 @@ export default async function DemandPage({
   searchParams,
 }: {
   params: Promise<{ teamSlug: string }>;
-  searchParams: Promise<{ closed?: string }>;
+  searchParams: Promise<{ closed?: string; sort?: string }>;
 }) {
   const { teamSlug } = await params;
   const query = await searchParams;
@@ -35,7 +35,9 @@ export default async function DemandPage({
     select: {
       createdAt: true,
       issueId: true,
-      customer: { select: { id: true, name: true } },
+      customer: {
+        select: { id: true, name: true, arr: true, tier: true },
+      },
       issue: {
         select: {
           id: true,
@@ -59,25 +61,55 @@ export default async function DemandPage({
       customerName: request.customer.name,
       issueId: request.issueId,
       createdAt: request.createdAt,
+      customerArr: request.customer.arr,
+      customerTier: request.customer.tier,
     })),
     [...issues.values()],
-    { includeClosed: query.closed === "1" },
+    {
+      includeClosed: query.closed === "1",
+      sort: query.sort === "revenue" ? "revenue" : "customers",
+    },
   );
+  const byRevenue = query.sort === "revenue";
+  const link = (toggle: "sort" | "closed") => {
+    const params = new URLSearchParams();
+    const closed =
+      toggle === "closed" ? query.closed !== "1" : query.closed === "1";
+    const revenue = toggle === "sort" ? !byRevenue : byRevenue;
+
+    if (closed) params.set("closed", "1");
+    if (revenue) params.set("sort", "revenue");
+    const text = params.toString();
+
+    return `/t/${teamSlug}/customers/demand${text ? `?${text}` : ""}`;
+  };
 
   return (
     <div className="flex min-h-full flex-col">
       <ViewToolbar
         actions={
-          <NextLink
-            className="rounded px-2 py-1 text-[12px] text-accent hover:bg-default"
-            href={`/t/${teamSlug}/customers/demand${query.closed === "1" ? "" : "?closed=1"}`}
-          >
-            {query.closed === "1"
-              ? "Hide finished issues"
-              : "Include finished issues"}
-          </NextLink>
+          <div className="flex items-center gap-1">
+            <NextLink
+              className="rounded px-2 py-1 text-[12px] text-accent hover:bg-default"
+              href={link("sort")}
+            >
+              {byRevenue ? "Rank by customers" : "Rank by revenue"}
+            </NextLink>
+            <NextLink
+              className="rounded px-2 py-1 text-[12px] text-accent hover:bg-default"
+              href={link("closed")}
+            >
+              {query.closed === "1"
+                ? "Hide finished issues"
+                : "Include finished issues"}
+            </NextLink>
+          </div>
         }
-        description="Issues ranked by how many different customers asked for them."
+        description={
+          byRevenue
+            ? "Issues ranked by the annual revenue of the customers asking (each customer counted once)."
+            : "Issues ranked by how many different customers asked for them."
+        }
         title="Customer demand"
       />
       {rows.length === 0 ? (
@@ -113,7 +145,11 @@ export default async function DemandPage({
                 <p className="truncate text-[12px] text-muted">
                   {row.customers
                     .slice(0, 6)
-                    .map((c) => (c.asks > 1 ? `${c.name} ×${c.asks}` : c.name))
+                    .map((c) => {
+                      const label = c.tier ? `${c.name} (${c.tier})` : c.name;
+
+                      return c.asks > 1 ? `${label} ×${c.asks}` : label;
+                    })
                     .join(", ")}
                   {row.customers.length > 6
                     ? ` +${row.customers.length - 6} more`
@@ -123,6 +159,12 @@ export default async function DemandPage({
                   oldest {row.oldestAsk.toISOString().slice(0, 10)}
                 </p>
               </div>
+              <span
+                className="w-16 text-right text-[12px] text-muted"
+                title="Annual revenue of the customers asking"
+              >
+                {formatArr(row.totalArr)}
+              </span>
               <span className="text-[12px] text-muted">
                 {row.issue.status.replace("_", " ").toLowerCase()}
               </span>

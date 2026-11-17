@@ -250,40 +250,41 @@ model Team {
   subIssueInherit      Boolean @default(true)
   estimateScale        String  @default("fibonacci")
 
-  parent            Team?             @relation("SubTeams", fields: [parentId], references: [id], onDelete: SetNull)
-  children          Team[]            @relation("SubTeams")
-  workspace         Workspace?        @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
-  memberships       Membership[]
-  invites           Invite[]
-  issues            Issue[]
-  cycles            Cycle[]
-  apiKeys           ApiKey[]
-  mutationReceipts  MutationReceipt[]
-  issueDeletions    IssueDeletion[]
-  labels            Label[]
-  projects          Project[]
-  initiatives       Initiative[]
-  savedViews        SavedView[]
-  workflowStatuses  WorkflowStatus[]
-  webhooks          Webhook[]
-  auditLogs         AuditLog[]
-  askLink           AskLink?
-  insightReports    InsightReport[]
-  oauthApps         OAuthApp[]
-  webhookDeliveries WebhookDelivery[]
-  issueDrafts       IssueDraft[]
-  automations       Automation[]
-  triageOwner       User?             @relation("TriageOwner", fields: [triageOwnerId], references: [id], onDelete: SetNull)
-  templates         IssueTemplate[]
-  documents         Document[]
-  customers         Customer[]
-  triageRules       TriageRule[]
-  releases          Release[]
-  pipelineStages    PipelineStage[]
-  pipelines         Pipeline[]
-  savedInsights     SavedInsight[]
-  statusRules       StatusRule[]
-  favorites         Favorite[]
+  parent              Team?               @relation("SubTeams", fields: [parentId], references: [id], onDelete: SetNull)
+  children            Team[]              @relation("SubTeams")
+  workspace           Workspace?          @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  memberships         Membership[]
+  invites             Invite[]
+  issues              Issue[]
+  cycles              Cycle[]
+  apiKeys             ApiKey[]
+  mutationReceipts    MutationReceipt[]
+  issueDeletions      IssueDeletion[]
+  labels              Label[]
+  projects            Project[]
+  initiatives         Initiative[]
+  savedViews          SavedView[]
+  workflowStatuses    WorkflowStatus[]
+  webhooks            Webhook[]
+  auditLogs           AuditLog[]
+  askLink             AskLink?
+  insightReports      InsightReport[]
+  oauthApps           OAuthApp[]
+  webhookDeliveries   WebhookDelivery[]
+  issueDrafts         IssueDraft[]
+  automations         Automation[]
+  triageOwner         User?               @relation("TriageOwner", fields: [triageOwnerId], references: [id], onDelete: SetNull)
+  templates           IssueTemplate[]
+  documents           Document[]
+  customers           Customer[]
+  triageRules         TriageRule[]
+  releases            Release[]
+  pipelineStages      PipelineStage[]
+  pipelines           Pipeline[]
+  savedInsights       SavedInsight[]
+  statusRules         StatusRule[]
+  favorites           Favorite[]
+  projectDependencies ProjectDependency[]
 
   @@unique([slackTeamId, slackChannelId])
   @@index([slackTeamId])
@@ -429,18 +430,39 @@ model Project {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
-  team       Team            @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  workspace  Workspace?      @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
-  initiative Initiative?     @relation(fields: [initiativeId], references: [id], onDelete: SetNull)
-  lead       User?           @relation("ProjectLead", fields: [leadId], references: [id], onDelete: SetNull)
-  milestones Milestone[]
-  issues     Issue[]
-  updates    ProjectUpdate[]
-  documents  Document[]
+  team         Team                @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  workspace    Workspace?          @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  initiative   Initiative?         @relation(fields: [initiativeId], references: [id], onDelete: SetNull)
+  lead         User?               @relation("ProjectLead", fields: [leadId], references: [id], onDelete: SetNull)
+  milestones   Milestone[]
+  issues       Issue[]
+  updates      ProjectUpdate[]
+  documents    Document[]
+  /// Projects this one waits on, and projects that wait on this one.
+  dependencies ProjectDependency[] @relation("ProjectDependsOn")
+  dependents   ProjectDependency[] @relation("ProjectBlocks")
 
   @@index([teamId])
   @@index([workspaceId])
   @@index([initiativeId])
+}
+
+/// "`projectId` depends on `dependsOnId`": the second project should finish first. Cycles are
+/// refused in lib/project-dependencies.ts before a row is written.
+model ProjectDependency {
+  id          String   @id @default(cuid())
+  teamId      String
+  projectId   String
+  dependsOnId String
+  createdAt   DateTime @default(now())
+
+  team      Team    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  project   Project @relation("ProjectDependsOn", fields: [projectId], references: [id], onDelete: Cascade)
+  dependsOn Project @relation("ProjectBlocks", fields: [dependsOnId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, dependsOnId])
+  @@index([teamId])
+  @@index([dependsOnId])
 }
 
 model Milestone {
@@ -803,6 +825,10 @@ model Customer {
   teamId    String
   name      String
   domain    String   @default("")
+  /// Free-text plan or segment, for example "Enterprise". Shown next to the name.
+  tier      String   @default("")
+  /// Annual recurring revenue in whole currency units. 0 means unknown.
+  arr       Int      @default(0)
   createdAt DateTime @default(now())
 
   team     Team              @relation(fields: [teamId], references: [id], onDelete: Cascade)

@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { ViewToolbar } from "@/components/page-header";
 import { RoadmapReschedule } from "@/components/roadmap-reschedule";
 import { requireTeamBySlug } from "@/lib/rbac";
+import { dependencyReport } from "@/lib/services/project-dependencies";
 import { getRoadmap } from "@/lib/services/roadmap";
 
 const HEALTH: Record<Health, { label: string; className: string }> = {
@@ -137,7 +138,10 @@ export default async function RoadmapPage({
   } catch {
     notFound();
   }
-  const { roots, loose } = await getRoadmap(teamCtx.team.id, teamCtx.user.id);
+  const [{ roots, loose }, report] = await Promise.all([
+    getRoadmap(teamCtx.team.id, teamCtx.user.id),
+    dependencyReport(teamCtx.team.id, teamCtx.user.id),
+  ]);
   const empty = roots.length === 0 && loose.projects.length === 0;
   const canEdit = teamCtx.membership.role !== "GUEST";
 
@@ -147,6 +151,29 @@ export default async function RoadmapPage({
         description="Initiatives and their projects, with progress rolled up from issues. Health is computed from dates and progress; a manually set health is shown beside it."
         title="Roadmap"
       />
+      {report.conflicts.length ? (
+        <section
+          aria-label="Dependency conflicts"
+          className="border-b border-separator bg-warning/10 px-4 py-2 text-[12px]"
+        >
+          <p className="font-medium text-warning">
+            {report.conflicts.length} dependency conflict
+            {report.conflicts.length === 1 ? "" : "s"}
+          </p>
+          <ul className="mt-1 space-y-0.5 text-muted">
+            {report.conflicts.map((item) => (
+              <li key={item.projectId + item.dependsOnId}>
+                <NextLink
+                  className="hover:text-accent"
+                  href={`/t/${teamSlug}/projects/${item.projectId}`}
+                >
+                  {item.message}
+                </NextLink>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
       {empty ? (
         <p className="px-4 py-8 text-[13px] text-muted">
           Nothing planned yet. Create an initiative and give projects a start

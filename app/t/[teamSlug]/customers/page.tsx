@@ -3,10 +3,12 @@ import { notFound, redirect } from "next/navigation";
 
 import {
   CreateCustomerForm,
+  CustomerValueForm,
   LinkCustomerRequestForm,
 } from "@/components/customers-forms";
 import { ViewToolbar } from "@/components/page-header";
 import { SubmitButton as Button } from "@/components/submit-button";
+import { formatArr } from "@/lib/demand";
 import { requireTeamBySlug } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import {
@@ -15,6 +17,7 @@ import {
   deleteCustomer,
   deleteCustomerRequest,
   listCustomers,
+  updateCustomerValue,
 } from "@/lib/services/surface";
 
 export default async function CustomersPage({
@@ -46,6 +49,8 @@ export default async function CustomersPage({
     await createCustomer(teamId, {
       name: String(formData.get("name") ?? ""),
       domain: String(formData.get("domain") ?? ""),
+      tier: String(formData.get("tier") ?? ""),
+      arr: String(formData.get("arr") ?? "").trim() || undefined,
     });
     redirect(`/t/${teamSlug}/customers`);
   }
@@ -83,8 +88,27 @@ export default async function CustomersPage({
               {customer.name}{" "}
               <span className="font-normal text-muted">
                 · {customer._count.requests} requests
+                {customer.tier ? ` · ${customer.tier}` : ""}
+                {customer.arr ? ` · ${formatArr(customer.arr)} / yr` : ""}
               </span>
             </p>
+            <CustomerValueForm
+              action={async (formData) => {
+                "use server";
+                await updateCustomerValue(
+                  teamId,
+                  customer.id,
+                  {
+                    tier: String(formData.get("tier") ?? ""),
+                    arr: String(formData.get("arr") ?? "").trim() || 0,
+                  },
+                  teamCtx.membership.role,
+                );
+                redirect(`/t/${teamSlug}/customers`);
+              }}
+              arr={customer.arr}
+              tier={customer.tier}
+            />
             <ul className="text-xs text-muted">
               {customer.requests.map((request) => (
                 <li key={request.id} className="flex items-center gap-2">
