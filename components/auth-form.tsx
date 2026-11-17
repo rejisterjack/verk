@@ -20,6 +20,7 @@ import {
 } from "@/lib/actions/auth";
 import { siteConfig } from "@/config/site";
 import { PasskeySignIn } from "@/components/passkey-sign-in";
+import { SubmitButton } from "@/components/submit-button";
 import { VerkIcon } from "@/components/verk-logo";
 
 const SAML_ERROR_TEXT: Record<string, string> = {
@@ -95,42 +96,17 @@ export function LoginForm({
             {SAML_ERROR_TEXT[samlError] ?? SAML_ERROR_TEXT.SamlInvalid}
           </p>
         ) : null}
-        {githubEnabled ? (
+        {privateHost && githubEnabled ? (
           <form action={githubSignInAction} className="mt-6">
             <input name="callbackUrl" type="hidden" value={callbackUrl} />
-            <Button
+            <SubmitButton
               className="h-11 w-full bg-accent text-accent-foreground shadow-lg shadow-accent/20"
-              type="submit"
+              pendingLabel="Redirecting to GitHub…"
             >
               <GitHubMark />
               Continue with GitHub
-            </Button>
+            </SubmitButton>
           </form>
-        ) : null}
-        {!privateHost && googleEnabled ? (
-          <form action={googleSignInAction}>
-            <input name="callbackUrl" type="hidden" value={callbackUrl} />
-            <Button className="w-full" type="submit" variant="secondary">
-              Continue with Google
-            </Button>
-          </form>
-        ) : null}
-        {!privateHost && oidcEnabled ? (
-          <form action={oidcSignInAction}>
-            <input name="callbackUrl" type="hidden" value={callbackUrl} />
-            <Button className="w-full" type="submit" variant="secondary">
-              Continue with SSO
-            </Button>
-          </form>
-        ) : null}
-
-        {!privateHost && samlEnabled ? (
-          <a
-            className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-xl border border-separator bg-surface px-4 text-sm font-medium text-foreground transition-colors hover:bg-default/40"
-            href={`/api/auth/saml/login?callbackUrl=${encodeURIComponent(callbackUrl)}`}
-          >
-            Continue with SAML
-          </a>
         ) : null}
 
         {privateHost ? null : (
@@ -186,6 +162,55 @@ export function LoginForm({
             </Button>
           </Form>
         )}
+
+        {!privateHost && githubEnabled ? (
+          <>
+            <AuthDivider />
+            <form action={githubSignInAction}>
+              <input name="callbackUrl" type="hidden" value={callbackUrl} />
+              <SubmitButton
+                className="h-11 w-full bg-accent text-accent-foreground shadow-lg shadow-accent/20"
+                pendingLabel="Redirecting to GitHub…"
+              >
+                <GitHubMark />
+                Continue with GitHub
+              </SubmitButton>
+            </form>
+          </>
+        ) : null}
+        {!privateHost && googleEnabled ? (
+          <form action={googleSignInAction} className="mt-3">
+            <input name="callbackUrl" type="hidden" value={callbackUrl} />
+            <SubmitButton
+              className="w-full"
+              pendingLabel="Redirecting to Google…"
+              variant="secondary"
+            >
+              Continue with Google
+            </SubmitButton>
+          </form>
+        ) : null}
+        {!privateHost && oidcEnabled ? (
+          <form action={oidcSignInAction} className="mt-3">
+            <input name="callbackUrl" type="hidden" value={callbackUrl} />
+            <SubmitButton
+              className="w-full"
+              pendingLabel="Redirecting to your identity provider…"
+              variant="secondary"
+            >
+              Continue with SSO
+            </SubmitButton>
+          </form>
+        ) : null}
+        {!privateHost && samlEnabled ? (
+          <a
+            className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-xl border border-separator bg-surface px-4 text-sm font-medium text-foreground transition-colors hover:bg-default/40"
+            href={`/api/auth/saml/login?callbackUrl=${encodeURIComponent(callbackUrl)}`}
+          >
+            Continue with SAML
+          </a>
+        ) : null}
+
         {privateHost || demoMode ? null : (
           <PasskeySignIn callbackUrl={callbackUrl} />
         )}
@@ -201,6 +226,22 @@ export function LoginForm({
           </a>
         ) : null}
       </div>
+    </div>
+  );
+}
+
+function AuthDivider() {
+  return (
+    <div className="relative my-6" role="separator">
+      <div
+        aria-hidden
+        className="absolute inset-0 flex items-center justify-center"
+      >
+        <div className="w-full border-t border-separator/80" />
+      </div>
+      <p className="relative mx-auto w-fit bg-surface/90 px-3 text-xs font-medium uppercase tracking-wide text-muted">
+        or
+      </p>
     </div>
   );
 }
@@ -232,9 +273,13 @@ export function RegisterForm({ githubEnabled }: { githubEnabled: boolean }) {
       {githubEnabled ? (
         <form action={githubSignInAction}>
           <input name="callbackUrl" type="hidden" value="/onboarding" />
-          <Button className="w-full" type="submit" variant="secondary">
+          <SubmitButton
+            className="w-full"
+            pendingLabel="Redirecting to GitHub…"
+            variant="secondary"
+          >
             Continue with GitHub
-          </Button>
+          </SubmitButton>
         </form>
       ) : null}
 
