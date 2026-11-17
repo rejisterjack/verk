@@ -259,63 +259,71 @@ export function RegisterForm({ githubEnabled }: { githubEnabled: boolean }) {
   const [pending, setPending] = useState(false);
 
   return (
-    <div className="mx-auto w-full max-w-md space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Create your Verk account</h1>
-        <p className="text-muted text-sm mt-1">
-          Already have an account?{" "}
-          <NextLink className="text-accent underline" href="/login">
-            Log in
-          </NextLink>
-        </p>
+    <div className="mx-auto w-full max-w-[420px]">
+      <div className="rounded-2xl border border-separator/80 bg-surface/90 p-8 shadow-xl shadow-black/5 backdrop-blur-md">
+        <VerkIcon glow={false} size={44} />
+        <div className="mt-5">
+          <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground">
+            Create your Verk account
+          </h1>
+          <p className="mt-2 text-sm leading-relaxed text-muted">
+            Already have an account?{" "}
+            <NextLink className="text-accent underline" href="/login">
+              Log in
+            </NextLink>
+          </p>
+        </div>
+
+        <Form
+          className="mt-6 flex flex-col gap-4"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setPending(true);
+            setError(null);
+            const formData = new FormData(e.currentTarget);
+            const result = await registerAction(formData);
+
+            if (result?.error) setError(result.error);
+            setPending(false);
+          }}
+        >
+          <TextField isRequired name="name">
+            <Label>Name</Label>
+            <Input placeholder="Ada Lovelace" />
+            <FieldError />
+          </TextField>
+          <TextField isRequired name="email" type="email">
+            <Label>Email</Label>
+            <Input placeholder="you@company.com" />
+            <FieldError />
+          </TextField>
+          <TextField isRequired minLength={8} name="password" type="password">
+            <Label>Password</Label>
+            <Input placeholder="At least 8 characters" />
+            <FieldError />
+          </TextField>
+          {error ? <p className="text-danger text-sm">{error}</p> : null}
+          <Button className="h-11 w-full" isDisabled={pending} type="submit">
+            {pending ? "Creating…" : "Create account"}
+          </Button>
+        </Form>
+
+        {githubEnabled ? (
+          <>
+            <AuthDivider />
+            <form action={githubSignInAction}>
+              <input name="callbackUrl" type="hidden" value="/onboarding" />
+              <SubmitButton
+                className="h-11 w-full bg-accent text-accent-foreground shadow-lg shadow-accent/20"
+                pendingLabel="Redirecting to GitHub…"
+              >
+                <GitHubMark />
+                Continue with GitHub
+              </SubmitButton>
+            </form>
+          </>
+        ) : null}
       </div>
-
-      {githubEnabled ? (
-        <form action={githubSignInAction}>
-          <input name="callbackUrl" type="hidden" value="/onboarding" />
-          <SubmitButton
-            className="w-full"
-            pendingLabel="Redirecting to GitHub…"
-            variant="secondary"
-          >
-            Continue with GitHub
-          </SubmitButton>
-        </form>
-      ) : null}
-
-      <Form
-        className="flex flex-col gap-4"
-        onSubmit={async (e) => {
-          e.preventDefault();
-          setPending(true);
-          setError(null);
-          const formData = new FormData(e.currentTarget);
-          const result = await registerAction(formData);
-
-          if (result?.error) setError(result.error);
-          setPending(false);
-        }}
-      >
-        <TextField isRequired name="name">
-          <Label>Name</Label>
-          <Input placeholder="Ada Lovelace" />
-          <FieldError />
-        </TextField>
-        <TextField isRequired name="email" type="email">
-          <Label>Email</Label>
-          <Input placeholder="you@company.com" />
-          <FieldError />
-        </TextField>
-        <TextField isRequired minLength={8} name="password" type="password">
-          <Label>Password</Label>
-          <Input placeholder="At least 8 characters" />
-          <FieldError />
-        </TextField>
-        {error ? <p className="text-danger text-sm">{error}</p> : null}
-        <Button className="w-full" isDisabled={pending} type="submit">
-          {pending ? "Creating…" : "Create account"}
-        </Button>
-      </Form>
     </div>
   );
 }
