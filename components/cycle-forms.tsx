@@ -18,28 +18,36 @@ import { useEffect, useState } from "react";
 import { isoDateOnly } from "@/components/form-options";
 import { SubmitButton as Button } from "@/components/submit-button";
 
+const compactInput = "!h-7 !min-h-7 !px-2.5 !py-0 text-[12px] leading-none";
+
+const dateGroupClass =
+  "!h-7 !min-h-7 !max-h-7 !gap-1 !overflow-hidden !px-2.5 !py-0 text-[12px] leading-none";
+
 function CycleDatePicker({
   name,
   label,
   value,
   onChange,
   isRequired,
+  className,
 }: {
   name: string;
   label: string;
   value: DateValue | null;
   onChange: (value: DateValue | null) => void;
   isRequired?: boolean;
+  className?: string;
 }) {
   return (
     <DatePicker
+      className={className}
       isRequired={isRequired}
       name={name}
       value={value}
       onChange={onChange}
     >
       <Label className="text-[12px] text-muted">{label}</Label>
-      <DateField.Group className="!h-7 !min-h-7 !max-h-7 !gap-1 !overflow-hidden !px-2.5 !py-0 text-[12px] leading-none">
+      <DateField.Group className={dateGroupClass}>
         <DateField.Input className="!h-7 !min-h-0 !items-center !py-0 !leading-none">
           {(segment) => <DateField.Segment segment={segment} />}
         </DateField.Input>
@@ -89,14 +97,11 @@ export function CreateCycleForm({
     <Form
       data-compact-form
       action={action}
-      className="grid items-end gap-3 rounded-lg border border-separator p-3 sm:grid-cols-2 lg:grid-cols-5"
+      className="grid w-full max-w-3xl items-end gap-x-3 gap-y-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.35fr)_9.75rem_9.75rem_3.5rem_auto]"
     >
-      <TextField isRequired className="lg:col-span-2" name="name">
+      <TextField fullWidth isRequired className="sm:col-span-2 lg:col-span-1" name="name">
         <Label className="text-[12px] text-muted">Name</Label>
-        <Input
-          className="!h-7 !min-h-7 !px-2.5 !py-0 text-[12px] leading-none"
-          placeholder="Cycle 2"
-        />
+        <Input className={compactInput} placeholder="Cycle 2" />
       </TextField>
       <CycleDatePicker
         isRequired
@@ -112,24 +117,28 @@ export function CreateCycleForm({
         value={endDate}
         onChange={setEndDate}
       />
-      <div className="flex h-7 items-center gap-3">
-        <Checkbox name="isActive" value="on">
-          <Checkbox.Control>
-            <Checkbox.Indicator />
-          </Checkbox.Control>
-          <Checkbox.Content>
-            <Label className="text-[12px]">Active</Label>
-          </Checkbox.Content>
-        </Checkbox>
-        <Button
-          className="h-7 px-2.5 text-[12px]"
-          isDisabled={!startDate || !endDate}
-          size="sm"
-          type="submit"
-        >
-          Create
-        </Button>
+      <div className="flex flex-col gap-1">
+        <Label className="text-[12px] text-muted">Active</Label>
+        <div className="flex h-7 items-center">
+          <Checkbox name="isActive" value="on">
+            <Checkbox.Control className="border border-separator bg-background">
+              <Checkbox.Indicator />
+            </Checkbox.Control>
+            <Checkbox.Content>
+              <Label className="sr-only">Mark as active cycle</Label>
+            </Checkbox.Content>
+          </Checkbox>
+        </div>
       </div>
+      <Button
+        className="h-7 w-full px-3 text-[12px] sm:col-span-2 sm:w-auto lg:col-span-1"
+        isDisabled={!startDate || !endDate}
+        size="sm"
+        type="submit"
+        variant="secondary"
+      >
+        Create
+      </Button>
     </Form>
   );
 }
@@ -168,15 +177,17 @@ export function UpdateCycleForm({
         name="name"
       >
         <Label className="text-[12px] text-muted">Name</Label>
-        <Input className="!h-7 !min-h-7 !px-2.5 !py-0 text-[12px] leading-none" />
+        <Input className={compactInput} />
       </TextField>
       <CycleDatePicker
+        className="min-w-[9.5rem] flex-1"
         label="Start"
         name="startDate"
         value={startDate}
         onChange={setStartDate}
       />
       <CycleDatePicker
+        className="min-w-[9.5rem] flex-1"
         label="End"
         name="endDate"
         value={endDate}
@@ -189,11 +200,7 @@ export function UpdateCycleForm({
         name="capacityPoints"
       >
         <Label className="text-[12px] text-muted">Capacity (points)</Label>
-        <Input
-          className="!h-7 !min-h-7 !px-2.5 !py-0 text-[12px] leading-none"
-          min={0}
-          type="number"
-        />
+        <Input className={compactInput} min={0} type="number" />
       </TextField>
       <Checkbox defaultSelected={cycle.isActive} name="isActive" value="on">
         <Checkbox.Control>
