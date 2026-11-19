@@ -1,8 +1,9 @@
-import NextLink from "next/link";
 import { notFound } from "next/navigation";
 
+import { GuestAccessSettings } from "@/components/guest-access-settings";
 import { MembersSettings } from "@/components/members-settings";
-import { PageHeader } from "@/components/page-header";
+import * as projectsService from "@/lib/services/projects";
+import { ViewToolbar } from "@/components/page-header";
 import { requireTeamBySlug } from "@/lib/rbac";
 import * as membersService from "@/lib/services/members";
 
@@ -20,43 +21,37 @@ export default async function MembersPage({
     notFound();
   }
 
-  const [members, invites] = await Promise.all([
+  const [members, invites, projectList] = await Promise.all([
     membersService.listMembers(teamCtx.team.id),
     membersService.listInvites(teamCtx.team.id),
+    projectsService.listProjects(teamCtx.team.id),
   ]);
 
   const canAdmin =
     teamCtx.membership.role === "ADMIN" || teamCtx.membership.role === "OWNER";
 
   return (
-    <div className="max-w-3xl space-y-6">
-      <PageHeader title="Members" />
-      <nav className="flex gap-3 text-sm">
-        <NextLink
-          className="text-muted hover:text-foreground"
-          href={`/t/${teamSlug}/settings`}
-        >
-          General
-        </NextLink>
-        <NextLink
-          className="text-accent"
-          href={`/t/${teamSlug}/settings/members`}
-        >
-          Members
-        </NextLink>
-        <NextLink
-          className="text-muted hover:text-foreground"
-          href={`/t/${teamSlug}/settings/api-keys`}
-        >
-          API keys
-        </NextLink>
-      </nav>
+    <div className="px-4 py-3 max-w-3xl space-y-6">
+      <ViewToolbar title="Members" />
       <MembersSettings
         canAdmin={canAdmin}
         invites={invites}
         members={members}
         teamSlug={teamSlug}
       />
+      {canAdmin ? (
+        <GuestAccessSettings
+          guests={members
+            .filter((m) => m.role === "GUEST")
+            .map((m) => ({
+              membershipId: m.id,
+              label: m.user.name ?? m.user.email,
+              projectIds: m.guestProjectIds,
+            }))}
+          projects={projectList.map((p) => ({ id: p.id, name: p.name }))}
+          teamSlug={teamSlug}
+        />
+      ) : null}
     </div>
   );
 }

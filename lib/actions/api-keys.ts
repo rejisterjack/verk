@@ -12,7 +12,10 @@ export async function createApiKeyAction(teamSlug: string, formData: FormData) {
     const result = await apiKeysService.createApiKey(
       team.id,
       user.id,
-      { name: String(formData.get("name") ?? "") },
+      {
+        name: String(formData.get("name") ?? ""),
+        role: String(formData.get("role") ?? "MEMBER"),
+      },
       membership.role,
     );
 
@@ -31,10 +34,14 @@ export async function createApiKeyAction(teamSlug: string, formData: FormData) {
 }
 
 export async function revokeApiKeyAction(teamSlug: string, keyId: string) {
-  const { team, membership } = await requireTeamBySlug(teamSlug, "ADMIN");
+  const { team, membership, user } = await requireTeamBySlug(teamSlug, "ADMIN");
 
   try {
-    await apiKeysService.revokeApiKey(team.id, keyId, membership.role);
+    await apiKeysService.revokeApiKey(team.id, keyId, membership.role, {
+      id: user.id!,
+      name: user.name,
+      email: user.email,
+    });
     revalidatePath(`/t/${teamSlug}/settings/api-keys`);
 
     return { ok: true };

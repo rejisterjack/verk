@@ -10,10 +10,10 @@ export async function GET(
   try {
     const { teamId } = await context.params;
 
-    await authenticateRequest(request, teamId);
+    const auth = await authenticateRequest(request, teamId);
 
     return Response.json({
-      projects: await projectsService.listProjects(teamId),
+      projects: await projectsService.listProjects(teamId, auth.user.id),
     });
   } catch (error) {
     return jsonError(error);

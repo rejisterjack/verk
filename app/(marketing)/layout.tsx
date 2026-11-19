@@ -1,6 +1,7 @@
 import { MarketingNavbar } from "@/components/marketing-navbar";
 import { VerkLogo } from "@/components/verk-logo";
 import { siteConfig } from "@/config/site";
+import { isPrivateHost } from "@/lib/auth-allowlist";
 import { isDemoMode } from "@/lib/utils";
 
 export default function MarketingLayout({
@@ -10,7 +11,7 @@ export default function MarketingLayout({
 }) {
   return (
     <div className="relative flex min-h-screen flex-col">
-      <MarketingNavbar demoMode={isDemoMode()} />
+      <MarketingNavbar demoMode={isDemoMode()} privateHost={isPrivateHost()} />
       <main className="flex-grow">{children}</main>
       <footer className="border-t border-separator">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-10 sm:flex-row sm:items-end sm:justify-between">
@@ -31,11 +32,9 @@ export default function MarketingLayout({
             </a>
             <a
               className="hover:text-foreground transition-colors"
-              href={siteConfig.links.demo}
-              rel="noopener noreferrer"
-              target="_blank"
+              href="/about"
             >
-              Demo
+              About
             </a>
             <a className="hover:text-foreground transition-colors" href="/docs">
               Docs

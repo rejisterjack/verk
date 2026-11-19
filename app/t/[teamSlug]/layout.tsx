@@ -2,16 +2,16 @@ import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { AppSidebar } from "@/components/app-sidebar";
-import { InstallPrompt } from "@/components/pwa/install-prompt";
+import { ClarityIdentify } from "@/components/clarity-identify";
+import { LiveIssueRefresh } from "@/components/live-issue-refresh";
 import { KeyboardShell } from "@/components/app/keyboard-shell";
+import { GlobalCreateIssue } from "@/components/global-create-issue";
 import { auth } from "@/lib/auth";
 import { listUserTeams } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
-import { listViews } from "@/lib/services/views";
-import {
-  ensureWorkspaceForTeam,
-  seedDefaultWorkflowStatuses,
-} from "@/lib/services/workspaces";
+import { listFavorites } from "@/lib/services/favorites";
+import { ensureWorkspaceForTeam } from "@/lib/services/workspaces";
+import { getWorkflow } from "@/lib/services/workflow";
 
 export default async function TeamLayout({
   children,
@@ -43,10 +43,12 @@ export default async function TeamLayout({
     team.name,
     team.slug,
   ).catch(() => null);
-  await seedDefaultWorkflowStatuses(team.id).catch(() => undefined);
 
-  const [views, inboxCount] = await Promise.all([
-    listViews(team.id).catch(() => []),
+  // Makes sure the team has its statuses (seeds the five defaults for a brand-new team).
+  await getWorkflow(team.id).catch(() => undefined);
+
+  const [favorites, inboxCount] = await Promise.all([
+    listFavorites(session.user.id, team.id, teamSlug).catch(() => []),
     prisma.notification.count({
       where: {
         userId: session.user.id,
@@ -58,25 +60,43 @@ export default async function TeamLayout({
   ]);
 
   return (
-    <div className="flex min-h-screen">
-      <Suspense fallback={<aside className="w-56 border-r border-separator" />}>
-        <AppSidebar
-          inboxCount={inboxCount}
-          role={membership.role}
-          teamSlug={teamSlug}
-          workspaceSlug={workspace?.slug}
-          teams={memberships.map((m) => ({
-            slug: m.team.slug,
-            name: m.team.name,
-          }))}
-          views={views
-            .filter((v) => v.pinned)
-            .map((v) => ({ id: v.id, name: v.name }))}
-        />
-      </Suspense>
-      <KeyboardShell teamId={team.id} teamSlug={teamSlug}>
-        <main className="flex-1 overflow-auto p-5">{children}</main>
-      </KeyboardShell>
-    </div>
+    <KeyboardShell teamId={team.id} teamSlug={teamSlug}>
+      <ClarityIdentify userId={session.user.id} />
+      <div className="flex h-dvh overflow-hidden">
+        <Suspense
+          fallback={
+            <aside className="h-full w-[var(--sidebar-w)] shrink-0 border-r border-separator" />
+          }
+        >
+          <AppSidebar
+            favorites={favorites.map((item) => ({
+              id: item.id,
+              kind: item.kind,
+              label: item.label,
+              href: item.href,
+              folder: item.folder,
+            }))}
+            inboxCount={inboxCount}
+            role={membership.role}
+            teamName={team.name}
+            teamSlug={teamSlug}
+            teams={memberships.map((m) => ({
+              slug: m.team.slug,
+              name: m.team.name,
+            }))}
+            workspaceSlug={workspace?.slug}
+          />
+        </Suspense>
+        <main className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
+          <LiveIssueRefresh teamId={team.id} />
+          {children}
+        </main>
+        {membership.role !== "GUEST" ? (
+          <Suspense fallback={null}>
+            <GlobalCreateIssue teamId={team.id} teamSlug={teamSlug} />
+          </Suspense>
+        ) : null}
+      </div>
+    </KeyboardShell>
   );
 }

@@ -66,7 +66,7 @@ export function DeployWalkthrough() {
       callout: (
         <div className="mt-4">
           <a
-            className="inline-flex items-center gap-2 rounded-lg bg-foreground px-4 py-2 text-xs font-semibold text-background hover:opacity-90 transition-opacity"
+            className="inline-flex items-center gap-2 rounded-lg border border-separator bg-background px-4 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-surface"
             href={siteConfig.links.deploy}
             rel="noopener noreferrer"
             target="_blank"
@@ -90,7 +90,7 @@ export function DeployWalkthrough() {
       callout: (
         <div className="mt-4 flex items-center gap-2 rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-xs text-success font-mono">
           <CheckIcon className="h-4 w-4 shrink-0" />
-          <span>Prisma migrations complete: 0 errors</span>
+          <span>Migrations applied</span>
         </div>
       ),
     },

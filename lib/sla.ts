@@ -9,7 +9,12 @@ export type SlaWindow = {
 
 export function withinSlaWindow(
   now: Date,
-  opts: { timezone?: string; startHour?: number; endHour?: number; weekdays?: string },
+  opts: {
+    timezone?: string;
+    startHour?: number;
+    endHour?: number;
+    weekdays?: string;
+  },
 ): boolean {
   const timeZone = opts.timezone || "UTC";
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -33,7 +38,9 @@ export function withinSlaWindow(
   const start = opts.startHour ?? 0;
   const end = opts.endHour ?? 24;
 
-  return allowed.includes(dayIndex[weekday] ?? "1") && hour >= start && hour < end;
+  return (
+    allowed.includes(dayIndex[weekday] ?? "1") && hour >= start && hour < end
+  );
 }
 
 export function slaBreached(

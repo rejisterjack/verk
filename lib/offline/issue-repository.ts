@@ -180,6 +180,7 @@ export async function listLocalIssues(
     priority?: string;
     cycleId?: string;
     search?: string;
+    labelIds?: string[];
   },
 ): Promise<LocalIssue[]> {
   const db = getOfflineDb();
@@ -199,6 +200,13 @@ export async function listLocalIssues(
   }
   if (filters?.cycleId) {
     rows = rows.filter((i) => i.cycleId === filters.cycleId);
+  }
+  if (filters?.labelIds) {
+    const set = new Set(filters.labelIds);
+
+    rows = rows.filter((issue) =>
+      (issue.labelIds ?? []).some((id) => set.has(id)),
+    );
   }
   if (filters?.search) {
     const q = filters.search.toLowerCase();
@@ -419,12 +427,46 @@ export async function queueCommentLocal(
   teamId: string,
   issueId: string,
   body: string,
+  parentId?: string | null,
 ): Promise<void> {
   await enqueue({
     teamId,
     op: "comment",
     issueId,
-    payload: { body },
+    payload: { body, parentId: parentId ?? null },
+    createdAt: Date.now(),
+    status: "queued",
+    attempts: 0,
+    clientMutationId: newClientMutationId(),
+  });
+}
+
+/**
+ * Queue "Save draft" while offline. A newer save of the same draft replaces the one still
+ * waiting, so reconnecting sends one request per draft, not one per keystroke-save.
+ */
+export async function queueDraftLocal(
+  teamId: string,
+  fields: Record<string, unknown>,
+  draftId?: string | null,
+): Promise<void> {
+  const key = `draft:${draftId ?? newClientMutationId()}`;
+  const db = getOfflineDb();
+
+  if (draftId) {
+    const waiting = await db.outbox
+      .where("issueId")
+      .equals(key)
+      .filter((op) => op.op === "draft" && op.status === "queued")
+      .primaryKeys();
+
+    if (waiting.length) await db.outbox.bulkDelete(waiting);
+  }
+  await enqueue({
+    teamId,
+    op: "draft",
+    issueId: key,
+    payload: { fields, draftId: draftId ?? null },
     createdAt: Date.now(),
     status: "queued",
     attempts: 0,

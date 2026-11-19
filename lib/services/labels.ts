@@ -9,7 +9,7 @@ const labelSchema = z.object({
     .string()
     .regex(/^#[0-9a-fA-F]{6}$/)
     .optional(),
-  group: z.string().max(40).optional(),
+  group: z.string().max(40).nullable().optional(),
 });
 
 export async function listLabels(teamId: string) {
@@ -103,6 +103,16 @@ export async function setIssueLabels(
       const { recordActivity } = await import("@/lib/services/surface");
 
       await recordActivity(issueId, actorId, "labels", before, after);
+    }
+
+    // Only labels that were not there before count as "added".
+    const had = new Set(issue.labels.map((row) => row.labelId));
+    const labelsAdded = [...new Set(labelIds)].filter((id) => !had.has(id));
+
+    if (labelsAdded.length) {
+      const { runAutomations } = await import("@/lib/services/automations");
+
+      await runAutomations(teamId, issueId, { labelsAdded }, actorId);
     }
   }
 

@@ -1,9 +1,11 @@
 "use client";
 
 import { Command } from "cmdk";
+import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
+import { parseIssueQuery } from "@/lib/issue-query";
 import { PRIORITY_LABELS, STATUS_LABELS } from "@/lib/labels";
 
 type SearchIssue = {
@@ -13,6 +15,28 @@ type SearchIssue = {
   status: string;
   priority: string;
   assigneeId: string | null;
+};
+
+type SearchHit = {
+  kind: string;
+  id: string;
+  title: string;
+  subtitle?: string;
+  snippet?: string;
+  href: string;
+  number?: number;
+  status?: string;
+  priority?: string;
+};
+
+const KIND_HEADINGS: Record<string, string> = {
+  issue: "Issues",
+  project: "Projects",
+  initiative: "Initiatives",
+  doc: "Docs",
+  customer: "Customers",
+  cycle: "Cycles",
+  person: "People",
 };
 
 type Member = { id: string; name: string | null; email: string };
@@ -31,16 +55,22 @@ export function CommandPalette({
   onCreateIssue: () => void;
 }) {
   const router = useRouter();
+  const { setTheme } = useTheme();
   const base = `/t/${teamSlug}`;
   const [query, setQuery] = useState("");
   const [issues, setIssues] = useState<SearchIssue[]>([]);
+  const [otherHits, setOtherHits] = useState<SearchHit[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [selectedIssue, setSelectedIssue] = useState<SearchIssue | null>(null);
+  const [savingView, setSavingView] = useState(false);
+  const [viewName, setViewName] = useState("");
 
   const go = useCallback(
     (path: string) => {
       onOpenChange(false);
       setSelectedIssue(null);
+      setSavingView(false);
+      setViewName("");
       setQuery("");
       router.push(path);
     },
@@ -54,9 +84,7 @@ export function CommandPalette({
       .then((data) => {
         if (data?.members) {
           setMembers(
-            data.members.map(
-              (m: { user: Member }) => m.user ?? m,
-            ) as Member[],
+            data.members.map((m: { user: Member }) => m.user ?? m) as Member[],
           );
         }
       })
@@ -67,26 +95,53 @@ export function CommandPalette({
     if (!open || !teamId) return;
     if (query.trim().length < 1) {
       setIssues([]);
+      setOtherHits([]);
 
       return;
     }
+    const controller = new AbortController();
     const handle = window.setTimeout(() => {
       void fetch(
-        `/api/teams/${teamId}/issues?search=${encodeURIComponent(query)}&take=8`,
-        { credentials: "same-origin" },
+        `/api/teams/${teamId}/search?q=${encodeURIComponent(query)}&limit=24`,
+        { credentials: "same-origin", signal: controller.signal },
       )
         .then((r) => (r.ok ? r.json() : null))
-        .then((data) => setIssues(data?.issues ?? []))
-        .catch(() => setIssues([]));
+        .then((data: { hits?: SearchHit[] } | null) => {
+          const hits = data?.hits ?? [];
+
+          setIssues(
+            hits
+              .filter((hit) => hit.kind === "issue" && hit.number != null)
+              .slice(0, 8)
+              .map((hit) => ({
+                id: hit.id,
+                number: hit.number!,
+                title: hit.title,
+                status: hit.status ?? "",
+                priority: hit.priority ?? "",
+                assigneeId: null,
+              })),
+          );
+          setOtherHits(hits.filter((hit) => hit.kind !== "issue").slice(0, 12));
+        })
+        .catch(() => {
+          setIssues([]);
+          setOtherHits([]);
+        });
     }, 150);
 
-    return () => window.clearTimeout(handle);
+    return () => {
+      window.clearTimeout(handle);
+      controller.abort();
+    };
   }, [query, open, teamId]);
 
   useEffect(() => {
     if (!open) {
       setQuery("");
       setSelectedIssue(null);
+      setSavingView(false);
+      setViewName("");
     }
   }, [open]);
 
@@ -101,30 +156,41 @@ export function CommandPalette({
     router.refresh();
   }
 
-  async function saveCurrentView() {
+  async function submitSaveView() {
+    const name = viewName.trim();
+
+    if (!name) return;
     const params = new URLSearchParams(window.location.search);
-    const filterJson: Record<string, string> = {};
+    const textQuery = params.get("filter");
+    let filterJson: Record<string, unknown> = {};
 
-    for (const key of ["status", "priority", "cycleId", "search", "assignee"]) {
-      const v = params.get(key);
+    if (textQuery) {
+      try {
+        filterJson = { version: 2, filter: parseIssueQuery(textQuery) };
+      } catch {
+        return;
+      }
+    } else {
+      for (const key of ["status", "priority", "cycleId", "search", "assignee"]) {
+        const v = params.get(key);
 
-      if (v) filterJson[key === "assignee" ? "assigneeId" : key] = v;
+        if (v) filterJson[key === "assignee" ? "assigneeId" : key] = v;
+      }
     }
-    const name = window.prompt("View name");
-
-    if (!name?.trim()) return;
     await fetch(`/api/teams/${teamId}/views`, {
       method: "POST",
       credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name: name.trim(),
+        name,
         filterJson,
         layout: params.get("layout") === "board" ? "BOARD" : "LIST",
         pinned: true,
       }),
     });
     onOpenChange(false);
+    setSavingView(false);
+    setViewName("");
     router.refresh();
   }
 
@@ -141,204 +207,330 @@ export function CommandPalette({
       <Command
         className="relative z-10 w-full max-w-lg overflow-hidden rounded-xl border border-separator bg-background shadow-2xl"
         label="Command menu"
-        shouldFilter={!selectedIssue}
+        shouldFilter={!selectedIssue && !savingView}
       >
-        <Command.Input
-          ref={(el) => {
-            el?.focus();
-          }}
-          className="w-full border-b border-separator bg-transparent px-4 py-3 text-sm outline-none"
-          placeholder={
-            selectedIssue
-              ? `Actions for ${teamSlug.slice(0, 3).toUpperCase()}-${selectedIssue.number}…`
-              : "Type a command or search issues…"
-          }
-          value={query}
-          onValueChange={setQuery}
-        />
-        <Command.List className="max-h-80 overflow-auto p-2 text-sm">
-          <Command.Empty className="px-3 py-6 text-center text-muted">
-            No results
-          </Command.Empty>
-
-          {selectedIssue ? (
-            <>
-              <Command.Group
-                className="text-xs text-muted"
-                heading="Set status"
+        {savingView ? (
+          <div className="border-b border-separator px-4 py-3">
+            <p className="mb-2 text-[12px] text-muted">
+              Save current filters as view
+            </p>
+            <form
+              className="flex gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void submitSaveView();
+              }}
+            >
+              <input
+                // eslint-disable-next-line jsx-a11y/no-autofocus -- intentional when save-view mode opens
+                autoFocus
+                className="min-w-0 flex-1 rounded-md border border-separator bg-transparent px-3 py-1.5 text-sm outline-none focus:border-accent"
+                placeholder="View name…"
+                value={viewName}
+                onChange={(e) => setViewName(e.target.value)}
+              />
+              <button
+                className="rounded-md bg-accent px-3 py-1.5 text-[13px] font-medium text-accent-foreground"
+                type="submit"
               >
-                {Object.entries(STATUS_LABELS).map(([value, label]) => (
-                  <Command.Item
-                    key={value}
-                    className="flex cursor-pointer items-center rounded-lg px-3 py-2 aria-selected:bg-accent/15"
-                    onSelect={() =>
-                      void patchIssue(selectedIssue.id, { status: value })
-                    }
-                  >
-                    Status → {label}
-                  </Command.Item>
-                ))}
-              </Command.Group>
-              <Command.Group
-                className="mt-2 text-xs text-muted"
-                heading="Set priority"
-              >
-                {Object.entries(PRIORITY_LABELS).map(([value, label]) => (
-                  <Command.Item
-                    key={value}
-                    className="flex cursor-pointer items-center rounded-lg px-3 py-2 aria-selected:bg-accent/15"
-                    onSelect={() =>
-                      void patchIssue(selectedIssue.id, { priority: value })
-                    }
-                  >
-                    Priority → {label}
-                  </Command.Item>
-                ))}
-              </Command.Group>
-              <Command.Group
-                className="mt-2 text-xs text-muted"
-                heading="Assign"
-              >
-                <Command.Item
-                  className="flex cursor-pointer items-center rounded-lg px-3 py-2 aria-selected:bg-accent/15"
-                  onSelect={() =>
-                    void patchIssue(selectedIssue.id, { assigneeId: null })
-                  }
-                >
-                  Unassigned
-                </Command.Item>
-                {members.map((m) => (
-                  <Command.Item
-                    key={m.id}
-                    className="flex cursor-pointer items-center rounded-lg px-3 py-2 aria-selected:bg-accent/15"
-                    onSelect={() =>
-                      void patchIssue(selectedIssue.id, { assigneeId: m.id })
-                    }
-                  >
-                    {m.name ?? m.email}
-                  </Command.Item>
-                ))}
-              </Command.Group>
-              <Command.Item
-                className="mt-2 flex cursor-pointer items-center rounded-lg px-3 py-2 aria-selected:bg-accent/15"
-                onSelect={() => {
-                  setSelectedIssue(null);
-                  setQuery("");
+                Save
+              </button>
+              <button
+                className="rounded-md px-2 py-1.5 text-[13px] text-muted hover:text-foreground"
+                type="button"
+                onClick={() => {
+                  setSavingView(false);
+                  setViewName("");
                 }}
               >
-                ← Back
-              </Command.Item>
-            </>
-          ) : (
-            <>
-              {issues.length ? (
+                Cancel
+              </button>
+            </form>
+          </div>
+        ) : (
+          <Command.Input
+            ref={(el) => {
+              el?.focus();
+            }}
+            className="w-full border-b border-separator bg-transparent px-4 py-3 text-sm outline-none"
+            placeholder={
+              selectedIssue
+                ? `Actions for ${teamSlug.slice(0, 3).toUpperCase()}-${selectedIssue.number}…`
+                : "Search, or try assignee:me status:todo…"
+            }
+            value={query}
+            onValueChange={setQuery}
+          />
+        )}
+        {!savingView ? (
+          <Command.List className="max-h-80 overflow-auto p-2 text-sm">
+            <Command.Empty className="px-3 py-6 text-center text-muted">
+              No results
+            </Command.Empty>
+
+            {selectedIssue ? (
+              <>
                 <Command.Group
-                  className="text-xs text-muted"
-                  heading="Issues"
+                  className="text-[11px] font-medium uppercase tracking-wide text-muted"
+                  heading="Set status"
                 >
-                  {issues.map((issue) => (
+                  {Object.entries(STATUS_LABELS).map(([value, label]) => (
                     <Command.Item
-                      key={issue.id}
-                      className="flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 aria-selected:bg-accent/15"
-                      value={`${issue.number} ${issue.title}`}
-                      onSelect={() => {
-                        setSelectedIssue(issue);
-                        setQuery("");
-                      }}
+                      key={value}
+                      className="flex cursor-pointer items-center rounded-md px-3 py-1.5 text-[13px] aria-selected:bg-accent/15"
+                      onSelect={() =>
+                        void patchIssue(selectedIssue.id, { status: value })
+                      }
                     >
-                      <span>
-                        <span className="text-muted">
-                          {teamSlug.slice(0, 3).toUpperCase()}-{issue.number}
-                        </span>{" "}
-                        {issue.title}
-                      </span>
-                      <button
-                        className="text-xs text-accent"
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          go(`${base}/issues/${issue.number}`);
-                        }}
-                      >
-                        Open
-                      </button>
+                      Status → {label}
                     </Command.Item>
                   ))}
                 </Command.Group>
-              ) : null}
-              <Command.Group className="text-xs text-muted" heading="Navigate">
-                <Command.Item
-                  className="flex cursor-pointer items-center rounded-lg px-3 py-2 aria-selected:bg-accent/15"
-                  onSelect={() => go(`${base}/inbox`)}
+                <Command.Group
+                  className="mt-2 text-[11px] font-medium uppercase tracking-wide text-muted"
+                  heading="Set priority"
                 >
-                  Go to Inbox
-                </Command.Item>
-                <Command.Item
-                  className="flex cursor-pointer items-center rounded-lg px-3 py-2 aria-selected:bg-accent/15"
-                  onSelect={() => go(`${base}/issues?assignee=me`)}
+                  {Object.entries(PRIORITY_LABELS).map(([value, label]) => (
+                    <Command.Item
+                      key={value}
+                      className="flex cursor-pointer items-center rounded-md px-3 py-1.5 text-[13px] aria-selected:bg-accent/15"
+                      onSelect={() =>
+                        void patchIssue(selectedIssue.id, { priority: value })
+                      }
+                    >
+                      Priority → {label}
+                    </Command.Item>
+                  ))}
+                </Command.Group>
+                <Command.Group
+                  className="mt-2 text-[11px] font-medium uppercase tracking-wide text-muted"
+                  heading="Assign"
                 >
-                  Go to My issues
-                </Command.Item>
+                  <Command.Item
+                    className="flex cursor-pointer items-center rounded-md px-3 py-1.5 text-[13px] aria-selected:bg-accent/15"
+                    onSelect={() =>
+                      void patchIssue(selectedIssue.id, { assigneeId: null })
+                    }
+                  >
+                    Unassigned
+                  </Command.Item>
+                  {members.map((m) => (
+                    <Command.Item
+                      key={m.id}
+                      className="flex cursor-pointer items-center rounded-md px-3 py-1.5 text-[13px] aria-selected:bg-accent/15"
+                      onSelect={() =>
+                        void patchIssue(selectedIssue.id, { assigneeId: m.id })
+                      }
+                    >
+                      {m.name ?? m.email}
+                    </Command.Item>
+                  ))}
+                </Command.Group>
                 <Command.Item
-                  className="flex cursor-pointer items-center rounded-lg px-3 py-2 aria-selected:bg-accent/15"
-                  onSelect={() => go(`${base}/triage`)}
-                >
-                  Go to Triage
-                </Command.Item>
-                <Command.Item
-                  className="flex cursor-pointer items-center rounded-lg px-3 py-2 aria-selected:bg-accent/15"
-                  onSelect={() => go(`${base}/issues`)}
-                >
-                  Go to Issues
-                </Command.Item>
-                <Command.Item
-                  className="flex cursor-pointer items-center rounded-lg px-3 py-2 aria-selected:bg-accent/15"
-                  onSelect={() => go(`${base}/issues?layout=board`)}
-                >
-                  Go to Board
-                </Command.Item>
-                <Command.Item
-                  className="flex cursor-pointer items-center rounded-lg px-3 py-2 aria-selected:bg-accent/15"
-                  onSelect={() => go(`${base}/projects`)}
-                >
-                  Go to Projects
-                </Command.Item>
-                <Command.Item
-                  className="flex cursor-pointer items-center rounded-lg px-3 py-2 aria-selected:bg-accent/15"
-                  onSelect={() => go(`${base}/cycles`)}
-                >
-                  Go to Cycles
-                </Command.Item>
-                <Command.Item
-                  className="flex cursor-pointer items-center rounded-lg px-3 py-2 aria-selected:bg-accent/15"
-                  onSelect={() => go(`${base}/settings/import`)}
-                >
-                  Import from Linear
-                </Command.Item>
-              </Command.Group>
-              <Command.Group
-                className="mt-2 text-xs text-muted"
-                heading="Actions"
-              >
-                <Command.Item
-                  className="flex cursor-pointer items-center rounded-lg px-3 py-2 aria-selected:bg-accent/15"
+                  className="mt-2 flex cursor-pointer items-center rounded-md px-3 py-1.5 text-[13px] aria-selected:bg-accent/15"
                   onSelect={() => {
-                    onOpenChange(false);
-                    onCreateIssue();
+                    setSelectedIssue(null);
+                    setQuery("");
                   }}
                 >
-                  Create issue
+                  ← Back
                 </Command.Item>
-                <Command.Item
-                  className="flex cursor-pointer items-center rounded-lg px-3 py-2 aria-selected:bg-accent/15"
-                  onSelect={() => void saveCurrentView()}
+              </>
+            ) : (
+              <>
+                {issues.length ? (
+                  <Command.Group
+                    className="text-[11px] font-medium uppercase tracking-wide text-muted"
+                    heading="Issues"
+                  >
+                    {issues.map((issue) => (
+                      <Command.Item
+                        key={issue.id}
+                        className="flex cursor-pointer items-center justify-between rounded-md px-3 py-1.5 text-[13px] aria-selected:bg-accent/15"
+                        value={`${issue.number} ${issue.title}`}
+                        onSelect={() => {
+                          setSelectedIssue(issue);
+                          setQuery("");
+                        }}
+                      >
+                        <span className="truncate">
+                          <span className="font-mono text-muted">
+                            {teamSlug.slice(0, 3).toUpperCase()}-{issue.number}
+                          </span>{" "}
+                          {issue.title}
+                        </span>
+                        <button
+                          className="ml-2 shrink-0 text-[11px] text-accent"
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            go(`${base}/issues/${issue.number}`);
+                          }}
+                        >
+                          Open
+                        </button>
+                      </Command.Item>
+                    ))}
+                  </Command.Group>
+                ) : null}
+                {Object.entries(KIND_HEADINGS)
+                  .filter(([kind]) => kind !== "issue")
+                  .map(([kind, heading]) => {
+                    const rows = otherHits.filter((hit) => hit.kind === kind);
+
+                    return rows.length ? (
+                      <Command.Group
+                        key={kind}
+                        className="mt-2 text-[11px] font-medium uppercase tracking-wide text-muted"
+                        heading={heading}
+                      >
+                        {rows.map((hit) => (
+                          <Command.Item
+                            key={`${kind}-${hit.id}`}
+                            className="flex cursor-pointer flex-col rounded-md px-3 py-1.5 text-[13px] aria-selected:bg-accent/15"
+                            value={`${hit.kind} ${hit.title} ${hit.id}`}
+                            onSelect={() => go(hit.href)}
+                          >
+                            <span className="truncate">{hit.title}</span>
+                            {hit.snippet || hit.subtitle ? (
+                              <span className="truncate text-[11px] font-normal normal-case text-muted">
+                                {hit.snippet || hit.subtitle}
+                              </span>
+                            ) : null}
+                          </Command.Item>
+                        ))}
+                      </Command.Group>
+                    ) : null;
+                  })}
+                <Command.Group
+                  className="text-[11px] font-medium uppercase tracking-wide text-muted"
+                  heading="Navigate"
                 >
-                  Save current filters as view
-                </Command.Item>
-              </Command.Group>
-            </>
-          )}
-        </Command.List>
+                  <Command.Item
+                    className="flex cursor-pointer items-center rounded-md px-3 py-1.5 text-[13px] aria-selected:bg-accent/15"
+                    onSelect={() => go(`${base}/inbox`)}
+                  >
+                    Go to Inbox
+                  </Command.Item>
+                  <Command.Item
+                    className="flex cursor-pointer items-center rounded-md px-3 py-1.5 text-[13px] aria-selected:bg-accent/15"
+                    onSelect={() => go(`${base}/issues?assignee=me`)}
+                  >
+                    Go to My issues
+                  </Command.Item>
+                  <Command.Item
+                    className="flex cursor-pointer items-center rounded-md px-3 py-1.5 text-[13px] aria-selected:bg-accent/15"
+                    onSelect={() => go(`${base}/triage`)}
+                  >
+                    Go to Triage
+                  </Command.Item>
+                  <Command.Item
+                    className="flex cursor-pointer items-center rounded-md px-3 py-1.5 text-[13px] aria-selected:bg-accent/15"
+                    onSelect={() => go(`${base}/issues`)}
+                  >
+                    Go to Issues
+                  </Command.Item>
+                  <Command.Item
+                    className="flex cursor-pointer items-center rounded-md px-3 py-1.5 text-[13px] aria-selected:bg-accent/15"
+                    onSelect={() => go(`${base}/issues?layout=board`)}
+                  >
+                    Go to Board
+                  </Command.Item>
+                  <Command.Item
+                    className="flex cursor-pointer items-center rounded-md px-3 py-1.5 text-[13px] aria-selected:bg-accent/15"
+                    onSelect={() => go(`${base}/projects`)}
+                  >
+                    Go to Projects
+                  </Command.Item>
+                  <Command.Item
+                    className="flex cursor-pointer items-center rounded-md px-3 py-1.5 text-[13px] aria-selected:bg-accent/15"
+                    onSelect={() => go(`${base}/initiatives`)}
+                  >
+                    Go to Initiatives
+                  </Command.Item>
+                  <Command.Item
+                    className="flex cursor-pointer items-center rounded-md px-3 py-1.5 text-[13px] aria-selected:bg-accent/15"
+                    onSelect={() => go(`${base}/cycles`)}
+                  >
+                    Go to Cycles
+                  </Command.Item>
+                  <Command.Item
+                    className="flex cursor-pointer items-center rounded-md px-3 py-1.5 text-[13px] aria-selected:bg-accent/15"
+                    onSelect={() => go(`${base}/timeline`)}
+                  >
+                    Go to Timeline
+                  </Command.Item>
+                  <Command.Item
+                    className="flex cursor-pointer items-center rounded-md px-3 py-1.5 text-[13px] aria-selected:bg-accent/15"
+                    onSelect={() => go(`${base}/drafts`)}
+                  >
+                    Go to Drafts
+                  </Command.Item>
+                  <Command.Item
+                    className="flex cursor-pointer items-center rounded-md px-3 py-1.5 text-[13px] aria-selected:bg-accent/15"
+                    onSelect={() => go(`${base}/settings/import`)}
+                  >
+                    Import from Linear
+                  </Command.Item>
+                </Command.Group>
+                <Command.Group
+                  className="mt-2 text-[11px] font-medium uppercase tracking-wide text-muted"
+                  heading="Actions"
+                >
+                  <Command.Item
+                    className="flex cursor-pointer items-center rounded-md px-3 py-1.5 text-[13px] aria-selected:bg-accent/15"
+                    onSelect={() => {
+                      onOpenChange(false);
+                      onCreateIssue();
+                    }}
+                  >
+                    Create issue
+                  </Command.Item>
+                  <Command.Item
+                    className="flex cursor-pointer items-center rounded-md px-3 py-1.5 text-[13px] aria-selected:bg-accent/15"
+                    onSelect={() => {
+                      setSavingView(true);
+                      setViewName("");
+                    }}
+                  >
+                    Save current filters as view
+                  </Command.Item>
+                </Command.Group>
+                <Command.Group
+                  className="mt-2 text-[11px] font-medium uppercase tracking-wide text-muted"
+                  heading="Appearance"
+                >
+                  {(
+                    [
+                      ["light", "Switch to light theme"],
+                      ["dark", "Switch to dark theme"],
+                      ["system", "Match system theme"],
+                    ] as const
+                  ).map(([value, label]) => (
+                    <Command.Item
+                      key={value}
+                      className="flex cursor-pointer items-center rounded-md px-3 py-1.5 text-[13px] aria-selected:bg-accent/15"
+                      value={`theme ${label}`}
+                      onSelect={() => {
+                        setTheme(value);
+                        onOpenChange(false);
+                      }}
+                    >
+                      {label}
+                    </Command.Item>
+                  ))}
+                  <Command.Item
+                    className="flex cursor-pointer items-center rounded-md px-3 py-1.5 text-[13px] aria-selected:bg-accent/15"
+                    value="appearance accent color density settings"
+                    onSelect={() => go(`${base}/settings/appearance`)}
+                  >
+                    Appearance settings (accent, density)
+                  </Command.Item>
+                </Command.Group>
+              </>
+            )}
+          </Command.List>
+        ) : null}
       </Command>
     </div>
   );

@@ -36,7 +36,7 @@ export function ComparisonMatrix() {
                 <th className="py-4 px-6 font-semibold">Dimension</th>
                 <th className="py-4 px-6 font-semibold">Linear</th>
                 <th className="py-4 px-6 font-semibold">Plane (OSS)</th>
-                <th className="py-4 px-6 font-bold text-accent bg-accent/10 border-l border-r border-accent/20">
+                <th className="py-4 px-6 font-bold text-accent border-l border-r border-separator/70">
                   Verk (OSS)
                 </th>
               </tr>
@@ -59,7 +59,7 @@ export function ComparisonMatrix() {
                   ~$120/yr (VPS compute)
                 </td>
                 <td
-                  className="py-4 px-6 font-mono font-bold text-success bg-accent/10 border-l border-r border-accent/20"
+                  className="py-4 px-6 font-mono font-bold text-success border-l border-r border-separator/70"
                   data-label="Verk"
                 >
                   $0 (Vercel & Neon free tier)
@@ -77,7 +77,7 @@ export function ComparisonMatrix() {
                   Docker, Redis, VPS, storage
                 </td>
                 <td
-                  className="py-4 px-6 font-semibold text-foreground bg-accent/10 border-l border-r border-accent/20"
+                  className="py-4 px-6 font-semibold text-foreground border-l border-r border-separator/70"
                   data-label="Verk"
                 >
                   Serverless (Zero server upkeep)
@@ -95,7 +95,7 @@ export function ComparisonMatrix() {
                   30–60 mins DevOps scripting
                 </td>
                 <td
-                  className="py-4 px-6 font-bold text-accent bg-accent/10 border-l border-r border-accent/20"
+                  className="py-4 px-6 font-bold text-accent border-l border-r border-separator/70"
                   data-label="Verk"
                 >
                   &lt; 5 minutes (1-Click button)
@@ -119,7 +119,7 @@ export function ComparisonMatrix() {
                   </div>
                 </td>
                 <td
-                  className="py-4 px-6 bg-accent/10 border-l border-r border-accent/20"
+                  className="py-4 px-6 border-l border-r border-separator/70"
                   data-label="Verk"
                 >
                   <div className="flex items-center gap-1.5 text-success font-semibold">
@@ -140,7 +140,7 @@ export function ComparisonMatrix() {
                   Self-managed Postgres
                 </td>
                 <td
-                  className="py-4 px-6 font-medium text-foreground bg-accent/10 border-l border-r border-accent/20"
+                  className="py-4 px-6 font-medium text-foreground border-l border-r border-separator/70"
                   data-label="Verk"
                 >
                   100% Owned Neon Postgres
@@ -158,7 +158,7 @@ export function ComparisonMatrix() {
                   Complex multi-service Django/TS
                 </td>
                 <td
-                  className="py-4 px-6 font-semibold text-accent bg-accent/10 border-l border-r border-accent/20"
+                  className="py-4 px-6 font-semibold text-accent border-l border-r border-separator/70"
                   data-label="Verk"
                 >
                   Standard Next.js App Router + Prisma
@@ -169,7 +169,7 @@ export function ComparisonMatrix() {
         </div>
 
         {/* Footnote callout */}
-        <div className="mt-4 flex items-center justify-between text-xs text-muted">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-muted">
           <span>
             * Neon Postgres free tier provides 0.5 GiB storage and serverless
             scale-to-zero.

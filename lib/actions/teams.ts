@@ -20,7 +20,7 @@ export async function createTeamAction(formData: FormData): Promise<void> {
 }
 
 export async function updateTeamAction(teamSlug: string, formData: FormData) {
-  const { team, membership } = await requireTeamBySlug(teamSlug, "ADMIN");
+  const { team, membership, user } = await requireTeamBySlug(teamSlug, "ADMIN");
   const name = String(formData.get("name") ?? "") || undefined;
   const slug = String(formData.get("slug") ?? "") || undefined;
   const weeksRaw = String(formData.get("cycleDurationWeeks") ?? "");
@@ -30,9 +30,13 @@ export async function updateTeamAction(teamSlug: string, formData: FormData) {
   const githubRepoRaw = formData.has("githubRepo")
     ? String(formData.get("githubRepo") ?? "").trim()
     : undefined;
+  const gitlabProjectRaw = formData.has("gitlabProject")
+    ? String(formData.get("gitlabProject") ?? "").trim()
+    : undefined;
   const slaKeys = ["NONE", "URGENT", "HIGH", "MEDIUM", "LOW"] as const;
   const slaHours: Record<string, number> = {};
   let hasSla = false;
+  const hasSlaFields = formData.has("sla_URGENT");
 
   for (const key of slaKeys) {
     const raw = String(formData.get(`sla_${key}`) ?? "");
@@ -58,7 +62,14 @@ export async function updateTeamAction(teamSlug: string, formData: FormData) {
         ...(githubRepoRaw !== undefined
           ? { githubRepo: githubRepoRaw || null }
           : {}),
-        ...(hasSla ? { slaHours } : {}),
+        ...(gitlabProjectRaw !== undefined
+          ? { gitlabProject: gitlabProjectRaw || null }
+          : {}),
+        ...(hasSlaFields
+          ? { slaHours: hasSla ? slaHours : null }
+          : hasSla
+            ? { slaHours }
+            : {}),
         ...(formData.has("cycleCooldownDays")
           ? {
               cycleCooldownDays: Number(formData.get("cycleCooldownDays") || 0),
@@ -70,7 +81,40 @@ export async function updateTeamAction(teamSlug: string, formData: FormData) {
                 String(formData.get("slackWebhookUrl") ?? "").trim() || null,
             }
           : {}),
+        ...(formData.has("slackTeamId")
+          ? {
+              slackTeamId:
+                String(formData.get("slackTeamId") ?? "")
+                  .trim()
+                  .toUpperCase() || null,
+            }
+          : {}),
+        ...(formData.has("slackChannelId")
+          ? {
+              slackChannelId:
+                String(formData.get("slackChannelId") ?? "")
+                  .trim()
+                  .toUpperCase() || null,
+            }
+          : {}),
         githubMergeCompletes: formData.get("githubMergeCompletes") === "true",
+        isPrivate: formData.get("isPrivate") === "true",
+        ...(formData.has("estimateScale")
+          ? { estimateScale: String(formData.get("estimateScale")) as never }
+          : {}),
+        autoCloseParent: formData.get("autoCloseParent") === "true",
+        subIssueInherit: formData.get("subIssueInherit") === "true",
+        ...(formData.has("parentId")
+          ? {
+              parentId: (() => {
+                const parentId = String(formData.get("parentId") ?? "") || null;
+
+                if (parentId === team.id) return null;
+
+                return parentId;
+              })(),
+            }
+          : {}),
         ...(formData.has("triageOwnerId")
           ? {
               triageOwnerId:
@@ -95,6 +139,7 @@ export async function updateTeamAction(teamSlug: string, formData: FormData) {
           : {}),
       },
       membership.role,
+      { id: user.id!, name: user.name, email: user.email },
     );
 
     revalidatePath(`/t/${teamSlug}`);

@@ -100,6 +100,10 @@ const initialIssues: Record<string, Issue[]> = {
 export function HeroShowcase() {
   const [issues, setIssues] = useState(initialIssues);
   const [activeCycle, setActiveCycle] = useState("Active: Cycle 04 (Sprint)");
+  const issueCount = Object.values(issues).reduce(
+    (count, column) => count + column.length,
+    0,
+  );
 
   const handleSimulateAgentAdd = () => {
     const newIssue: Issue = {
@@ -135,6 +139,9 @@ export function HeroShowcase() {
               <span className="h-3 w-3 rounded-full bg-warning/80 inline-block" />
               <span className="h-3 w-3 rounded-full bg-success/80 inline-block" />
             </div>
+            <span className="rounded-full border border-separator/70 bg-background/80 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-muted">
+              Sample
+            </span>
 
             <div className="hidden sm:flex items-center gap-2 pl-3 border-l border-separator/60 text-xs text-muted">
               <VerkIcon glow={false} size={16} />
@@ -198,7 +205,7 @@ export function HeroShowcase() {
               <AdjustmentsHorizontalIcon className="h-3.5 w-3.5" /> Filter by:
               Active Sprint
             </span>
-            <span className="font-mono text-accent">9 issues</span>
+            <span className="font-mono text-accent">{issueCount} issues</span>
           </div>
         </div>
 
@@ -286,13 +293,13 @@ export function HeroShowcase() {
         {/* Status bar */}
         <div className="flex items-center justify-between border-t border-separator/50 bg-surface/70 px-4 py-2 text-[11px] text-muted">
           <div className="flex items-center gap-2">
-            <span className="inline-block h-2 w-2 rounded-full bg-success animate-ping" />
+            <span className="inline-block h-2 w-2 rounded-full bg-muted" />
             <span className="font-mono text-foreground font-medium">
-              Neon Postgres Connected
+              Sample board
             </span>
             <span className="text-muted/60">|</span>
             <span className="font-mono text-[10px]">
-              Latency: 14ms (eu-west-1)
+              Illustration only. Not a live workspace.
             </span>
           </div>
           <div className="font-mono text-[10px] hidden sm:block text-muted">

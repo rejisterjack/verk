@@ -55,6 +55,11 @@ export async function updateCycleAction(
           ? formData.get("isActive") === "on" ||
             formData.get("isActive") === "true"
           : undefined,
+        capacityPoints: formData.has("capacityPoints")
+          ? formData.get("capacityPoints") === ""
+            ? null
+            : Number(formData.get("capacityPoints"))
+          : undefined,
       },
       membership.role,
     );
@@ -65,6 +70,43 @@ export async function updateCycleAction(
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : "Failed to update cycle",
+    };
+  }
+}
+
+export async function scheduleNextCycleAction(teamSlug: string) {
+  const { team, membership } = await requireTeamBySlug(teamSlug);
+
+  try {
+    await cyclesService.scheduleNextCycle(team.id, membership.role);
+    revalidatePath(`/t/${teamSlug}/cycles`);
+
+    return { ok: true };
+  } catch (error) {
+    if (error && typeof error === "object" && "digest" in error) throw error;
+
+    return {
+      error:
+        error instanceof Error ? error.message : "Failed to schedule cycle",
+    };
+  }
+}
+
+export async function advanceCycleAction(teamSlug: string) {
+  const { team, membership } = await requireTeamBySlug(teamSlug);
+
+  try {
+    await cyclesService.advanceCycle(team.id, membership.role, {
+      carryOver: true,
+    });
+    revalidatePath(`/t/${teamSlug}/cycles`);
+
+    return { ok: true };
+  } catch (error) {
+    if (error && typeof error === "object" && "digest" in error) throw error;
+
+    return {
+      error: error instanceof Error ? error.message : "Failed to start cycle",
     };
   }
 }

@@ -2,7 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 
 import { NextRequest } from "next/server";
 
-import { rateLimit } from "@/lib/rate-limit";
+import { rateLimitShared } from "@/lib/rate-limit";
 import { isDemoMode } from "@/lib/utils";
 
 function safeEqual(a: string, b: string) {
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
 
-  if (!rateLimit(`demo-reset:${ip}`).ok) {
+  if (!(await rateLimitShared(`demo-reset:${ip}`)).ok) {
     return Response.json({ error: "Too many requests" }, { status: 429 });
   }
   if (!isDemoMode()) {

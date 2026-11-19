@@ -1,18 +1,25 @@
+import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 import NextLink from "next/link";
 
 import { SubmitButton as Button } from "@/components/submit-button";
-import { PageHeader } from "@/components/page-header";
+import { ViewToolbar } from "@/components/page-header";
 import { auth } from "@/lib/auth";
 import { requireTeamBySlug } from "@/lib/rbac";
+import { serverTranslator } from "@/lib/server-locale";
 import * as notifications from "@/lib/services/notifications";
+import { listPulse } from "@/lib/services/surface";
 
 export default async function InboxPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ teamSlug: string }>;
+  searchParams: Promise<{ view?: string }>;
 }) {
   const { teamSlug } = await params;
+  const { view } = await searchParams;
+  const showPulse = view === "pulse";
   let teamCtx: Awaited<ReturnType<typeof requireTeamBySlug>>;
 
   try {
@@ -27,7 +34,12 @@ export default async function InboxPage({
 
   const teamId = teamCtx.team.id;
   const userId = session.user.id;
-  const items = await notifications.listInbox(userId, teamId);
+  const [items, pulse] = await Promise.all([
+    notifications.listInbox(userId, teamId),
+    listPulse(teamId),
+  ]);
+  const inboxPath = `/t/${teamSlug}/inbox`;
+  const teamPath = `/t/${teamSlug}`;
 
   async function markAll() {
     "use server";
@@ -35,11 +47,15 @@ export default async function InboxPage({
 
     if (!user?.user?.id) return;
     await notifications.markAllRead(user.user.id, teamId);
+    revalidatePath(inboxPath);
+    revalidatePath(teamPath, "layout");
   }
 
+  const t = await serverTranslator();
+
   return (
-    <div>
-      <PageHeader
+    <div className="flex min-h-full flex-col">
+      <ViewToolbar
         actions={
           <form action={markAll}>
             <Button size="sm" type="submit" variant="tertiary">
@@ -47,125 +63,151 @@ export default async function InboxPage({
             </Button>
           </form>
         }
-        description="Catch up on assignments and comments — G then I · snooze 1h or tomorrow"
-        title="Inbox"
+        title={t("inbox.title")}
       />
-      {items.length === 0 ? (
-        <p className="text-sm text-muted">You&apos;re all caught up.</p>
-      ) : (
-        <ul className="divide-y divide-separator rounded-xl border border-separator">
-          {items.map((n) => (
-            <li
-              key={n.id}
-              className={`flex items-start gap-3 px-4 py-3 text-sm ${
-                n.readAt ? "opacity-60" : "bg-accent/5"
-              }`}
-            >
-              <div className="flex-1">
-                <p className="font-medium">{n.title}</p>
-                {n.body ? (
-                  <p className="mt-0.5 text-xs text-muted line-clamp-2">
-                    {n.body}
-                  </p>
-                ) : null}
-                {n.issue ? (
+      <div className="flex gap-3 border-b border-separator px-4 py-2 text-[13px]">
+        <NextLink
+          className={showPulse ? "text-muted" : "font-medium text-foreground"}
+          href={`/t/${teamSlug}/inbox`}
+        >
+          Notifications
+        </NextLink>
+        <NextLink
+          className={showPulse ? "font-medium text-foreground" : "text-muted"}
+          href={`/t/${teamSlug}/inbox?view=pulse`}
+        >
+          Pulse
+        </NextLink>
+      </div>
+      {showPulse ? (
+        <section className="border-b border-separator px-4 py-3">
+          <h2 className="text-[12px] font-medium uppercase tracking-wide text-muted">
+            Pulse
+          </h2>
+          {pulse.length === 0 ? (
+            <p className="mt-2 text-[13px] text-muted">
+              No recent team activity.
+            </p>
+          ) : (
+            <ul className="mt-2 space-y-1 text-[13px]">
+              {pulse.map((item) => (
+                <li key={item.id}>
                   <NextLink
-                    className="mt-1 inline-block text-xs text-accent"
-                    href={`/t/${teamSlug}/issues/${n.issue.number}`}
+                    className="hover:text-accent"
+                    href={
+                      item.kind === "issue"
+                        ? `/t/${teamSlug}/issues/${item.href}`
+                        : `/t/${teamSlug}/projects/${item.href}`
+                    }
                   >
-                    Open issue
+                    <span className="font-medium">{item.title}</span>
+                    <span className="text-muted"> · {item.detail}</span>
                   </NextLink>
-                ) : null}
-              </div>
-              <div className="flex shrink-0 flex-col gap-1">
-                <form
-                  action={async () => {
-                    "use server";
-                    const user = await auth();
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : items.length === 0 ? (
+        <p className="px-4 py-8 text-[13px] text-muted">
+          You&apos;re all caught up.
+        </p>
+      ) : (
+        <ul className="divide-y divide-separator">
+          {items.map((n) => {
+            const issueHref = n.issue
+              ? `/t/${teamSlug}/issues/${n.issue.number}`
+              : null;
 
-                    if (!user?.user?.id) return;
-                    await notifications.markNotificationRead(user.user.id, n.id);
-                  }}
-                >
-                  <Button size="sm" type="submit" variant="ghost">
-                    Read
-                  </Button>
-                </form>
-                <form
-                  action={async () => {
-                    "use server";
-                    const user = await auth();
+            return (
+              <li
+                key={n.id}
+                className={`group flex items-start gap-3 px-4 py-2.5 text-[13px] ${
+                  n.readAt ? "opacity-60" : "bg-accent/5"
+                }`}
+              >
+                <div className="min-w-0 flex-1">
+                  {issueHref ? (
+                    <NextLink
+                      className="font-medium text-foreground hover:text-accent"
+                      href={issueHref}
+                    >
+                      {n.title}
+                    </NextLink>
+                  ) : (
+                    <p className="font-medium">{n.title}</p>
+                  )}
+                  {n.body ? (
+                    <p className="mt-0.5 line-clamp-2 text-xs text-muted">
+                      {n.body}
+                    </p>
+                  ) : null}
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  <form
+                    action={async () => {
+                      "use server";
+                      const user = await auth();
 
-                    if (!user?.user?.id) return;
-                    await notifications.snoozeNotification(
-                      user.user.id,
-                      n.id,
-                      new Date(Date.now() + 60 * 60 * 1000),
-                    );
-                  }}
-                >
-                  <Button size="sm" type="submit" variant="ghost">
-                    1h
-                  </Button>
-                </form>
-                <form
-                  action={async () => {
-                    "use server";
-                    const user = await auth();
+                      if (!user?.user?.id) return;
+                      await notifications.markNotificationRead(
+                        user.user.id,
+                        n.id,
+                      );
+                      revalidatePath(inboxPath);
+                      revalidatePath(teamPath, "layout");
+                    }}
+                  >
+                    <Button size="sm" type="submit" variant="ghost">
+                      Read
+                    </Button>
+                  </form>
+                  <form
+                    action={async () => {
+                      "use server";
+                      const user = await auth();
 
-                    if (!user?.user?.id) return;
-                    const tomorrow = new Date();
+                      if (!user?.user?.id) return;
+                      await notifications.snoozeNotification(
+                        user.user.id,
+                        n.id,
+                        new Date(Date.now() + 60 * 60 * 1000),
+                      );
+                      revalidatePath(inboxPath);
+                      revalidatePath(teamPath, "layout");
+                    }}
+                  >
+                    <Button size="sm" type="submit" variant="ghost">
+                      1h
+                    </Button>
+                  </form>
+                  <form
+                    action={async () => {
+                      "use server";
+                      const user = await auth();
 
-                    tomorrow.setDate(tomorrow.getDate() + 1);
-                    tomorrow.setHours(9, 0, 0, 0);
-                    await notifications.snoozeNotification(
-                      user.user.id,
-                      n.id,
-                      tomorrow,
-                    );
-                  }}
-                >
-                  <Button size="sm" type="submit" variant="ghost">
-                    Tomorrow
-                  </Button>
-                </form>
-                <form
-                  action={async () => {
-                    "use server";
-                    const user = await auth();
+                      if (!user?.user?.id) return;
+                      const tomorrow = new Date();
 
-                    if (!user?.user?.id) return;
-                    await notifications.snoozeNotification(
-                      user.user.id,
-                      n.id,
-                      new Date(Date.now() + 24 * 60 * 60 * 1000),
-                    );
-                  }}
-                >
-                  <Button size="sm" type="submit" variant="ghost">
-                    1 day
-                  </Button>
-                </form>
-                <form
-                  action={async () => {
-                    "use server";
-                    const user = await auth();
-
-                    if (!user?.user?.id) return;
-                    await notifications.snoozeNotification(
-                      user.user.id,
-                      n.id,
-                      new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-                    );
-                  }}
-                >
-                  <Button size="sm" type="submit" variant="ghost">
-                    Next week
-                  </Button>
-                </form>
-              </div>
-            </li>
-          ))}
+                      tomorrow.setDate(tomorrow.getDate() + 1);
+                      tomorrow.setHours(9, 0, 0, 0);
+                      await notifications.snoozeNotification(
+                        user.user.id,
+                        n.id,
+                        tomorrow,
+                      );
+                      revalidatePath(inboxPath);
+                      revalidatePath(teamPath, "layout");
+                    }}
+                  >
+                    <Button size="sm" type="submit" variant="ghost">
+                      Tomorrow
+                    </Button>
+                  </form>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

@@ -38,7 +38,8 @@ export type OutboxOpType =
   | "reorder"
   | "delete"
   | "comment"
-  | "setLabels";
+  | "setLabels"
+  | "draft";
 
 export type OutboxStatus = "queued" | "inflight" | "failed";
 

@@ -28,6 +28,7 @@ export async function createIssueAction(teamSlug: string, formData: FormData) {
   const status = String(formData.get("status") || "BACKLOG");
   const priority = String(formData.get("priority") || "NONE");
   const estimate = String(formData.get("estimate") || "NONE");
+  const startRaw = String(formData.get("startDate") || "");
   const dueRaw = String(formData.get("dueDate") || "");
   const assigneeId = formNullId(formData, "assigneeId");
   const cycleId = formNullId(formData, "cycleId");
@@ -43,6 +44,7 @@ export async function createIssueAction(teamSlug: string, formData: FormData) {
       status,
       priority,
       estimate,
+      startDate: startRaw ? new Date(startRaw) : null,
       dueDate: dueRaw ? new Date(dueRaw) : null,
       assigneeId,
       cycleId,
@@ -54,7 +56,8 @@ export async function createIssueAction(teamSlug: string, formData: FormData) {
 
     revalidatePath(`/t/${teamSlug}/issues`);
     revalidatePath(`/t/${teamSlug}/board`);
-    redirect(`/t/${teamSlug}/issues/${issue.number}`);
+
+    return { number: issue.number };
   } catch (error) {
     if (error && typeof error === "object" && "digest" in error) throw error;
 
@@ -88,6 +91,11 @@ export async function updateIssueAction(
   for (const key of ["assigneeId", "cycleId", "projectId"] as const) {
     if (formData.has(key)) payload[key] = formNullId(formData, key);
   }
+  if (formData.has("startDate")) {
+    const startRaw = String(formData.get("startDate") || "");
+
+    payload.startDate = startRaw ? new Date(startRaw) : null;
+  }
   if (formData.has("dueDate")) {
     const dueRaw = String(formData.get("dueDate") || "");
 
@@ -98,6 +106,19 @@ export async function updateIssueAction(
   }
   if (formData.has("workflowStatusId")) {
     payload.workflowStatusId = formNullId(formData, "workflowStatusId");
+  }
+  if (formData.has("visibility")) {
+    const visibility = String(formData.get("visibility"));
+
+    if (visibility === "TEAM" || visibility === "RESTRICTED") {
+      payload.visibility = visibility;
+    }
+  }
+  if (formData.get("readersTouched") === "1") {
+    payload.readerIds = formData
+      .getAll("readerIds")
+      .map(String)
+      .filter((id) => id.length > 0);
   }
   if (formData.has("revision")) {
     const revision = Number(formData.get("revision"));
@@ -186,6 +207,93 @@ export async function deleteIssueAction(teamSlug: string, issueNumber: number) {
 
     return {
       error: error instanceof Error ? error.message : "Failed to delete issue",
+    };
+  }
+}
+
+function revalidateIssueViews(teamSlug: string, issueNumber?: number) {
+  revalidatePath(`/t/${teamSlug}/issues`);
+  revalidatePath(`/t/${teamSlug}/board`);
+  if (issueNumber != null) {
+    revalidatePath(`/t/${teamSlug}/issues/${issueNumber}`);
+  }
+}
+
+export async function archiveIssueAction(
+  teamSlug: string,
+  issueNumber: number,
+) {
+  const { team, membership, user } = await requireTeamBySlug(teamSlug);
+  const existing = await issuesService.getIssueByNumber(team.id, issueNumber);
+
+  if (!existing) return { error: "Issue not found" };
+  try {
+    await issuesService.archiveIssue(
+      team.id,
+      existing.id,
+      membership.role,
+      user.id,
+    );
+    revalidateIssueViews(teamSlug, issueNumber);
+
+    return { ok: true as const };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Failed to archive issue",
+    };
+  }
+}
+
+export async function restoreIssueAction(
+  teamSlug: string,
+  issueNumber: number,
+) {
+  const { team, membership, user } = await requireTeamBySlug(teamSlug);
+  const existing = await issuesService.getIssueByNumber(team.id, issueNumber);
+
+  if (!existing) return { error: "Issue not found" };
+  try {
+    await issuesService.restoreIssue(
+      team.id,
+      existing.id,
+      membership.role,
+      user.id,
+    );
+    revalidateIssueViews(teamSlug, issueNumber);
+
+    return { ok: true as const };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Failed to restore issue",
+    };
+  }
+}
+
+/** Bulk edit from the list. Returns per-issue results so the UI can show failures. */
+export async function bulkIssuesAction(
+  teamSlug: string,
+  input: {
+    ids: string[];
+    action: "update" | "archive" | "restore" | "delete";
+    patch?: Record<string, unknown>;
+  },
+) {
+  const { team, membership, user } = await requireTeamBySlug(teamSlug);
+
+  try {
+    const result = await issuesService.bulkUpdateIssues(
+      team.id,
+      input,
+      membership.role,
+      user.id,
+    );
+
+    revalidateIssueViews(teamSlug);
+
+    return { ok: result.ok, failed: result.failed };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Bulk update failed",
     };
   }
 }

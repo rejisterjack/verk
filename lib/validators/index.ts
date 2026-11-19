@@ -51,15 +51,44 @@ export const updateTeamSchema = z.object({
     .regex(/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/)
     .nullable()
     .optional(),
-  slaHours: z.record(z.string(), z.number().nonnegative()).nullable().optional(),
+  /** GitLab project path, `group/project` or nested `group/sub/project`. */
+  gitlabProject: z
+    .string()
+    .max(200)
+    .regex(/^[A-Za-z0-9_.-]+(\/[A-Za-z0-9_.-]+)+$/)
+    .nullable()
+    .optional(),
+  slaHours: z
+    .record(z.string(), z.number().nonnegative())
+    .nullable()
+    .optional(),
   cycleCooldownDays: z.number().int().min(0).max(30).optional(),
   triageOwnerId: z.string().cuid().nullable().optional(),
   slackWebhookUrl: z.string().url().nullable().optional(),
+  /** Slack workspace id, e.g. T01234567. */
+  slackTeamId: z
+    .string()
+    .regex(/^[A-Z0-9]{3,20}$/, "Use the Slack workspace id, like T01234567")
+    .nullable()
+    .optional(),
+  /** Slack channel id, e.g. C01234567. Empty means every channel in the workspace. */
+  slackChannelId: z
+    .string()
+    .regex(/^[A-Z0-9]{3,20}$/, "Use the Slack channel id, like C01234567")
+    .nullable()
+    .optional(),
   githubMergeCompletes: z.boolean().optional(),
   timezone: z.string().min(1).max(64).optional(),
   slaStartHour: z.number().int().min(0).max(23).optional(),
   slaEndHour: z.number().int().min(1).max(24).optional(),
   slaWeekdays: z.string().max(20).optional(),
+  isPrivate: z.boolean().optional(),
+  parentId: z.string().cuid().nullable().optional(),
+  autoCloseParent: z.boolean().optional(),
+  subIssueInherit: z.boolean().optional(),
+  estimateScale: z
+    .enum(["off", "linear", "exponential", "fibonacci", "tshirt"])
+    .optional(),
 });
 
 export const estimateSchema = z.enum([
@@ -73,8 +102,10 @@ export const estimateSchema = z.enum([
   "ONE",
   "TWO",
   "THREE",
+  "FOUR",
   "FIVE",
   "EIGHT",
+  "SIXTEEN",
   "THIRTEEN",
 ]);
 
@@ -85,11 +116,15 @@ export const createIssueSchema = z.object({
   priority: prioritySchema.optional(),
   estimate: estimateSchema.optional(),
   dueDate: z.coerce.date().nullable().optional(),
+  startDate: z.coerce.date().nullable().optional(),
+  visibility: z.enum(["TEAM", "RESTRICTED"]).optional(),
+  readerIds: z.array(z.string().cuid()).max(50).optional(),
   assigneeId: z.string().cuid().nullable().optional(),
   cycleId: z.string().cuid().nullable().optional(),
   projectId: z.string().cuid().nullable().optional(),
   milestoneId: z.string().cuid().nullable().optional(),
   workflowStatusId: z.string().cuid().nullable().optional(),
+  parentId: z.string().cuid().nullable().optional(),
   labelIds: z.array(z.string().cuid()).optional(),
   clientMutationId: z.string().min(1).max(80).optional(),
 });
@@ -101,11 +136,15 @@ export const updateIssueSchema = z.object({
   priority: prioritySchema.optional(),
   estimate: estimateSchema.optional(),
   dueDate: z.coerce.date().nullable().optional(),
+  startDate: z.coerce.date().nullable().optional(),
+  visibility: z.enum(["TEAM", "RESTRICTED"]).optional(),
+  readerIds: z.array(z.string().cuid()).max(50).optional(),
   assigneeId: z.string().cuid().nullable().optional(),
   cycleId: z.string().cuid().nullable().optional(),
   projectId: z.string().cuid().nullable().optional(),
   milestoneId: z.string().cuid().nullable().optional(),
   workflowStatusId: z.string().cuid().nullable().optional(),
+  parentId: z.string().cuid().nullable().optional(),
   order: z.number().optional(),
   triageAt: z.coerce.date().nullable().optional(),
   revision: z.number().int().optional(),
@@ -139,6 +178,7 @@ export const updateCycleSchema = z
     startDate: z.coerce.date().optional(),
     endDate: z.coerce.date().optional(),
     isActive: z.boolean().optional(),
+    capacityPoints: z.number().int().min(0).max(1000).nullable().optional(),
   })
   .refine((d) => !d.startDate || !d.endDate || d.endDate >= d.startDate, {
     message: "End date must be on or after start date",
@@ -156,20 +196,66 @@ export const updateMemberRoleSchema = z.object({
 
 export const createApiKeySchema = z.object({
   name: z.string().min(1).max(80),
+  role: z.enum(["GUEST", "MEMBER", "ADMIN"]).default("MEMBER"),
 });
 
+/** HTML GET forms / clearable Selects submit "" for unset fields. */
+const emptyToUndef = <T extends z.ZodTypeAny>(schema: T) =>
+  z.preprocess((v) => (v === "" || v === null ? undefined : v), schema);
+
 export const listIssuesQuerySchema = z.object({
-  status: z.union([issueStatusSchema, z.array(issueStatusSchema)]).optional(),
-  priority: prioritySchema.optional(),
-  cycleId: z.string().cuid().optional(),
-  assigneeId: z.string().cuid().optional(),
-  projectId: z.string().cuid().optional(),
-  workflowStatusId: z.string().cuid().optional(),
+  status: emptyToUndef(
+    z.union([issueStatusSchema, z.array(issueStatusSchema)]).optional(),
+  ),
+  priority: emptyToUndef(prioritySchema.optional()),
+  cycleId: emptyToUndef(z.string().cuid().optional()),
+  assigneeId: emptyToUndef(z.string().cuid().optional()),
+  projectId: emptyToUndef(z.string().cuid().optional()),
+  workflowStatusId: emptyToUndef(z.string().cuid().optional()),
+  labelGroup: emptyToUndef(z.string().max(40).optional()),
   number: z.coerce.number().int().positive().optional(),
   triage: z.coerce.boolean().optional(),
-  search: z.string().max(200).optional(),
-  cursor: z.string().cuid().optional(),
+  /** `true` lists only archived issues. The default hides them. */
+  archived: z.preprocess(
+    (v) => (v === "" || v == null ? undefined : v === true || v === "true"),
+    z.boolean().optional(),
+  ),
+  /** A filter tree (see lib/issue-filter.ts), as an object or a JSON string. */
+  filter: z.unknown().optional(),
+  /** `parentId` lists the sub-issues of one issue; `topLevel` hides every sub-issue. */
+  parentId: emptyToUndef(z.string().cuid().optional()),
+  topLevel: z.preprocess(
+    (v) => (v === "" || v == null ? undefined : v === true || v === "true"),
+    z.boolean().optional(),
+  ),
+  search: emptyToUndef(z.string().max(200).optional()),
+  cursor: emptyToUndef(z.string().cuid().optional()),
   take: z.coerce.number().int().min(1).max(200).optional().default(50),
+});
+
+export const BULK_ISSUE_LIMIT = 200;
+
+/** Fields a bulk edit may change on every selected issue. */
+export const bulkIssuePatchSchema = z
+  .object({
+    status: issueStatusSchema.optional(),
+    priority: prioritySchema.optional(),
+    estimate: estimateSchema.optional(),
+    dueDate: z.coerce.date().nullable().optional(),
+    startDate: z.coerce.date().nullable().optional(),
+    assigneeId: z.string().cuid().nullable().optional(),
+    cycleId: z.string().cuid().nullable().optional(),
+    projectId: z.string().cuid().nullable().optional(),
+    workflowStatusId: z.string().cuid().nullable().optional(),
+    addLabelIds: z.array(z.string().cuid()).max(50).optional(),
+    removeLabelIds: z.array(z.string().cuid()).max(50).optional(),
+  })
+  .strict();
+
+export const bulkIssuesSchema = z.object({
+  ids: z.array(z.string().min(1)).min(1).max(BULK_ISSUE_LIMIT),
+  action: z.enum(["update", "archive", "restore", "delete"]).default("update"),
+  patch: bulkIssuePatchSchema.optional(),
 });
 
 export const createCycleSchemaExtended = z.object({

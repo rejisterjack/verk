@@ -11,7 +11,7 @@ import {
 
 import { CommandPalette } from "@/components/app/command-palette";
 import { ShortcutHelp } from "@/components/app/shortcut-help";
-import { isTypingTarget } from "@/lib/shortcuts/registry";
+import { chord, isTypingTarget } from "@/lib/shortcuts/registry";
 
 type ShellCtx = {
   openCreate: () => void;
@@ -41,8 +41,13 @@ export function KeyboardShell({
   const router = useRouter();
   const [cmdOpen, setCmdOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
-  const [goArmed, setGoArmed] = useState(false);
+  const [goArmed, setGoArmedState] = useState(false);
   const base = `/t/${teamSlug}`;
+
+  const setGoArmed = useCallback((value: boolean) => {
+    chord.goArmed = value;
+    setGoArmedState(value);
+  }, []);
 
   const openCreate = useCallback(() => {
     onRequestCreate?.();
@@ -83,6 +88,13 @@ export function KeyboardShell({
           b: `${base}/issues?layout=board`,
           c: `${base}/cycles`,
           p: `${base}/projects`,
+          n: `${base}/initiatives`,
+          r: `${base}/releases`,
+          d: `${base}/docs`,
+          h: `${base}/insights`,
+          l: `${base}/timeline`,
+          u: `${base}/customers`,
+          s: `${base}/settings`,
           m: `${base}/issues?assignee=me`,
           t: `${base}/triage`,
         };
@@ -101,6 +113,25 @@ export function KeyboardShell({
         return;
       }
 
+      if (
+        e.key.toLowerCase() === "f" &&
+        !e.metaKey &&
+        !e.ctrlKey &&
+        !e.altKey
+      ) {
+        const search = document.querySelector<HTMLInputElement>(
+          "[data-issue-filters] input[name='search']",
+        );
+
+        if (search) {
+          e.preventDefault();
+          search.focus();
+          search.select();
+        }
+
+        return;
+      }
+
       if (e.key.toLowerCase() === "c" && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
         openCreate();
@@ -110,7 +141,7 @@ export function KeyboardShell({
     window.addEventListener("keydown", onKey);
 
     return () => window.removeEventListener("keydown", onKey);
-  }, [base, openCreate, router]);
+  }, [base, openCreate, router, goArmed, setGoArmed]);
 
   return (
     <Ctx.Provider value={{ openCreate, openCommand: () => setCmdOpen(true) }}>

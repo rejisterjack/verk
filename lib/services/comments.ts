@@ -1,7 +1,8 @@
-import { z } from "zod";
-
 import type { Role } from "@/lib/generated/prisma/client";
 
+import { z } from "zod";
+
+import { nextCommentDepth, replyExceedsMax } from "@/lib/comment-depth";
 import { prisma } from "@/lib/db";
 import { AuthError } from "@/lib/errors";
 import { roleAtLeast } from "@/lib/roles";
@@ -9,6 +10,7 @@ import { notifyIssueSubscribers } from "@/lib/services/notifications";
 
 const commentSchema = z.object({
   body: z.string().min(1).max(20000),
+  parentId: z.string().cuid().nullable().optional(),
 });
 
 export async function listComments(teamId: string, issueId: string) {
@@ -41,6 +43,31 @@ export async function addComment(
   if (!issue) throw new AuthError("Issue not found", "NOT_FOUND", 404);
   const data = commentSchema.parse(input);
 
+  if (data.parentId) {
+    const parent = await prisma.comment.findFirst({
+      where: { id: data.parentId, issueId },
+    });
+
+    if (!parent) throw new AuthError("Comment not found", "NOT_FOUND", 404);
+
+    const chain = await prisma.comment.findMany({
+      where: { issueId },
+      select: { id: true, parentId: true },
+    });
+    const depth = nextCommentDepth(
+      data.parentId,
+      new Map(chain.map((row) => [row.id, row])),
+    );
+
+    if (replyExceedsMax(depth)) {
+      throw new AuthError(
+        "Replies are limited to three levels",
+        "BAD_REQUEST",
+        400,
+      );
+    }
+  }
+
   await prisma.issueSubscription.upsert({
     where: { issueId_userId: { issueId, userId: authorId } },
     create: { issueId, userId: authorId },
@@ -48,7 +75,12 @@ export async function addComment(
   });
 
   const comment = await prisma.comment.create({
-    data: { issueId, authorId, body: data.body },
+    data: {
+      issueId,
+      authorId,
+      body: data.body,
+      parentId: data.parentId ?? null,
+    },
     include: {
       author: { select: { id: true, name: true, email: true, image: true } },
     },
@@ -68,10 +100,18 @@ export async function addComment(
   const { dispatchWebhooks } = await import("@/lib/services/webhooks");
 
   await dispatchWebhooks(teamId, "comment.created", comment);
-  const { notifySlack } = await import("@/lib/services/surface");
+  const { notifyTeamSlack } = await import("@/lib/services/surface");
   const team = await prisma.team.findUnique({ where: { id: teamId } });
 
-  await notifySlack(team?.slackWebhookUrl, `Comment on ${issue.title}`);
+  await notifyTeamSlack(team, `Comment on ${issue.title}`);
+  const { runAutomations } = await import("@/lib/services/automations");
+
+  await runAutomations(
+    teamId,
+    issueId,
+    { commentCreated: true },
+    authorId,
+  );
 
   return comment;
 }
@@ -94,14 +134,26 @@ async function notifyMentions(
     const name = (member.user.name ?? "").trim().toLowerCase();
 
     return (
-      text.includes(`@${email}`) || (name.length > 0 && text.includes(`@${name}`))
+      text.includes(`@${email}`) ||
+      (name.length > 0 && text.includes(`@${name}`))
     );
   });
 
   if (!mentioned.length) return;
 
+  const { filterUnmuted } = await import("@/lib/services/notifications");
+  const wanted = new Set(
+    await filterUnmuted(
+      mentioned.map((member) => member.userId),
+      "MENTIONED",
+    ),
+  );
+  const recipients = mentioned.filter((member) => wanted.has(member.userId));
+
+  if (!recipients.length) return;
+
   await prisma.notification.createMany({
-    data: mentioned.map((member) => ({
+    data: recipients.map((member) => ({
       userId: member.userId,
       teamId,
       issueId,

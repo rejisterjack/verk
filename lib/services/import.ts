@@ -113,7 +113,9 @@ export async function importFromLinearApi(
       const status = n.state?.name ?? "Backlog";
       const priority = priorityMap[n.priority] ?? "No priority";
       const email = n.assignee?.email ?? "";
-      const labels = (n.labels?.nodes ?? []).map((label) => label.name).join(", ");
+      const labels = (n.labels?.nodes ?? [])
+        .map((label) => label.name)
+        .join(", ");
       const project = n.project?.name ?? "";
 
       return `${title},${desc},${JSON.stringify(status)},${JSON.stringify(priority)},${JSON.stringify(email)},${JSON.stringify(labels)},${JSON.stringify(project)}`;

@@ -1,4 +1,36 @@
+/* eslint-disable no-console */
 import { Resend } from "resend";
+
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+export function buildInviteContent(opts: {
+  teamName: string;
+  inviteUrl: string;
+  inviterName?: string | null;
+}) {
+  const who = opts.inviterName?.trim() || "Someone";
+  const subject = `Join ${opts.teamName} on Verk`;
+  const text = [
+    `${who} invited you to join ${opts.teamName} on Verk.`,
+    "",
+    `Accept the invite: ${opts.inviteUrl}`,
+    "",
+    "This link expires in 7 days.",
+  ].join("\n");
+  const html = [
+    `<p>${escapeHtml(who)} invited you to join ${escapeHtml(opts.teamName)} on Verk.</p>`,
+    `<p><a href="${escapeHtml(opts.inviteUrl)}">Accept the invite</a></p>`,
+    "<p>This link expires in 7 days.</p>",
+  ].join("");
+
+  return { subject, text, html };
+}
 
 export async function sendInviteEmail(opts: {
   to: string;
@@ -7,6 +39,7 @@ export async function sendInviteEmail(opts: {
   inviterName?: string | null;
 }): Promise<{ sent: boolean; error?: string }> {
   const apiKey = process.env.RESEND_API_KEY;
+  const content = buildInviteContent(opts);
 
   if (!apiKey) {
     console.info(
@@ -26,14 +59,9 @@ export async function sendInviteEmail(opts: {
     await resend.emails.send({
       from,
       to: opts.to,
-      subject: `Join ${opts.teamName} on Verk`,
-      text: [
-        `${opts.inviterName ?? "Someone"} invited you to join ${opts.teamName} on Verk.`,
-        "",
-        `Accept the invite: ${opts.inviteUrl}`,
-        "",
-        "This link expires in 7 days.",
-      ].join("\n"),
+      subject: content.subject,
+      text: content.text,
+      html: content.html,
     });
 
     return { sent: true };

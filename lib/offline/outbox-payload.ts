@@ -6,6 +6,7 @@ export type CreateIssueLocalInput = {
   status?: string;
   priority?: string;
   estimate?: string;
+  startDate?: string | null;
   dueDate?: string | null;
   assigneeId?: string | null;
   cycleId?: string | null;
@@ -20,6 +21,7 @@ export type UpdateIssueLocalPatch = {
   status?: string;
   priority?: string;
   estimate?: string;
+  startDate?: string | null;
   dueDate?: string | null;
   assigneeId?: string | null;
   cycleId?: string | null;

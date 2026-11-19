@@ -1,7 +1,14 @@
+import NextLink from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { PageHeader } from "@/components/page-header";
+import {
+  CreateCustomerForm,
+  CustomerValueForm,
+  LinkCustomerRequestForm,
+} from "@/components/customers-forms";
+import { ViewToolbar } from "@/components/page-header";
 import { SubmitButton as Button } from "@/components/submit-button";
+import { formatArr } from "@/lib/demand";
 import { requireTeamBySlug } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import {
@@ -10,6 +17,7 @@ import {
   deleteCustomer,
   deleteCustomerRequest,
   listCustomers,
+  updateCustomerValue,
 } from "@/lib/services/surface";
 
 export default async function CustomersPage({
@@ -29,7 +37,7 @@ export default async function CustomersPage({
   const [customers, issues] = await Promise.all([
     listCustomers(teamId),
     prisma.issue.findMany({
-      where: { teamId },
+      where: { teamId, archivedAt: null },
       select: { number: true, title: true },
       orderBy: { number: "desc" },
       take: 200,
@@ -41,24 +49,66 @@ export default async function CustomersPage({
     await createCustomer(teamId, {
       name: String(formData.get("name") ?? ""),
       domain: String(formData.get("domain") ?? ""),
+      tier: String(formData.get("tier") ?? ""),
+      arr: String(formData.get("arr") ?? "").trim() || undefined,
     });
     redirect(`/t/${teamSlug}/customers`);
   }
 
   return (
-    <div className="max-w-xl space-y-4">
-      <PageHeader description="Link requests to issues from the API" title="Customers" />
-      <form action={create} className="flex gap-2">
-        <input required className="rounded-lg border border-separator px-3 py-2 text-sm" name="name" placeholder="Name" />
-        <input className="rounded-lg border border-separator px-3 py-2 text-sm" name="domain" placeholder="domain.com" />
-        <Button type="submit">Add</Button>
-      </form>
-      <ul className="text-sm">
+    <div className="flex min-h-full flex-col">
+      <ViewToolbar
+        actions={
+          <NextLink
+            className="rounded px-2 py-1 text-[12px] text-accent hover:bg-default"
+            href={`/t/${teamSlug}/customers/demand`}
+          >
+            See demand by issue →
+          </NextLink>
+        }
+        title="Customers"
+      />
+      <section className="border-b border-separator px-4 py-3 text-[12px] text-muted">
+        <p className="font-medium text-foreground">Intake endpoint</p>
+        <p className="mt-1 font-mono">POST /api/teams/{teamId}/intake</p>
+        <p>Authorization: Bearer $INTAKE_TOKEN</p>
+        <pre className="mt-2 whitespace-pre-wrap">{`{
+  "title": "Request title",
+  "customer": "Customer name",
+  "detail": "What they asked for"
+}`}</pre>
+      </section>
+      <div className="border-b border-separator px-4 py-3">
+        <CreateCustomerForm action={create} />
+      </div>
+      <ul className="divide-y divide-separator text-[13px]">
         {customers.map((customer) => (
-          <li key={customer.id} className="space-y-2 border-b border-separator py-2">
-            <p>
-              {customer.name} · {customer._count.requests} requests
+          <li key={customer.id} className="space-y-2 px-4 py-3">
+            <p className="font-medium">
+              {customer.name}{" "}
+              <span className="font-normal text-muted">
+                · {customer._count.requests} requests
+                {customer.tier ? ` · ${customer.tier}` : ""}
+                {customer.arr ? ` · ${formatArr(customer.arr)} / yr` : ""}
+              </span>
             </p>
+            <CustomerValueForm
+              action={async (formData) => {
+                "use server";
+                await updateCustomerValue(
+                  teamId,
+                  customer.id,
+                  {
+                    tier: String(formData.get("tier") ?? ""),
+                    arr: String(formData.get("arr") ?? "").trim() || 0,
+                  },
+                  teamCtx.membership.role,
+                );
+                redirect(`/t/${teamSlug}/customers`);
+              }}
+              arr={customer.arr}
+              tier={customer.tier}
+            />
             <ul className="text-xs text-muted">
               {customer.requests.map((request) => (
                 <li key={request.id} className="flex items-center gap-2">
@@ -70,12 +120,19 @@ export default async function CustomersPage({
                       redirect(`/t/${teamSlug}/customers`);
                     }}
                   >
-                    <Button size="sm" type="submit" variant="danger">Remove</Button>
+                    <Button
+                      className="h-7 px-2 text-[12px]"
+                      size="sm"
+                      type="submit"
+                      variant="danger"
+                    >
+                      Remove
+                    </Button>
                   </form>
                 </li>
               ))}
             </ul>
-            <form
+            <LinkCustomerRequestForm
               action={async (formData) => {
                 "use server";
                 const issueNumber = Number(formData.get("issueNumber"));
@@ -88,19 +145,8 @@ export default async function CustomersPage({
                 });
                 redirect(`/t/${teamSlug}/customers`);
               }}
-              className="flex gap-2"
-            >
-              <input className="flex-1 rounded border border-separator px-2 py-1" name="body" placeholder="Request" required />
-              <select className="rounded border border-separator px-2 py-1" name="issueNumber">
-                <option value="">No issue</option>
-                {issues.map((issue) => (
-                  <option key={issue.number} value={issue.number}>
-                    #{issue.number} {issue.title}
-                  </option>
-                ))}
-              </select>
-              <Button size="sm" type="submit">Link</Button>
-            </form>
+              issues={issues}
+            />
             <form
               action={async () => {
                 "use server";
@@ -108,7 +154,14 @@ export default async function CustomersPage({
                 redirect(`/t/${teamSlug}/customers`);
               }}
             >
-              <Button size="sm" type="submit" variant="danger">Delete customer</Button>
+              <Button
+                className="h-7 px-2 text-[12px]"
+                size="sm"
+                type="submit"
+                variant="danger"
+              >
+                Delete customer
+              </Button>
             </form>
           </li>
         ))}

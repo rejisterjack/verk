@@ -1,102 +1,94 @@
-import { NextResponse } from "next/server";
-
 import { prisma } from "@/lib/db";
-import { rateLimit } from "@/lib/rate-limit";
+import { paginateScim } from "@/lib/scim-page";
+import { scimError, scimGuard, scimJson, userResource } from "@/lib/scim";
 
-function authorized(request: Request) {
-  const token = process.env.SCIM_TOKEN;
-
-  if (!token) return false;
-  const header = request.headers.get("authorization") ?? "";
-
-  return header === `Bearer ${token}`;
-}
-
-function userResource(user: {
-  id: string;
-  email: string;
-  name: string | null;
-  disabled: boolean;
-}) {
-  return {
-    schemas: ["urn:ietf:params:scim:schemas:core:2.0:User"],
-    id: user.id,
-    userName: user.email,
-    name: { formatted: user.name ?? user.email },
-    active: !user.disabled,
-  };
-}
-
-function limited(request: Request) {
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
-
-  return !rateLimit(`scim:${ip}`).ok;
+/** `userName eq "ada@x.dev"` is the only filter IdPs use to look a user up. */
+function emailFromFilter(filter: string) {
+  return filter.match(/userName eq "([^"]+)"/i)?.[1]?.toLowerCase();
 }
 
 export async function GET(request: Request) {
-  if (limited(request)) {
-    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
-  }
-  if (!authorized(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const blocked = await scimGuard(request);
+
+  if (blocked) return blocked;
   const url = new URL(request.url);
   const teamId = url.searchParams.get("teamId") ?? "";
-  const filter = url.searchParams.get("filter") ?? "";
-  const emailMatch = filter.match(/userName eq "([^"]+)"/i);
-  const email = emailMatch?.[1]?.toLowerCase();
+  const email = emailFromFilter(url.searchParams.get("filter") ?? "");
 
-  if (!teamId) {
-    return NextResponse.json({ error: "teamId required" }, { status: 400 });
-  }
-  const memberships = await prisma.membership.findMany({
-    where: {
-      teamId,
-      ...(email ? { user: { email } } : {}),
-    },
-    include: { user: true },
-  });
-  const resources = memberships.map((row) => userResource(row.user));
+  // With a teamId: that team's members. Without one: every user, so an IdP can
+  // look a user up by userName before it provisions them into a group.
+  const users = teamId
+    ? (
+        await prisma.membership.findMany({
+          where: { teamId, ...(email ? { user: { email } } : {}) },
+          include: { user: true },
+          orderBy: { createdAt: "asc" },
+        })
+      ).map((row) => row.user)
+    : await prisma.user.findMany({
+        where: email ? { email } : {},
+        orderBy: { createdAt: "asc" },
+        take: 1000,
+      });
 
-  return NextResponse.json({
-    schemas: ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
-    totalResults: resources.length,
-    Resources: resources,
-  });
+  return scimJson(
+    paginateScim(
+      users.map(userResource),
+      url.searchParams.get("startIndex"),
+      url.searchParams.get("count"),
+    ),
+  );
 }
 
 export async function POST(request: Request) {
-  if (limited(request)) {
-    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
-  }
-  if (!authorized(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const body = (await request.json()) as {
+  const blocked = await scimGuard(request);
+
+  if (blocked) return blocked;
+  let body: {
     userName?: string;
     name?: { formatted?: string };
     teamId?: string;
+    active?: boolean;
+    externalId?: string;
   };
-  const email = body.userName?.toLowerCase();
 
-  if (!email || !body.teamId) {
-    return NextResponse.json({ error: "userName and teamId required" }, { status: 400 });
+  try {
+    body = await request.json();
+  } catch {
+    return scimError(400, "Body must be valid JSON", "invalidSyntax");
+  }
+  const email = body.userName?.trim().toLowerCase();
+
+  if (!email) return scimError(400, "userName is required", "invalidValue");
+
+  if (body.teamId) {
+    const team = await prisma.team.findUnique({ where: { id: body.teamId } });
+
+    if (!team) return scimError(404, "Team not found");
   }
   const user = await prisma.user.upsert({
     where: { email },
-    update: { disabled: false, name: body.name?.formatted },
+    update: {
+      disabled: body.active === false,
+      ...(body.name?.formatted ? { name: body.name.formatted } : {}),
+      ...(body.externalId ? { externalId: body.externalId } : {}),
+    },
     create: {
       email,
       name: body.name?.formatted ?? email,
+      disabled: body.active === false,
+      externalId: body.externalId || null,
     },
   });
 
-  await prisma.membership.upsert({
-    where: { userId_teamId: { userId: user.id, teamId: body.teamId } },
-    update: {},
-    create: { userId: user.id, teamId: body.teamId, role: "MEMBER" },
-  });
+  // teamId is optional: Okta and Entra create the user first, then add them to a group.
+  if (body.teamId) {
+    await prisma.membership.upsert({
+      where: { userId_teamId: { userId: user.id, teamId: body.teamId } },
+      update: {},
+      create: { userId: user.id, teamId: body.teamId, role: "MEMBER" },
+    });
+  }
 
-  return NextResponse.json(userResource(user), { status: 201 });
+  return scimJson(userResource(user), 201);
 }

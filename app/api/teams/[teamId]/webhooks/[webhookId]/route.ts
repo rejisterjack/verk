@@ -10,7 +10,7 @@ export async function PATCH(
   try {
     const { teamId, webhookId } = await context.params;
 
-    await authenticateRequest(request, teamId, "ADMIN");
+    const auth = await authenticateRequest(request, teamId, "ADMIN");
     const body = (await request.json()) as { disabled?: boolean };
 
     if (typeof body.disabled === "boolean") {
@@ -18,6 +18,7 @@ export async function PATCH(
         teamId,
         webhookId,
         body.disabled,
+        { id: auth.user.id!, name: auth.user.name, email: auth.user.email },
       );
 
       return Response.json(hook);
@@ -36,8 +37,13 @@ export async function DELETE(
   try {
     const { teamId, webhookId } = await context.params;
 
-    await authenticateRequest(request, teamId, "ADMIN");
-    await webhooksService.deleteWebhook(teamId, webhookId);
+    const auth = await authenticateRequest(request, teamId, "ADMIN");
+
+    await webhooksService.deleteWebhook(teamId, webhookId, {
+      id: auth.user.id!,
+      name: auth.user.name,
+      email: auth.user.email,
+    });
 
     return new Response(null, { status: 204 });
   } catch (error) {

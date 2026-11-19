@@ -107,7 +107,7 @@ export function McpShowcase() {
                       key={tab}
                       className={`rounded-md px-3 py-1 font-mono text-xs font-medium capitalize transition-colors ${
                         activeTab === tab
-                          ? "bg-foreground text-background font-semibold"
+                          ? "bg-accent text-accent-foreground font-semibold"
                           : "text-muted hover:text-foreground"
                       }`}
                       type="button"
@@ -202,7 +202,7 @@ export function McpShowcase() {
                 {simStep >= 2 && (
                   <div className="rounded-md border border-accent/30 bg-accent/10 p-3 text-accent transition-all duration-300">
                     <div className="font-semibold flex items-center justify-between">
-                      <span>🔧 Calling MCP Tool: `verk_create_issue`</span>
+                      <span>Calling MCP tool: create_issue</span>
                       <span className="text-[10px] uppercase tracking-wider">
                         JSON-RPC 2.0
                       </span>
@@ -242,8 +242,7 @@ export function McpShowcase() {
                     <span className="text-accent font-semibold">
                       &quot;Run Agent Simulation&quot;
                     </span>{" "}
-                    above to watch Claude interact with the Verk MCP server
-                    live.
+                    above to watch a sample of Claude filing an issue.
                   </div>
                 )}
               </div>

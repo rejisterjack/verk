@@ -1,0 +1,16 @@
+{
+  "name": "verk",
+  "displayName": "Verk",
+  "description": "Create a Verk issue from VS Code and open it.",
+  "version": "0.1.0",
+  "publisher": "verk",
+  "engines": { "vscode": "^1.90.0" },
+  "categories": ["Other"],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      { "command": "verk.signIn", "title": "Verk: Sign in with API key" },
+      { "command": "verk.createIssue", "title": "Verk: Create issue" }
+    ]
+  }
+}

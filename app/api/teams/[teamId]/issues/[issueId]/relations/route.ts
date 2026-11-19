@@ -26,9 +26,14 @@ export async function POST(
   try {
     const { teamId, issueId } = await context.params;
 
-    await authenticateRequest(request, teamId);
+    const auth = await authenticateRequest(request, teamId);
     const body = await request.json();
-    const relation = await relationsService.addRelation(teamId, issueId, body);
+    const relation = await relationsService.addRelation(
+      teamId,
+      issueId,
+      body,
+      auth.user.id!,
+    );
 
     return Response.json(relation, { status: 201 });
   } catch (error) {

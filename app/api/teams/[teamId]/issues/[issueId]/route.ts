@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 
 import { authenticateRequest, jsonError } from "@/lib/api-auth";
+import { canSeeIssue } from "@/lib/services/guest-scope";
 import * as issuesService from "@/lib/services/issues";
 
 export async function GET(
@@ -10,10 +11,11 @@ export async function GET(
   try {
     const { teamId, issueId } = await context.params;
 
-    await authenticateRequest(request, teamId);
+    const auth = await authenticateRequest(request, teamId);
     const issue = await issuesService.getIssueById(teamId, issueId);
 
-    if (!issue) {
+    // A guest limited to some projects gets the same answer as for an issue that doesn't exist.
+    if (!issue || !(await canSeeIssue(teamId, auth.user.id, issue))) {
       return Response.json(
         { error: "Not found", code: "NOT_FOUND" },
         { status: 404 },

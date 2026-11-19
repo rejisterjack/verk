@@ -9,6 +9,7 @@ describe("shortcut registry", () => {
     expect(ids).toContain("command");
     expect(ids).toContain("create");
     expect(ids).toContain("go-inbox");
+    expect(ids).toContain("go-initiatives");
   });
 
   it("treats null as non-typing", () => {

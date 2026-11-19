@@ -4,6 +4,7 @@ import { Role } from "@/lib/generated/prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { AuthError, assertRole } from "@/lib/rbac";
+import { effectiveApiKeyRole } from "@/lib/roles";
 import { sha256 } from "@/lib/utils";
 
 export async function authenticateRequest(
@@ -31,21 +32,33 @@ export async function authenticateRequest(
       include: { team: true, createdBy: true },
     });
 
-    if (!apiKey) {
+    if (!apiKey || apiKey.createdBy.disabled) {
       throw new AuthError("Invalid API key", "UNAUTHORIZED", 401);
     }
+    // The key's role, capped by its creator's CURRENT team role. A creator who
+    // was demoted or removed immediately weakens or kills their keys.
+    const membership = await prisma.membership.findUnique({
+      where: {
+        userId_teamId: { userId: apiKey.createdById, teamId: apiKey.teamId },
+      },
+      select: { role: true },
+    });
+    const role = effectiveApiKeyRole(apiKey.role, membership?.role);
+
+    if (!role) {
+      throw new AuthError("Invalid API key", "UNAUTHORIZED", 401);
+    }
+    assertRole(role, minRole);
     await prisma.apiKey.update({
       where: { id: apiKey.id },
       data: { lastUsedAt: new Date() },
     });
-    // API keys act with ADMIN privileges for MCP/agent use within the team
-    assertRole("ADMIN", minRole);
 
     return {
       type: "apiKey" as const,
       user: apiKey.createdBy,
       team: apiKey.team,
-      role: "ADMIN" as Role,
+      role,
     };
   }
 

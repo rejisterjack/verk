@@ -43,7 +43,11 @@ export async function PATCH(
     const { teamId } = await context.params;
 
     await authenticateRequest(request, teamId, "ADMIN");
-    const body = (await request.json()) as { id?: string; name?: string; color?: string };
+    const body = (await request.json()) as {
+      id?: string;
+      name?: string;
+      color?: string;
+    };
 
     if (!body.id) {
       return Response.json({ error: "id required" }, { status: 400 });

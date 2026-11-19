@@ -31,7 +31,11 @@ import { useEffect, useMemo, useState } from "react";
 import { IssuePeek } from "@/components/app/issue-peek";
 import { ConflictModal } from "@/components/pwa/conflict-modal";
 import { PriorityChip } from "@/components/status-chip";
-import { BOARD_COLUMNS, STATUS_LABELS } from "@/lib/labels";
+import {
+  BOARD_COLUMNS,
+  STATUS_LABELS,
+  statusToWorkflowKey,
+} from "@/lib/labels";
 import { slaBreached, type SlaWindow } from "@/lib/sla";
 import {
   getLocalIssue,
@@ -64,6 +68,20 @@ type BoardIssue = {
     image: string | null;
   } | null;
 };
+
+function uniqueBoardIssues(rows: BoardIssue[]) {
+  const seenIds = new Set<string>();
+  const seenNumbers = new Set<number>();
+
+  return rows.filter((row) => {
+    if (seenIds.has(row.id)) return false;
+    if (row.number != null && seenNumbers.has(row.number)) return false;
+    seenIds.add(row.id);
+    if (row.number != null) seenNumbers.add(row.number);
+
+    return true;
+  });
+}
 
 function SortableCard({
   issue,
@@ -101,14 +119,15 @@ function SortableCard({
   return (
     <div
       ref={setNodeRef}
-      className="rounded-lg border border-separator bg-background p-3 shadow-sm cursor-grab active:cursor-grabbing"
+      className="rounded-md border border-separator/80 bg-background px-2.5 py-2 data-[draggable=true]:cursor-grab data-[draggable=true]:active:cursor-grabbing"
+      data-draggable={listeners ? "true" : "false"}
       style={style}
       {...attributes}
       {...listeners}
     >
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-center justify-between gap-2">
         <NextLink
-          className="text-xs text-muted hover:text-accent"
+          className="font-mono text-[11px] text-muted hover:text-accent"
           href={href}
           onClick={(e) => e.stopPropagation()}
         >
@@ -116,7 +135,7 @@ function SortableCard({
         </NextLink>
         <div className="flex items-center gap-1">
           {issue.syncStatus === "pending" ? (
-            <ArrowPathIcon className="size-3.5 text-muted" title="Syncing" />
+            <ArrowPathIcon className="size-3 text-muted" title="Syncing" />
           ) : null}
           {issue.syncStatus === "conflict" ? (
             <button
@@ -127,13 +146,13 @@ function SortableCard({
                 onConflict(issue.id);
               }}
             >
-              <ExclamationTriangleIcon className="size-3.5" />
+              <ExclamationTriangleIcon className="size-3" />
             </button>
           ) : null}
-          <PriorityChip priority={issue.priority} />
+          <PriorityChip quiet priority={issue.priority} />
         </div>
       </div>
-      <p className="mt-1 text-sm font-medium leading-snug">
+      <p className="mt-1 text-[13px] font-medium leading-snug">
         {issue.title}
         {issue.createdAt &&
         slaBreached(
@@ -144,11 +163,11 @@ function SortableCard({
           new Date(),
           slaWindow,
         ) ? (
-          <span className="ml-2 text-xs text-danger">SLA</span>
+          <span className="ml-1.5 text-[10px] text-danger">SLA</span>
         ) : null}
       </p>
       {issue.assignee ? (
-        <p className="mt-2 text-xs text-muted">
+        <p className="mt-1.5 truncate text-[11px] text-muted">
           {issue.assignee.name ?? issue.assignee.email}
         </p>
       ) : null}
@@ -178,19 +197,19 @@ function Column({
   return (
     <div
       ref={setNodeRef}
-      className={`flex min-h-[420px] w-72 shrink-0 flex-col rounded-xl border border-separator bg-surface/60 ${
-        isOver ? "ring-2 ring-accent/40" : ""
+      className={`flex min-h-[calc(100vh-8rem)] w-64 shrink-0 flex-col border-r border-separator bg-surface/40 ${
+        isOver ? "bg-accent/5" : ""
       }`}
     >
-      <div className="flex items-center justify-between border-b border-separator px-3 py-2">
-        <h3 className="text-sm font-semibold">{label}</h3>
-        <span className="text-xs text-muted">{issues.length}</span>
+      <div className="sticky top-[var(--view-chrome-h)] z-10 flex h-9 items-center justify-between border-b border-separator bg-surface/80 px-3 backdrop-blur-sm">
+        <h3 className="text-[13px] font-semibold">{label}</h3>
+        <span className="text-[11px] text-muted">{issues.length}</span>
       </div>
       <SortableContext
         items={issues.map((i) => i.id)}
         strategy={verticalListSortingStrategy}
       >
-        <div className="flex flex-1 flex-col gap-2 p-2">
+        <div className="flex flex-1 flex-col gap-1.5 p-1.5">
           {issues.map((issue) => (
             <SortableCard
               key={issue.id}
@@ -218,8 +237,10 @@ export function BoardView({
   columnWorkflowIds,
   groupBy = "status",
   workflows = [],
+  filters,
   slaHours,
   slaWindow,
+  readOnly = false,
 }: {
   teamId: string;
   teamSlug: string;
@@ -230,18 +251,29 @@ export function BoardView({
   columnStatus?: Record<string, IssueStatus>;
   columnWorkflowIds?: Record<string, string>;
   groupBy?: "status" | "priority" | "assignee" | "project";
-  workflows?: { id: string; name: string }[];
+  workflows?: { id: string; name: string; key?: string }[];
+  filters?: {
+    cycleId?: string;
+    priority?: string;
+    search?: string;
+    labelIds?: string[];
+  };
   slaHours?: unknown;
   slaWindow?: SlaWindow;
+  readOnly?: boolean;
 }) {
   const router = useRouter();
-  const [issues, setIssues] = useState(initialIssues);
+  const [issues, setIssues] = useState(() => uniqueBoardIssues(initialIssues));
   const [activeId, setActiveId] = useState<string | null>(null);
   const [conflictIssue, setConflictIssue] = useState<LocalIssue | null>(null);
   const [focusIndex, setFocusIndex] = useState(0);
   const [peekOpen, setPeekOpen] = useState(false);
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: readOnly ? Number.POSITIVE_INFINITY : 6,
+      },
+    }),
   );
   const columnIds = columns.length ? columns : BOARD_COLUMNS;
 
@@ -249,42 +281,56 @@ export function BoardView({
     if (!isOfflineEnabled()) return;
 
     void upsertTeam({ id: teamId, slug: teamSlug, name: teamName });
-    void hydrateIssuesFromServer(
-      teamId,
-      initialIssues.map(
-        (i) =>
-          ({
-            ...i,
-            number: i.number ?? 0,
-            teamId,
-          }) as ServerIssue,
-      ),
-    );
-
+    let ready = false;
     const refresh = () => {
-      void listLocalIssues(teamId).then((rows) => {
+      if (!ready) return;
+      void listLocalIssues(teamId, filters).then((rows) => {
+        const columnsById = new Map(
+          initialIssues.map((issue) => [issue.id, issue.columnKey]),
+        );
+
         setIssues(
-          rows.map((r) => ({
-            id: r.id,
-            number: r.number,
-            title: r.title,
-            status: r.status as IssueStatus,
-            priority: r.priority as Priority,
-            order: r.order,
-            revision: r.revision,
-            syncStatus: r.syncStatus,
-            assignee: r.assignee ?? null,
-          })),
+          uniqueBoardIssues(
+            rows.map((row) => ({
+              id: row.id,
+              number: row.number,
+              title: row.title,
+              status: row.status as IssueStatus,
+              columnKey:
+                columnsById.get(row.id) ??
+                statusToWorkflowKey(row.status as IssueStatus),
+              priority: row.priority as Priority,
+              order: row.order,
+              revision: row.revision,
+              syncStatus: row.syncStatus,
+              assignee: row.assignee ?? null,
+            })),
+          ),
         );
       });
     };
 
     const unsub = subscribeIssues(refresh);
 
-    refresh();
-    void pullDelta(teamId);
+    void hydrateIssuesFromServer(
+      teamId,
+      initialIssues.map(
+        (issue) =>
+          ({
+            ...issue,
+            number: issue.number ?? 0,
+            teamId,
+          }) as ServerIssue,
+      ),
+    ).then(() => {
+      ready = true;
+      refresh();
+      void pullDelta(teamId);
+    });
 
-    const onFocus = () => void pullDelta(teamId);
+    const onFocus = () => {
+      if (ready) void pullDelta(teamId);
+    };
 
     window.addEventListener("focus", onFocus);
     const interval = window.setInterval(() => {
@@ -296,7 +342,7 @@ export function BoardView({
       window.removeEventListener("focus", onFocus);
       window.clearInterval(interval);
     };
-  }, [teamId, teamSlug, teamName, initialIssues]);
+  }, [teamId, teamSlug, teamName, initialIssues, filters]);
 
   const byStatus = useMemo(() => {
     const map = Object.fromEntries(
@@ -345,9 +391,7 @@ export function BoardView({
         setPeekOpen(false);
       } else if (e.key === "Enter" && flatIssues[focusIndex]?.number != null) {
         e.preventDefault();
-        router.push(
-          `/t/${teamSlug}/issues/${flatIssues[focusIndex]!.number}`,
-        );
+        router.push(`/t/${teamSlug}/issues/${flatIssues[focusIndex]!.number}`);
       }
     }
 
@@ -366,11 +410,13 @@ export function BoardView({
   }
 
   function onDragStart(event: DragStartEvent) {
+    if (readOnly) return;
     setActiveId(String(event.active.id));
   }
 
   async function onDragEnd(event: DragEndEvent) {
     setActiveId(null);
+    if (readOnly) return;
     const { active, over } = event;
 
     if (!over) return;
@@ -384,7 +430,8 @@ export function BoardView({
       const overId = String(over.id);
       const nextKey = columnIds.includes(overId)
         ? overId
-        : (issues.find((item) => item.id === overId)?.columnKey ?? issue.columnKey);
+        : (issues.find((item) => item.id === overId)?.columnKey ??
+          issue.columnKey);
       const field =
         groupBy === "assignee"
           ? "assigneeId"
@@ -395,7 +442,9 @@ export function BoardView({
 
       setIssues((curr) =>
         curr.map((item) =>
-          item.id === issueId ? { ...item, columnKey: nextKey ?? item.columnKey } : item,
+          item.id === issueId
+            ? { ...item, columnKey: nextKey ?? item.columnKey }
+            : item,
         ),
       );
       await fetch(`/api/teams/${teamId}/issues/${issueId}`, {
@@ -421,9 +470,7 @@ export function BoardView({
 
     const nextStatus = columnStatus?.[nextKey] ?? (nextKey as IssueStatus);
     const columnIssues = issues
-      .filter(
-        (i) => (i.columnKey ?? i.status) === nextKey && i.id !== issueId,
-      )
+      .filter((i) => (i.columnKey ?? i.status) === nextKey && i.id !== issueId)
       .sort((a, b) => a.order - b.order);
 
     let insertAt = columnIssues.length;
@@ -483,7 +530,7 @@ export function BoardView({
         onDragEnd={onDragEnd}
         onDragStart={onDragStart}
       >
-        <div className="flex gap-4 overflow-x-auto pb-4">
+        <div className="flex overflow-x-auto">
           {columnIds.map((status) => (
             <Column
               key={status}

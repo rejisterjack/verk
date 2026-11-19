@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
 
 import { RegisterForm } from "@/components/auth-form";
+import { isPrivateHost } from "@/lib/auth-allowlist";
 import { isDemoMode } from "@/lib/utils";
 
 export default function RegisterPage() {
-  if (isDemoMode()) {
+  if (isDemoMode() || isPrivateHost()) {
     redirect("/login");
   }
 

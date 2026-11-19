@@ -1,6 +1,12 @@
 import { redirect } from "next/navigation";
 import NextLink from "next/link";
 
+import { AppearanceSettings } from "@/components/appearance-settings";
+import { PasskeySettings } from "@/components/passkey-settings";
+import { PrivacySettings } from "@/components/privacy-settings";
+import { TwoFactorSettings } from "@/components/two-factor-settings";
+import { listPasskeys } from "@/lib/services/passkeys";
+import { getTwoFactorStatus } from "@/lib/services/two-factor";
 import { SubmitButton as Button } from "@/components/submit-button";
 import { MarketingNavbar } from "@/components/marketing-navbar";
 import { logoutAction } from "@/lib/actions/auth";
@@ -27,6 +33,8 @@ export default async function AccountPage() {
   if (!user) redirect("/login");
 
   const memberships = await listUserTeams(session.user.id);
+  const twoFactor = await getTwoFactorStatus(session.user.id);
+  const passkeys = await listPasskeys(session.user.id);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -53,6 +61,38 @@ export default async function AccountPage() {
               .filter(Boolean)
               .join(", ") || "—"}
           </p>
+        </div>
+
+        <div className="space-y-2">
+          <h2 className="font-semibold">Two-factor sign-in</h2>
+          <TwoFactorSettings
+            enabled={twoFactor.enabled}
+            hasPassword={Boolean(user.passwordHash)}
+            recoveryLeft={twoFactor.recoveryLeft}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <h2 className="font-semibold">Passkeys</h2>
+          <PasskeySettings
+            passkeys={passkeys.map((passkey) => ({
+              id: passkey.id,
+              name: passkey.name,
+              createdAt: passkey.createdAt.toISOString(),
+              lastUsedAt: passkey.lastUsedAt?.toISOString() ?? null,
+              backedUp: passkey.backedUp,
+            }))}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <h2 className="font-semibold">Your data</h2>
+          <PrivacySettings hasPassword={Boolean(user.passwordHash)} />
+        </div>
+
+        <div className="space-y-2">
+          <h2 className="font-semibold">Appearance</h2>
+          <AppearanceSettings />
         </div>
 
         <div className="space-y-2">

@@ -20,8 +20,20 @@ function createPrismaClient() {
   });
 }
 
-export const prisma = globalForPrisma.prisma ?? createPrismaClient();
+function getPrisma() {
+  if (!globalForPrisma.prisma) {
+    globalForPrisma.prisma = createPrismaClient();
+  }
 
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
+  return globalForPrisma.prisma;
 }
+
+/** Lazy client so Next can collect page data during builds without DATABASE_URL. */
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_target, prop, receiver) {
+    const client = getPrisma();
+    const value = Reflect.get(client, prop, receiver);
+
+    return typeof value === "function" ? value.bind(client) : value;
+  },
+});

@@ -29,7 +29,7 @@ Linear is the best project management tool available but it costs money, and the
 ## How it is used
 
 1. A developer clicks the Deploy to Vercel button in the README, connects their Neon database, and sets `DATABASE_URL`, `DIRECT_URL`, `AUTH_SECRET`, and `AUTH_URL`
-2. Vercel runs the schema migration automatically on first deploy
+2. Vercel runs the schema migration automatically on first deploy (`vercel-build` runs `prisma migrate deploy`)
 3. They invite teammates by email, create a team, and start adding issues
 4. They work through issues on a board or list view, moving them through statuses and grouping them into cycles for sprints
 5. If they use AI agents, they point the agent at the built-in MCP server and the agent can read the backlog, create issues, and update statuses without any extra setup
@@ -56,7 +56,7 @@ Linear is the best project management tool available but it costs money, and the
 - Neon for serverless Postgres
 - Prisma as the ORM, handles migrations automatically on deploy
 - NextAuth for authentication
-- Tailwind CSS for styling, kept minimal and fast
+- HeroUI (react-aria components) on Tailwind CSS 4 for the UI, kept minimal and fast
 - MCP server built as a Next.js API route so no extra service is needed
 
 ## What done looks like
@@ -79,6 +79,6 @@ Linear is the best project management tool available but it costs money, and the
 
 - Vercel for the Next.js app, free on the Hobby plan
 - Neon for Postgres, free on the Neon free tier
-- Prisma migrations run automatically on Vercel deploy via a postinstall script
+- Prisma migrations run automatically on Vercel deploy: the `vercel-build` script runs `prisma migrate deploy` before `next build` (`postinstall` only runs `prisma generate`)
 - No Railway needed for this one, the whole stack runs on Vercel and Neon
 - Demo at verk.rejisterjack.com uses fake data only

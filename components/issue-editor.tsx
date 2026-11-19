@@ -1,22 +1,50 @@
 "use client";
 
 import type { LocalIssue } from "@/lib/offline/db";
+import type { IssueStatus } from "@/lib/generated/prisma/client";
 
-import { Button } from "@heroui/react";
+import { parseDate } from "@internationalized/date";
+import {
+  Button,
+  Calendar,
+  DateField,
+  DatePicker,
+  Input,
+  Label,
+  Switch,
+  TextField,
+} from "@heroui/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { IssueActivityList } from "@/components/issue-activity";
+import { LabelChecklist } from "@/components/label-checklist";
+import { FavoriteButton } from "@/components/favorite-button";
 import { IssueAttachments } from "@/components/issue-attachments";
+import { IssueSummary } from "@/components/issue-summary";
 import { IssueLinks } from "@/components/issue-links";
 import { MarkdownField } from "@/components/markdown-field";
-import { MarkdownBody } from "@/components/markdown-body";
+import { IssueBranch } from "@/components/issue-branch";
+import { IssueViewers } from "@/components/issue-viewers";
 import { IssueComments } from "@/components/issue-comments";
 import { IssueRelations } from "@/components/issue-relations";
-import { PageHeader } from "@/components/page-header";
+import { IssueSubIssues } from "@/components/issue-sub-issues";
+import { IssueReleaseField } from "@/components/issue-release-field";
+import { ViewToolbar } from "@/components/page-header";
 import { ConflictModal } from "@/components/pwa/conflict-modal";
-import { deleteIssueAction, updateIssueAction } from "@/lib/actions/issues";
-import { ESTIMATE_LABELS, PRIORITY_LABELS, STATUS_LABELS } from "@/lib/labels";
+import { SelectField } from "@/components/ui/select-field";
+import {
+  archiveIssueAction,
+  deleteIssueAction,
+  restoreIssueAction,
+  updateIssueAction,
+} from "@/lib/actions/issues";
+import {
+  PRIORITY_LABELS,
+  STATUS_LABELS,
+  statusToWorkflowKey,
+} from "@/lib/labels";
+import { estimateOptions, normalizeScale } from "@/lib/estimate-points";
 import { isOfflineEnabled } from "@/lib/offline/feature";
 import {
   deleteIssueLocal,
@@ -31,8 +59,13 @@ import { issueKey } from "@/lib/utils";
 
 type Member = { id: string; name: string | null; email: string };
 type Opt = { id: string; name: string };
-type LabelOpt = { id: string; name: string; color: string };
-type WorkflowOpt = { id: string; name: string };
+type LabelOpt = {
+  id: string;
+  name: string;
+  color: string;
+  group?: string | null;
+};
+type WorkflowOpt = { id: string; name: string; key?: string };
 
 export function IssueEditor({
   teamId,
@@ -47,11 +80,17 @@ export function IssueEditor({
   labels = [],
   workflows = [],
   initialLabelIds = [],
+  readerIds = [],
   canDelete,
+  archived = false,
+  favorite = false,
+  estimateScale,
+  readOnly = false,
   currentUserId,
   slaHours,
   slaWindow,
   createdAt,
+  githubRepo = null,
 }: {
   teamId: string;
   teamSlug: string;
@@ -65,12 +104,14 @@ export function IssueEditor({
     status: string;
     priority: string;
     estimate?: string;
+    startDate?: string | null;
     dueDate?: string | null;
     assigneeId: string | null;
     cycleId: string | null;
     projectId?: string | null;
     milestoneId?: string | null;
     workflowStatusId?: string | null;
+    visibility?: "TEAM" | "RESTRICTED";
     revision: number;
   };
   members: Member[];
@@ -80,11 +121,21 @@ export function IssueEditor({
   labels?: LabelOpt[];
   workflows?: WorkflowOpt[];
   initialLabelIds?: string[];
+  /** Extra people who can see a restricted issue, besides the creator, assignee, and admins. */
+  readerIds?: string[];
   canDelete: boolean;
+  /** The issue is in the archive. The page shows a banner and a Restore button. */
+  archived?: boolean;
+  /** Whether the signed-in user starred this issue. */
+  favorite?: boolean;
+  /** The team's estimate scale (`off`, `linear`, ...). Defaults to Fibonacci. */
+  estimateScale?: string;
+  readOnly?: boolean;
   currentUserId?: string;
   slaHours?: unknown;
   slaWindow?: SlaWindow;
   createdAt?: string | null;
+  githubRepo?: string | null;
 }) {
   const router = useRouter();
   const [issue, setIssue] = useState(initialIssue);
@@ -141,12 +192,14 @@ export function IssueEditor({
   }, [teamId, tmpId, issueNumber, initialIssue]);
 
   async function onSave(formData: FormData) {
+    if (readOnly || pending) return;
     setPending(true);
     setError(null);
     formData.set("labelsTouched", "1");
     formData.delete("labelIds");
     for (const id of selectedLabels) formData.append("labelIds", id);
 
+    const startRaw = String(formData.get("startDate") || "");
     const dueRaw = String(formData.get("dueDate") || "");
     const patch = {
       title: String(formData.get("title") ?? ""),
@@ -154,6 +207,7 @@ export function IssueEditor({
       status: String(formData.get("status") ?? ""),
       priority: String(formData.get("priority") ?? ""),
       estimate: String(formData.get("estimate") ?? "NONE"),
+      startDate: startRaw || null,
       dueDate: dueRaw || null,
       assigneeId: formData.get("assigneeId")
         ? String(formData.get("assigneeId"))
@@ -244,13 +298,85 @@ export function IssueEditor({
     }
   }
 
-  const dueValue = issue.dueDate
-    ? issue.dueDate.slice(0, 10)
-    : "";
+  async function onArchiveToggle() {
+    if (issue.number == null || pending) return;
+    setPending(true);
+    setError(null);
+    const result = archived
+      ? await restoreIssueAction(teamSlug, issue.number)
+      : await archiveIssueAction(teamSlug, issue.number);
+
+    setPending(false);
+    if (result && "error" in result && result.error) {
+      setError(result.error);
+
+      return;
+    }
+    if (!archived) router.push(`/t/${teamSlug}/issues`);
+    router.refresh();
+  }
+
+  const dueValue = issue.dueDate ? issue.dueDate.slice(0, 10) : "";
+  const statusDefault = (() => {
+    if (!workflows.length) return issue.status;
+    if (
+      issue.workflowStatusId &&
+      workflows.some((w) => w.id === issue.workflowStatusId)
+    ) {
+      return issue.workflowStatusId;
+    }
+    const key = statusToWorkflowKey(issue.status as IssueStatus);
+
+    return (
+      workflows.find((w) => w.key === key)?.id ??
+      workflows[0]?.id ??
+      issue.status
+    );
+  })();
 
   return (
-    <div className="max-w-3xl">
-      <PageHeader
+    <div className="flex min-h-full flex-col">
+      <ViewToolbar
+        actions={
+          <div className="flex items-center gap-2">
+            {readOnly ? (
+              <span className="text-[12px] text-muted">View only</span>
+            ) : (
+              <span className="text-[12px] text-muted">
+                {pending ? "Saving…" : error ? "Error" : "Saved"}
+              </span>
+            )}
+            {issue.number != null ? (
+              <FavoriteButton
+                initial={favorite}
+                kind="issue"
+                targetId={issue.id}
+                teamSlug={teamSlug}
+              />
+            ) : null}
+            {!readOnly ? (
+              <Button
+                isDisabled={pending}
+                size="sm"
+                type="button"
+                variant="secondary"
+                onPress={onArchiveToggle}
+              >
+                {archived ? "Restore" : "Archive"}
+              </Button>
+            ) : null}
+            {canDelete && !readOnly ? (
+              <Button
+                size="sm"
+                type="button"
+                variant="danger"
+                onPress={onDelete}
+              >
+                Delete
+              </Button>
+            ) : null}
+          </div>
+        }
         description={`${issueKey(teamSlug, issue.number)}${
           createdAt &&
           slaBreached(
@@ -268,210 +394,277 @@ export function IssueEditor({
       />
 
       <form
-        className="flex flex-col gap-4"
+        className="grid flex-1 gap-0 lg:grid-cols-[minmax(0,1fr)_16rem]"
+        onBlur={(e) => {
+          if (readOnly) return;
+          const related = e.relatedTarget as Node | null;
+
+          if (related && e.currentTarget.contains(related)) return;
+          void onSave(new FormData(e.currentTarget));
+        }}
+        onChange={(e) => {
+          if (readOnly) return;
+          const target = e.target as HTMLElement;
+
+          if (
+            target.tagName === "SELECT" ||
+            target.getAttribute("role") === "combobox" ||
+            target.getAttribute("type") === "checkbox"
+          ) {
+            void onSave(new FormData(e.currentTarget));
+          }
+        }}
         onSubmit={async (e) => {
           e.preventDefault();
+          if (readOnly) return;
           await onSave(new FormData(e.currentTarget));
         }}
       >
         <input name="labelsTouched" type="hidden" value="1" />
         <input name="revision" type="hidden" value={issue.revision} />
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-muted">Title</span>
-          <input
+        <div className="flex flex-col gap-4 border-separator px-4 py-4 lg:border-r">
+          <TextField
             key={issue.title + issue.revision}
-            required
-            className="rounded-lg border border-separator bg-background px-3 py-2"
+            fullWidth
+            isRequired
             defaultValue={issue.title}
+            isReadOnly={readOnly}
             name="title"
+          >
+            <Label className="sr-only">Title</Label>
+            <Input className="border-0 bg-transparent px-0 text-[17px] font-semibold shadow-none" />
+          </TextField>
+          <MarkdownField
+            defaultValue={issue.description}
+            name="description"
+            readOnly={readOnly}
           />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-muted">Description</span>
-          <MarkdownField defaultValue={issue.description} name="description" />
-          <MarkdownBody text={issue.description} />
-        </label>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-muted">Status</span>
-            <select
-              key={"s" + (issue.workflowStatusId ?? issue.status)}
-              className="rounded-lg border border-separator bg-background px-3 py-2"
-              defaultValue={issue.workflowStatusId ?? issue.status}
-              name={workflows.length ? "workflowStatusId" : "status"}
-            >
-              {workflows.length
-                ? workflows.map((workflow) => (
-                    <option key={workflow.id} value={workflow.id}>
-                      {workflow.name}
-                    </option>
-                  ))
-                : Object.entries(STATUS_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-muted">Priority</span>
-            <select
-              key={"p" + issue.priority}
-              className="rounded-lg border border-separator bg-background px-3 py-2"
-              defaultValue={issue.priority}
-              name="priority"
-            >
-              {Object.entries(PRIORITY_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-muted">Estimate</span>
-            <select
-              className="rounded-lg border border-separator bg-background px-3 py-2"
-              defaultValue={issue.estimate ?? "NONE"}
-              name="estimate"
-            >
-              {Object.entries(ESTIMATE_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-muted">Due date</span>
-            <input
-              className="rounded-lg border border-separator bg-background px-3 py-2"
-              defaultValue={dueValue}
-              name="dueDate"
-              type="date"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-muted">Assignee</span>
-            <select
-              className="rounded-lg border border-separator bg-background px-3 py-2"
-              defaultValue={issue.assigneeId ?? ""}
-              name="assigneeId"
-            >
-              <option value="">Unassigned</option>
-              {members.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name ?? m.email}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-muted">Cycle</span>
-            <select
-              className="rounded-lg border border-separator bg-background px-3 py-2"
-              defaultValue={issue.cycleId ?? ""}
-              name="cycleId"
-            >
-              <option value="">No cycle</option>
-              {cycles.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-            <span className="text-muted">Project</span>
-            <select
-              className="rounded-lg border border-separator bg-background px-3 py-2"
-              defaultValue={issue.projectId ?? ""}
-              name="projectId"
-            >
-              <option value="">No project</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-            <span className="text-muted">Milestone</span>
-            <select
-              className="rounded-lg border border-separator bg-background px-3 py-2"
-              defaultValue={issue.milestoneId ?? ""}
-              name="milestoneId"
-            >
-              <option value="">No milestone</option>
-              {milestones.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          {error ? <p className="text-sm text-danger">{error}</p> : null}
+          {!readOnly ? (
+            <>
+              <IssueSubIssues
+                issueId={issue.id}
+                teamId={teamId}
+                teamSlug={teamSlug}
+              />
+              <IssueRelations
+                issueId={issue.id}
+                teamId={teamId}
+                teamSlug={teamSlug}
+              />
+              <IssueLinks issueId={issue.id} teamId={teamId} />
+              <IssueSummary issueId={issue.id} teamId={teamId} />
+              <IssueAttachments
+                issueId={issue.id}
+                readOnly={readOnly}
+                teamId={teamId}
+              />
+            </>
+          ) : null}
+          <IssueActivityList issueId={issue.id} teamId={teamId} />
+          <IssueComments
+            currentUserId={currentUserId}
+            issueId={issue.id}
+            teamId={teamId}
+          />
         </div>
-        {labels.length ? (
-          <fieldset className="text-sm">
-            <legend className="mb-1 text-muted">Labels</legend>
-            <div className="flex flex-wrap gap-2">
-              {labels.map((l) => (
-                <label
-                  key={l.id}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-separator px-2 py-1"
-                >
+
+        <aside
+          className={`flex flex-col gap-3 bg-surface/40 px-3 py-4 text-[13px] ${
+            readOnly ? "pointer-events-none opacity-80" : ""
+          }`}
+        >
+          <SelectField
+            key={"s" + statusDefault}
+            isRequired
+            defaultValue={statusDefault}
+            label="Status"
+            name={workflows.length ? "workflowStatusId" : "status"}
+            options={
+              workflows.length
+                ? workflows.map((workflow) => ({
+                    id: workflow.id,
+                    label: workflow.name,
+                  }))
+                : Object.entries(STATUS_LABELS).map(([id, label]) => ({
+                    id,
+                    label,
+                  }))
+            }
+          />
+          <SelectField
+            key={"p" + issue.priority}
+            isRequired
+            defaultValue={issue.priority}
+            label="Priority"
+            name="priority"
+            options={Object.entries(PRIORITY_LABELS).map(([id, label]) => ({
+              id,
+              label,
+            }))}
+          />
+          <SelectField
+            defaultValue={issue.estimate ?? "NONE"}
+            label="Estimate"
+            name="estimate"
+            options={estimateOptions(
+              normalizeScale(estimateScale),
+              issue.estimate,
+            )}
+          />
+          <DatePicker
+            className="w-full"
+            defaultValue={
+              issue.startDate ? parseDate(issue.startDate.slice(0, 10)) : null
+            }
+            isReadOnly={readOnly}
+            name="startDate"
+          >
+            <Label>Start date</Label>
+            <DateField.Group>
+              <DateField.Input>
+                {(segment) => <DateField.Segment segment={segment} />}
+              </DateField.Input>
+            </DateField.Group>
+          </DatePicker>
+          <DatePicker
+            className="w-full"
+            defaultValue={dueValue ? parseDate(dueValue) : null}
+            isReadOnly={readOnly}
+            name="dueDate"
+          >
+            <Label>Due date</Label>
+            <DateField.Group>
+              <DateField.Input>
+                {(segment) => <DateField.Segment segment={segment} />}
+              </DateField.Input>
+              <DateField.Suffix>
+                <DatePicker.Trigger>
+                  <DatePicker.TriggerIndicator />
+                </DatePicker.Trigger>
+              </DateField.Suffix>
+            </DateField.Group>
+            <DatePicker.Popover>
+              <Calendar aria-label="Choose due date">
+                <Calendar.Header>
+                  <Calendar.Heading />
+                  <Calendar.NavButton slot="previous" />
+                  <Calendar.NavButton slot="next" />
+                </Calendar.Header>
+                <Calendar.Grid>
+                  <Calendar.GridHeader>
+                    {(day) => <Calendar.HeaderCell>{day}</Calendar.HeaderCell>}
+                  </Calendar.GridHeader>
+                  <Calendar.GridBody>
+                    {(date) => <Calendar.Cell date={date} />}
+                  </Calendar.GridBody>
+                </Calendar.Grid>
+              </Calendar>
+            </DatePicker.Popover>
+          </DatePicker>
+          <SelectField
+            clearable
+            defaultValue={issue.assigneeId ?? undefined}
+            label="Assignee"
+            name="assigneeId"
+            options={members.map((m) => ({
+              id: m.id,
+              label: m.name ?? m.email,
+            }))}
+            placeholder="Unassigned"
+          />
+          <SelectField
+            clearable
+            defaultValue={issue.cycleId ?? undefined}
+            label="Cycle"
+            name="cycleId"
+            options={cycles.map((c) => ({ id: c.id, label: c.name }))}
+            placeholder="No cycle"
+          />
+          <SelectField
+            clearable
+            defaultValue={issue.projectId ?? undefined}
+            label="Project"
+            name="projectId"
+            options={projects.map((p) => ({ id: p.id, label: p.name }))}
+            placeholder="No project"
+          />
+          {githubRepo && issue.number != null ? (
+            <IssueBranch
+              githubRepo={githubRepo}
+              number={issue.number}
+              teamId={teamId}
+              teamSlug={teamSlug}
+              title={issue.title}
+            />
+          ) : null}
+          <IssueViewers issueId={issue.id} teamId={teamId} />
+          <IssueReleaseField issueId={issue.id} teamId={teamId} />
+          <SelectField
+            clearable
+            defaultValue={issue.milestoneId ?? undefined}
+            label="Milestone"
+            name="milestoneId"
+            options={milestones.map((m) => ({ id: m.id, label: m.name }))}
+            placeholder="No milestone"
+          />
+          {labels.length ? (
+            <LabelChecklist
+              labels={labels}
+              selected={selectedLabels}
+              onToggle={(id, checked) => {
+                if (readOnly) return;
+                setSelectedLabels((prev) => {
+                  const next = new Set(prev);
+
+                  if (checked) next.add(id);
+                  else next.delete(id);
+
+                  return next;
+                });
+              }}
+            />
+          ) : null}
+          {readOnly ? (
+            <p className="text-sm text-muted">
+              Visibility: {issue.visibility === "RESTRICTED" ? "Restricted" : "Team"}
+            </p>
+          ) : (
+            <SelectField
+              defaultValue={issue.visibility ?? "TEAM"}
+              label="Visibility"
+              name="visibility"
+              options={[
+                { id: "TEAM", label: "Team" },
+                { id: "RESTRICTED", label: "Restricted" },
+              ]}
+            />
+          )}
+          {readOnly ? null : (
+            <input name="readersTouched" type="hidden" value="1" />
+          )}
+          <fieldset className="flex flex-col gap-1 text-sm">
+            <legend className="text-muted">Extra readers</legend>
+            {members
+              .filter((member) => member.id !== currentUserId)
+              .map((member) => (
+                <label key={member.id} className="flex items-center gap-2">
                   <input
-                    checked={selectedLabels.has(l.id)}
+                    defaultChecked={readerIds.includes(member.id)}
+                    disabled={readOnly}
+                    name="readerIds"
                     type="checkbox"
-                    onChange={(e) => {
-                      setSelectedLabels((prev) => {
-                        const next = new Set(prev);
-
-                        if (e.target.checked) next.add(l.id);
-                        else next.delete(l.id);
-
-                        return next;
-                      });
-                    }}
+                    value={member.id}
                   />
-                  <span
-                    className="size-2 rounded-full"
-                    style={{ background: l.color }}
-                  />
-                  {l.name}
+                  {member.name ?? member.email}
                 </label>
               ))}
-            </div>
           </fieldset>
-        ) : null}
-        {error ? <p className="text-sm text-danger">{error}</p> : null}
-        <div className="flex gap-2">
-          <Button isDisabled={pending} type="submit">
-            {pending ? "Saving…" : "Save changes"}
-          </Button>
-        </div>
+          {!readOnly ? (
+            <SubscribeToggle issueId={issue.id} teamId={teamId} />
+          ) : null}
+        </aside>
       </form>
-
-      <IssueRelations issueId={issue.id} teamId={teamId} teamSlug={teamSlug} />
-      <IssueLinks issueId={issue.id} teamId={teamId} />
-      <IssueActivityList issueId={issue.id} teamId={teamId} />
-      <IssueAttachments issueId={issue.id} teamId={teamId} />
-      <IssueComments
-        currentUserId={currentUserId}
-        issueId={issue.id}
-        teamId={teamId}
-      />
-
-      {canDelete ? (
-        <div className="mt-8 border-t border-separator pt-6">
-          <Button type="button" variant="danger" onPress={onDelete}>
-            Delete issue
-          </Button>
-        </div>
-      ) : null}
-
-      <SubscribeToggle issueId={issue.id} teamId={teamId} />
 
       {conflict ? (
         <ConflictModal
@@ -543,17 +736,22 @@ function SubscribeToggle({
   }, [teamId, issueId]);
 
   return (
-    <button
-      className="mt-6 text-sm text-accent"
-      type="button"
-      onClick={() => {
+    <Switch
+      className="mt-2"
+      isSelected={on}
+      onChange={(selected) => {
         void fetch(`/api/teams/${teamId}/issues/${issueId}/subscription`, {
-          method: on ? "DELETE" : "POST",
+          method: selected ? "POST" : "DELETE",
           credentials: "same-origin",
-        }).then(() => setOn((v) => !v));
+        }).then(() => setOn(selected));
       }}
     >
-      {on ? "Unsubscribe" : "Subscribe"}
-    </button>
+      <Switch.Control>
+        <Switch.Thumb />
+      </Switch.Control>
+      <Switch.Content>
+        <Label>{on ? "Subscribed" : "Subscribe"}</Label>
+      </Switch.Content>
+    </Switch>
   );
 }

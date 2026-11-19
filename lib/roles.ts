@@ -23,3 +23,24 @@ export function assertRole(role: Role, min: Role): void {
     throw error;
   }
 }
+
+/** The weaker of two roles. */
+export function lowerRole(a: Role, b: Role): Role {
+  return ROLE_RANK[a] <= ROLE_RANK[b] ? a : b;
+}
+
+/** Roles an API key may carry. A key is never OWNER. */
+export const API_KEY_ROLES = ["GUEST", "MEMBER", "ADMIN"] as const;
+
+/**
+ * What an API key can actually do: its own role, capped by its creator's current
+ * team role. A creator who has left the team (`null`) leaves the key with no access.
+ */
+export function effectiveApiKeyRole(
+  keyRole: Role,
+  creatorMembershipRole: Role | null | undefined,
+): Role | null {
+  if (!creatorMembershipRole) return null;
+
+  return lowerRole(keyRole, creatorMembershipRole);
+}

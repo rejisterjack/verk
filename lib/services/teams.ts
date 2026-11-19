@@ -1,4 +1,5 @@
 import { Prisma, Role } from "@/lib/generated/prisma/client";
+import { type AuditEvent, recordAudit } from "@/lib/audit";
 import { prisma } from "@/lib/db";
 import { AuthError, assertRole, requireUser } from "@/lib/rbac";
 import { isDemoMode, slugify } from "@/lib/utils";
@@ -29,7 +30,12 @@ export async function createTeam(input: unknown) {
   });
 }
 
-export async function updateTeam(teamId: string, input: unknown, role: Role) {
+export async function updateTeam(
+  teamId: string,
+  input: unknown,
+  role: Role,
+  actor?: AuditEvent["actor"],
+) {
   assertRole(role, "ADMIN");
   const data = updateTeamSchema.parse(input);
 
@@ -45,7 +51,7 @@ export async function updateTeam(teamId: string, input: unknown, role: Role) {
 
   const { slaHours, ...rest } = data;
 
-  return prisma.team.update({
+  const updated = await prisma.team.update({
     where: { id: teamId },
     data: {
       ...rest,
@@ -56,6 +62,26 @@ export async function updateTeam(teamId: string, input: unknown, role: Role) {
           : {}),
     },
   });
+
+  // Name only the settings that were sent, never their values (some are tokens).
+  const changed = [
+    ...Object.keys(rest),
+    ...(slaHours !== undefined ? ["slaHours"] : []),
+  ];
+
+  if (changed.length) {
+    await recordAudit({
+      teamId,
+      actor,
+      action: "team.updated",
+      targetType: "team",
+      targetId: teamId,
+      summary: `Changed team settings: ${changed.join(", ")}`,
+      metadata: { fields: changed.join(",") },
+    });
+  }
+
+  return updated;
 }
 
 export async function deleteTeam(teamId: string, role: Role) {

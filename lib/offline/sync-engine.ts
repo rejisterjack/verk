@@ -272,7 +272,11 @@ async function flushOne(op: OutboxOp): Promise<FlushResult> {
       await applyServerAck(op.issueId, issue, op.teamId);
     } else if (op.op === "delete") {
       await db.issues.delete(op.issueId);
-    } else if (op.op === "comment" || op.op === "setLabels") {
+    } else if (
+      op.op === "comment" ||
+      op.op === "setLabels" ||
+      op.op === "draft"
+    ) {
       // Side-effect ops — no local issue merge required
     } else if (res.status !== 204) {
       const issue = (await res.json()) as ServerIssue;
@@ -335,7 +339,22 @@ async function executeOp(op: OutboxOp): Promise<Response> {
       method: "POST",
       credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ body: op.payload.body }),
+      body: JSON.stringify({
+        body: op.payload.body,
+        parentId: op.payload.parentId ?? null,
+      }),
+    });
+  }
+
+  if (op.op === "draft") {
+    return fetch(`/api/teams/${op.teamId}/drafts`, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        fields: op.payload.fields ?? {},
+        draftId: op.payload.draftId ?? null,
+      }),
     });
   }
 

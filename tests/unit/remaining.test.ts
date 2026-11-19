@@ -1,4 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("@/lib/db", () => ({ prisma: {} }));
 
 import { inverseRelation } from "@/lib/relation-pairs";
 import { slaBreached, withinSlaWindow } from "@/lib/sla";
@@ -107,5 +109,14 @@ describe("fetchLinearIssuePages", () => {
     expect(calls).toEqual([null, "cursor-1"]);
     expect(result.nodes).toHaveLength(2);
     expect(result.capped).toBe(false);
+  });
+});
+
+describe("notifySlack", () => {
+  it("safely handles null url without error", async () => {
+    const { notifySlack } = await import("@/lib/services/surface");
+
+    await expect(notifySlack(null, "test")).resolves.toBeUndefined();
+    await expect(notifySlack(undefined, "test")).resolves.toBeUndefined();
   });
 });
