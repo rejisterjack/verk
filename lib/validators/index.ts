@@ -110,7 +110,7 @@ export const estimateSchema = z.enum([
 ]);
 
 export const createIssueSchema = z.object({
-  title: z.string().min(1).max(200),
+  title: z.string().trim().min(1).max(200),
   description: z.string().max(20000).optional().default(""),
   status: issueStatusSchema.optional(),
   priority: prioritySchema.optional(),
@@ -130,7 +130,7 @@ export const createIssueSchema = z.object({
 });
 
 export const updateIssueSchema = z.object({
-  title: z.string().min(1).max(200).optional(),
+  title: z.string().trim().min(1).max(200).optional(),
   description: z.string().max(20000).optional(),
   status: issueStatusSchema.optional(),
   priority: prioritySchema.optional(),

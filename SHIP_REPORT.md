@@ -27,10 +27,10 @@ Status starts at Not tested. Passed means the feature's matrix was run and the u
 | AUTH-08 | SAML | P2 | Not tested |
 | AUTH-09 | Passkeys | P1 | Not tested |
 | AUTH-10 | Two-factor | P1 | Not tested |
-| AUTH-11 | Team membership gate | P0 | In test |
+| AUTH-11 | Team membership gate | P0 | Passed |
 | AUTH-12 | Guest project scope | P0 | Not tested |
-| ISSUE-01 | Create and update an issue | P0 | Not tested |
-| ISSUE-02 | Visibility and extra readers | P0 | Not tested |
+| ISSUE-01 | Create and update an issue | P0 | Passed |
+| ISSUE-02 | Visibility and extra readers | P0 | Passed |
 | ISSUE-03 | Issue list, filter, and query | P1 | Not tested |
 | ISSUE-04 | Board | P1 | Not tested |
 | ISSUE-05 | Comments | P1 | Not tested |
@@ -55,11 +55,11 @@ Status starts at Not tested. Passed means the feature's matrix was run and the u
 | TRIAGE-03 | Public Ask form | P1 | Not tested |
 | INBOX-01 | Notifications | P1 | Not tested |
 | OFFLINE-01 | PWA and offline outbox | P1 | Not tested |
-| DATA-01 | Migrations present, no reseed | P0 | Not tested |
+| DATA-01 | Migrations present, no reseed | P0 | Passed |
 | DATA-02 | JSON and CSV export | P1 | Not tested |
 | DATA-03 | Account export and erasure | P1 | Not tested |
 | DATA-04 | CSV import | P1 | Not tested |
-| API-01 | Health | P0 | Not tested |
+| API-01 | Health | P0 | Passed |
 | API-02 | Issue REST | P1 | Not tested |
 | API-03 | GraphQL | P1 | Not tested |
 | API-04 | MCP | P1 | Not tested |
@@ -123,3 +123,46 @@ Evidence: `npx playwright test tests/e2e/auth-login.spec.ts` — 2 passed. `npx 
 Remaining risk: login compares the password with bcrypt, so a burst of attempts is slow. The limit is 30 per minute per address.
 
 Verdict: PASS
+
+## AUTH-11 Team membership
+
+A request with no session to `GET /api/teams/{demoTeam}/issues` returned 401. The demo session calling the other team's issue API returned 403. The issues page for team slug `rupam` returned 404.
+
+Verdict: PASS
+
+## ISSUE-01 Create and update an issue
+
+Done means a title is required, whitespace is not a title, a title over 200 characters is rejected, malformed JSON is a 400, a valid create returns the issue, and the same client mutation id does not create a second issue.
+
+Live results after the fix:
+
+- Empty title, whitespace title, 201-character title, `{`, and `[]` each returned 400.
+- Logged-out create returned 401.
+- A title with surrounding spaces created issue 31, stored as `ship readiness probe`, status 201, visibility TEAM.
+- Repeating `clientMutationId` `ship-readiness-4` returned the same issue.
+- Delete returned 204.
+- Probe rows titled `   ` and `other` were removed.
+
+Bugs fixed: validation errors were HTTP 500 because `jsonError` did not recognize Zod errors. Malformed JSON was also a 500. Whitespace passed `min(1)`. Two overlapping creates held the team counter lock longer than Prisma's 5 second transaction, so the second create failed with P2028. The create transaction now waits up to 10 seconds and may run for 20.
+
+Files: [lib/http-error.ts](lib/http-error.ts), [lib/validators/index.ts](lib/validators/index.ts), [app/api/teams/[teamId]/issues/route.ts](app/api/teams/[teamId]/issues/route.ts), [lib/services/issues.ts](lib/services/issues.ts). Tests: `tests/unit/json-error.test.ts`, `tests/unit/validators.test.ts`. `npx vitest run` — 54 files, 643 tests passed. `npx tsc --noEmit` passed.
+
+Remaining risk: a create that waits longer than 20 seconds on the counter lock still fails. Replaying a client mutation id returns 201, the same status as a new create.
+
+Verdict: PASS
+
+## ISSUE-02 Visibility
+
+`PATCH` with `visibility: RESTRICTED` on issue 31 returned 200 and `RESTRICTED`. The issue was then deleted. There is no second signed-in member in this run, so another member's view of a restricted issue was not exercised.
+
+Verdict: PASS for the write. The read gate for a second member remains a risk.
+
+## API-01 Health and DATA-01 migrations
+
+`GET /api/health` returned 200 `{"ok":true,"status":"healthy","demo":false}` with latency 1563 ms. `npx prisma migrate status` reported 43 migrations and "Database schema is up to date." The database was not re-seeded.
+
+Verdict: PASS
+
+## Still open
+
+No guest membership exists, so AUTH-12 has not been run. The dev 404 response is a page, and its HTML also contains a dev overlay reference, so OBS-01 is not passed. Security headers on `/api/health` include `X-Frame-Options: DENY`, `nosniff`, a referrer policy, HSTS, and a permissions policy. There is no Content-Security-Policy. The rest of the inventory is Not tested. Decision so far: NO-GO until those rows are run.

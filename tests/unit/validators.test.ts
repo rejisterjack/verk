@@ -14,6 +14,15 @@ describe("validators", () => {
     expect(parsed.description).toBe("");
   });
 
+  it("trims a title and rejects one that is only whitespace", () => {
+    expect(createIssueSchema.parse({ title: "  Ship  " }).title).toBe("Ship");
+    expect(createIssueSchema.safeParse({ title: "   " }).success).toBe(false);
+    expect(createIssueSchema.safeParse({ title: "" }).success).toBe(false);
+    expect(createIssueSchema.safeParse({ title: "a".repeat(201) }).success).toBe(
+      false,
+    );
+  });
+
   it("rejects inverted cycle dates", () => {
     const result = createCycleSchema.safeParse({
       name: "Cycle",

@@ -74,10 +74,13 @@ export async function listIssues(
     const { compileFilter, parseFilter } = await import("@/lib/issue-filter");
     const { parseIssueQuery } = await import("@/lib/issue-query");
     const compiled = compileFilter(
-      typeof q.filter === "string" ? parseIssueQuery(q.filter) : parseFilter(q.filter),
+      typeof q.filter === "string"
+        ? parseIssueQuery(q.filter)
+        : parseFilter(q.filter),
       {
-      userId: opts.userId,
-    });
+        userId: opts.userId,
+      },
+    );
 
     if (Object.keys(compiled).length) {
       where.AND = [...(Array.isArray(where.AND) ? where.AND : []), compiled];
@@ -338,101 +341,104 @@ export async function createIssue(
     issueData.workflowStatusId = resolved.workflowStatusId;
   }
 
-  const issue = await prisma.$transaction(async (tx) => {
-    const team = await tx.team.update({
-      where: { id: teamId },
-      data: { issueCounter: { increment: 1 } },
-    });
+  const issue = await prisma.$transaction(
+    async (tx) => {
+      const team = await tx.team.update({
+        where: { id: teamId },
+        data: { issueCounter: { increment: 1 } },
+      });
 
-    const maxOrder = await tx.issue.aggregate({
-      where: { teamId, status: issueData.status ?? "BACKLOG" },
-      _max: { order: true },
-    });
+      const maxOrder = await tx.issue.aggregate({
+        where: { teamId, status: issueData.status ?? "BACKLOG" },
+        _max: { order: true },
+      });
 
-    const created = await tx.issue.create({
-      data: {
-        teamId,
-        number: team.issueCounter,
-        title: issueData.title,
-        description: issueData.description ?? "",
-        status: issueData.status ?? "BACKLOG",
-        priority: issueData.priority ?? "NONE",
-        estimate: issueData.estimate ?? "NONE",
-        dueDate: issueData.dueDate ?? null,
-        startDate: issueData.startDate ?? null,
-        visibility: issueData.visibility ?? "TEAM",
-        readers: readerIds?.length
-          ? { create: readerIds.map((readerId) => ({ userId: readerId })) }
-          : undefined,
-        assigneeId: issueData.assigneeId ?? null,
-        cycleId: issueData.cycleId ?? null,
-        projectId: issueData.projectId ?? null,
-        milestoneId: issueData.milestoneId ?? null,
-        workflowStatusId: issueData.workflowStatusId ?? null,
-        parentId: issueData.parentId ?? null,
-        creatorId: userId,
-        // An issue created already started or finished still gets its timestamps.
-        ...lifecycleStamps(
-          "BACKLOG",
-          issueData.status ?? "BACKLOG",
-          { startedAt: null, completedAt: null, canceledAt: null },
-          new Date(),
-        ),
-        triageAt: issueData.status === "BACKLOG" ? new Date() : null,
-        order: (maxOrder._max.order ?? 0) + 1,
-        revision: 0,
-        labels: labelIds?.length
-          ? { create: labelIds.map((labelId) => ({ labelId })) }
-          : undefined,
-      },
-      include: issueInclude,
-    });
-
-    await tx.issueSubscription.create({
-      data: { issueId: created.id, userId },
-    });
-
-    if (issueData.assigneeId && issueData.assigneeId !== userId) {
-      await tx.issueSubscription.upsert({
-        where: {
-          issueId_userId: {
-            issueId: created.id,
-            userId: issueData.assigneeId,
-          },
+      const created = await tx.issue.create({
+        data: {
+          teamId,
+          number: team.issueCounter,
+          title: issueData.title,
+          description: issueData.description ?? "",
+          status: issueData.status ?? "BACKLOG",
+          priority: issueData.priority ?? "NONE",
+          estimate: issueData.estimate ?? "NONE",
+          dueDate: issueData.dueDate ?? null,
+          startDate: issueData.startDate ?? null,
+          visibility: issueData.visibility ?? "TEAM",
+          readers: readerIds?.length
+            ? { create: readerIds.map((readerId) => ({ userId: readerId })) }
+            : undefined,
+          assigneeId: issueData.assigneeId ?? null,
+          cycleId: issueData.cycleId ?? null,
+          projectId: issueData.projectId ?? null,
+          milestoneId: issueData.milestoneId ?? null,
+          workflowStatusId: issueData.workflowStatusId ?? null,
+          parentId: issueData.parentId ?? null,
+          creatorId: userId,
+          // An issue created already started or finished still gets its timestamps.
+          ...lifecycleStamps(
+            "BACKLOG",
+            issueData.status ?? "BACKLOG",
+            { startedAt: null, completedAt: null, canceledAt: null },
+            new Date(),
+          ),
+          triageAt: issueData.status === "BACKLOG" ? new Date() : null,
+          order: (maxOrder._max.order ?? 0) + 1,
+          revision: 0,
+          labels: labelIds?.length
+            ? { create: labelIds.map((labelId) => ({ labelId })) }
+            : undefined,
         },
-        create: { issueId: created.id, userId: issueData.assigneeId },
-        update: {},
-      });
-      const assigneePrefs = await tx.notificationPreference.findUnique({
-        where: { userId: issueData.assigneeId },
-        select: { mutedTypes: true },
+        include: issueInclude,
       });
 
-      if (!assigneePrefs?.mutedTypes.includes("ASSIGNED")) {
-        await tx.notification.create({
+      await tx.issueSubscription.create({
+        data: { issueId: created.id, userId },
+      });
+
+      if (issueData.assigneeId && issueData.assigneeId !== userId) {
+        await tx.issueSubscription.upsert({
+          where: {
+            issueId_userId: {
+              issueId: created.id,
+              userId: issueData.assigneeId,
+            },
+          },
+          create: { issueId: created.id, userId: issueData.assigneeId },
+          update: {},
+        });
+        const assigneePrefs = await tx.notificationPreference.findUnique({
+          where: { userId: issueData.assigneeId },
+          select: { mutedTypes: true },
+        });
+
+        if (!assigneePrefs?.mutedTypes.includes("ASSIGNED")) {
+          await tx.notification.create({
+            data: {
+              userId: issueData.assigneeId,
+              teamId,
+              issueId: created.id,
+              type: "ASSIGNED",
+              title: `Assigned: ${created.title}`,
+            },
+          });
+        }
+      }
+
+      if (clientMutationId) {
+        await tx.mutationReceipt.create({
           data: {
-            userId: issueData.assigneeId,
             teamId,
+            clientMutationId,
             issueId: created.id,
-            type: "ASSIGNED",
-            title: `Assigned: ${created.title}`,
           },
         });
       }
-    }
 
-    if (clientMutationId) {
-      await tx.mutationReceipt.create({
-        data: {
-          teamId,
-          clientMutationId,
-          issueId: created.id,
-        },
-      });
-    }
-
-    return created;
-  });
+      return created;
+    },
+    { maxWait: 10_000, timeout: 20_000 },
+  );
 
   if (issue.visibility === "RESTRICTED") {
     const { recordAudit } = await import("@/lib/audit");
@@ -741,7 +747,10 @@ export async function updateIssue(
       });
     }
   }
-  if (data.visibility === "RESTRICTED" && existing.visibility !== "RESTRICTED") {
+  if (
+    data.visibility === "RESTRICTED" &&
+    existing.visibility !== "RESTRICTED"
+  ) {
     const { recordAudit } = await import("@/lib/audit");
 
     await recordAudit({
@@ -844,7 +853,7 @@ export async function updateIssue(
         ),
         dueChanged: Boolean(
           data.dueDate !== undefined &&
-            String(data.dueDate ?? "") !== String(existing.dueDate ?? ""),
+          String(data.dueDate ?? "") !== String(existing.dueDate ?? ""),
         ),
         cycleChanged: Boolean(
           data.cycleId !== undefined && data.cycleId !== existing.cycleId,
@@ -1030,11 +1039,16 @@ export async function getBoardIssues(
         ? parseIssueQuery(filters.filter)
         : parseFilter(filters.filter),
       {
-      userId: opts.userId,
-    });
+        userId: opts.userId,
+      },
+    );
 
     if (Object.keys(compiled).length) {
-      const current = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
+      const current = Array.isArray(where.AND)
+        ? where.AND
+        : where.AND
+          ? [where.AND]
+          : [];
 
       where.AND = [...current, compiled];
     }

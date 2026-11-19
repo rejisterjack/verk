@@ -49,7 +49,24 @@ export async function POST(
   try {
     const { teamId } = await context.params;
     const authResult = await authenticateRequest(request, teamId);
-    const body = await request.json();
+    let body: Record<string, unknown>;
+
+    try {
+      const parsed = await request.json();
+
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        return Response.json(
+          { error: "Invalid JSON", code: "VALIDATION" },
+          { status: 400 },
+        );
+      }
+      body = parsed as Record<string, unknown>;
+    } catch {
+      return Response.json(
+        { error: "Invalid JSON", code: "VALIDATION" },
+        { status: 400 },
+      );
+    }
     const issue = await issuesService.createIssue(
       teamId,
       authResult.user.id!,

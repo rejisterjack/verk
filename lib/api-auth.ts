@@ -3,9 +3,12 @@ import { NextRequest } from "next/server";
 import { Role } from "@/lib/generated/prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { jsonError } from "@/lib/http-error";
 import { AuthError, assertRole } from "@/lib/rbac";
 import { effectiveApiKeyRole } from "@/lib/roles";
 import { sha256 } from "@/lib/utils";
+
+export { jsonError };
 
 export async function authenticateRequest(
   request: NextRequest,
@@ -83,28 +86,4 @@ export async function authenticateRequest(
     team: membership.team,
     role: membership.role,
   };
-}
-
-export function jsonError(error: unknown) {
-  if (error instanceof AuthError) {
-    return Response.json(
-      {
-        error: error.message,
-        code: error.code,
-        ...(error.details && typeof error.details === "object"
-          ? (error.details as Record<string, unknown>)
-          : {}),
-      },
-      { status: error.status },
-    );
-  }
-  if (process.env.NODE_ENV !== "production") {
-    // eslint-disable-next-line no-console -- useful during local debugging
-    console.error(error);
-  }
-
-  return Response.json(
-    { error: "Internal server error", code: "INTERNAL" },
-    { status: 500 },
-  );
 }
