@@ -449,11 +449,15 @@ export default async function ProjectDetailPage({
               action={linkProjectTeamAction.bind(null, teamSlug, projectId)}
               className="mt-4 space-y-2 text-sm"
             >
-              <label className="block text-[11px] uppercase text-muted">
+              <label
+                className="block text-[11px] uppercase text-muted"
+                htmlFor="contributing-team"
+              >
                 Contributing team
               </label>
               <select
                 className="h-8 w-full rounded border border-separator bg-surface px-2"
+                id="contributing-team"
                 name="teamId"
               >
                 {siblings.map((team) => (
