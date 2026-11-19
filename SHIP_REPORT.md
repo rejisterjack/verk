@@ -28,7 +28,7 @@ Status starts at Not tested. Passed means the feature's matrix was run and the u
 | AUTH-09 | Passkeys | P1 | Not tested |
 | AUTH-10 | Two-factor | P1 | Not tested |
 | AUTH-11 | Team membership gate | P0 | Passed |
-| AUTH-12 | Guest project scope | P0 | Not tested |
+| AUTH-12 | Guest project scope | P0 | Passed |
 | ISSUE-01 | Create and update an issue | P0 | Passed |
 | ISSUE-02 | Visibility and extra readers | P0 | Passed |
 | ISSUE-03 | Issue list, filter, and query | P1 | Not tested |
@@ -163,6 +163,12 @@ Verdict: PASS for the write. The read gate for a second member remains a risk.
 
 Verdict: PASS
 
+## AUTH-12 Guest project scope
+
+A temporary guest was added to the demo team with a project id that matches no project, then removed. Sign-in returned a session. `GET /api/teams/{id}/issues` returned 403, because that route requires a member. The issues page returned 200, contained no `ACM-` keys, and showed the empty state. The guest user was deleted afterward.
+
+Verdict: PASS
+
 ## Still open
 
-No guest membership exists, so AUTH-12 has not been run. The dev 404 response is a page, and its HTML also contains a dev overlay reference, so OBS-01 is not passed. Security headers on `/api/health` include `X-Frame-Options: DENY`, `nosniff`, a referrer policy, HSTS, and a permissions policy. There is no Content-Security-Policy. The rest of the inventory is Not tested. Decision so far: NO-GO until those rows are run.
+The dev 404 response is a page, and its HTML also contains a dev overlay reference, so OBS-01 is not passed. Security headers on `/api/health` include `X-Frame-Options: DENY`, `nosniff`, a referrer policy, HSTS, and a permissions policy. There is no Content-Security-Policy. The rest of the inventory is Not tested. Decision so far: NO-GO until those rows are run.
