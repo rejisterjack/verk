@@ -87,7 +87,7 @@ export function OAuthSettings({
           {created.clientSecret ? (
             <p>
               Client secret:{" "}
-              <code className="break-all font-mono">
+              <code className="break-all font-mono" data-clarity-mask="true">
                 {created.clientSecret}
               </code>
               <span className="block text-[12px] text-muted">

@@ -100,7 +100,10 @@ export function ApiKeysSettings({
               Copy this key now — it will not be shown again.
             </p>
             <div className="flex gap-2">
-              <code className="flex-1 break-all rounded-lg border border-separator bg-surface px-3 py-2 text-xs">
+              <code
+                className="flex-1 break-all rounded-lg border border-separator bg-surface px-3 py-2 text-xs"
+                data-clarity-mask="true"
+              >
                 {plaintext}
               </code>
               <Button

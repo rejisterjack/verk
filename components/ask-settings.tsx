@@ -55,7 +55,10 @@ export function AskSettings({
       {token ? (
         <div className="rounded-lg border border-separator p-3">
           <p className="font-medium">Your public link</p>
-          <p className="mt-1 break-all font-mono text-[13px]">
+          <p
+            className="mt-1 break-all font-mono text-[13px]"
+            data-clarity-mask="true"
+          >
             {origin}/ask/{token}
           </p>
           <p className="mt-1 text-[12px] text-muted">

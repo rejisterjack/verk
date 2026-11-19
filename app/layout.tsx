@@ -5,6 +5,7 @@ import { cookies, headers } from "next/headers";
 
 import { Providers } from "./providers";
 
+import { ClarityScript } from "@/components/clarity-script";
 import { DemoBanner } from "@/components/demo-banner";
 import { siteConfig } from "@/config/site";
 import { fontDisplay, fontMono, fontSans } from "@/config/fonts";
@@ -69,6 +70,7 @@ export default async function RootLayout({
           fontMono.variable,
         )}
       >
+        <ClarityScript />
         <Providers themeProps={{ attribute: "class", defaultTheme: "light" }}>
           <LocaleProvider initial={locale}>
             <DemoBanner />

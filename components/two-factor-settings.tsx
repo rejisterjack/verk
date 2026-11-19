@@ -153,9 +153,12 @@ export function TwoFactorSettings({
             In your authenticator app choose “Enter a setup key” and type this
             secret (or open the link on your phone):
           </p>
-          <p className="break-all font-mono text-[13px]">{setup.secret}</p>
+          <p className="break-all font-mono text-[13px]" data-clarity-mask="true">
+            {setup.secret}
+          </p>
           <a
             className="text-[12px] text-accent hover:underline"
+            data-clarity-mask="true"
             href={setup.uri}
           >
             Open in authenticator app

@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { AppSidebar } from "@/components/app-sidebar";
+import { ClarityIdentify } from "@/components/clarity-identify";
 import { LiveIssueRefresh } from "@/components/live-issue-refresh";
 import { KeyboardShell } from "@/components/app/keyboard-shell";
 import { GlobalCreateIssue } from "@/components/global-create-issue";
@@ -60,6 +61,7 @@ export default async function TeamLayout({
 
   return (
     <KeyboardShell teamId={team.id} teamSlug={teamSlug}>
+      <ClarityIdentify userId={session.user.id} />
       <div className="flex h-dvh overflow-hidden">
         <Suspense
           fallback={

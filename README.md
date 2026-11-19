@@ -100,6 +100,7 @@ Seeded demo login: `demo@verk.dev` / `demo1234` · team slug `acme-engineering`
 6. Cron routes are `GET /api/cron/cycles` and `GET /api/cron/demo-reset`. Send `Authorization: Bearer $CRON_SECRET`. Without the secret they stay off (404).
 7. A private host is a normal deployment: sign-in is required and data stays in your database. `DEMO_MODE=true` is the public demo only. It resets on the demo cron and must not be set on a private host.
 8. Turn on Slack with `SLACK_SIGNING_SECRET` and `SLACK_BOT_TOKEN`, SCIM with `SCIM_TOKEN`, AI summaries and triage with `AI_API_KEY`, and git status with `GITHUB_WEBHOOK_SECRET` plus `GITLAB_WEBHOOK_SECRET`. Missing `AI_API_KEY` is a supported setup: summaries fall back to a keyword extract.
+9. Microsoft Clarity records sessions only when `NEXT_PUBLIC_CLARITY_PROJECT_ID` is set on the production environment. Leave it empty for preview deploys and for a private self-host. The value is read at build time, so a new production deployment is required after setting it.
 
 ## Environment variables
 
