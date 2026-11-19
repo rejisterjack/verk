@@ -104,6 +104,14 @@ export async function addComment(
   const team = await prisma.team.findUnique({ where: { id: teamId } });
 
   await notifyTeamSlack(team, `Comment on ${issue.title}`);
+  const { runAutomations } = await import("@/lib/services/automations");
+
+  await runAutomations(
+    teamId,
+    issueId,
+    { commentCreated: true },
+    authorId,
+  );
 
   return comment;
 }

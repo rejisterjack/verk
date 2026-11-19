@@ -43,11 +43,17 @@ export async function getTimeline(
     await Promise.all([
       prisma.project.findMany({
         where: {
-          teamId,
-          OR: [
-            { startDate: { lte: to }, targetDate: { gte: from } },
-            { startDate: null, targetDate: { gte: from, lte: to } },
-            { targetDate: null, startDate: { gte: from, lte: to } },
+          AND: [
+            {
+              OR: [{ teamId }, { contributors: { some: { teamId } } }],
+            },
+            {
+              OR: [
+                { startDate: { lte: to }, targetDate: { gte: from } },
+                { startDate: null, targetDate: { gte: from, lte: to } },
+                { targetDate: null, startDate: { gte: from, lte: to } },
+              ],
+            },
           ],
         },
         select: {

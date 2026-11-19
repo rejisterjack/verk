@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { readableIssueScope } from "@/lib/services/guest-scope";
 import {
   EXPORT_COLUMNS,
   type ExportIssue,
@@ -12,11 +13,16 @@ export const EXPORT_LIMIT = 20_000;
 export async function exportIssues(
   teamId: string,
   teamSlug: string,
-  opts: { includeArchived?: boolean } = {},
+  opts: { includeArchived?: boolean; userId?: string | null } = {},
 ): Promise<{ rows: ExportIssue[]; truncated: boolean }> {
   const key = teamSlug.slice(0, 3).toUpperCase();
+  const scope = await readableIssueScope(teamId, opts.userId);
   const issues = await prisma.issue.findMany({
-    where: { teamId, ...(opts.includeArchived ? {} : { archivedAt: null }) },
+    where: {
+      teamId,
+      ...(opts.includeArchived ? {} : { archivedAt: null }),
+      ...(scope ? { AND: [scope] } : {}),
+    },
     orderBy: { number: "asc" },
     take: EXPORT_LIMIT + 1,
     select: {
@@ -27,6 +33,7 @@ export async function exportIssues(
       priority: true,
       estimate: true,
       dueDate: true,
+      startDate: true,
       createdAt: true,
       updatedAt: true,
       startedAt: true,
@@ -56,6 +63,7 @@ export async function exportIssues(
       priority: issue.priority,
       estimate: issue.estimate === "NONE" ? "" : issue.estimate,
       dueDate: isoOrEmpty(issue.dueDate),
+      startDate: isoOrEmpty(issue.startDate),
       assignee: person(issue.assignee),
       creator: person(issue.creator),
       project: issue.project?.name ?? "",
@@ -74,7 +82,7 @@ export async function exportIssues(
 export async function exportIssuesCsv(
   teamId: string,
   teamSlug: string,
-  opts: { includeArchived?: boolean } = {},
+  opts: { includeArchived?: boolean; userId?: string | null } = {},
 ) {
   const { rows, truncated } = await exportIssues(teamId, teamSlug, opts);
 

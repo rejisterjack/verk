@@ -8,6 +8,8 @@ import {
 import { CreateDocumentForm } from "@/components/docs-forms";
 import { ViewToolbar } from "@/components/page-header";
 import { SubmitButton as Button } from "@/components/submit-button";
+import { createKeyResultAction } from "@/lib/actions/planning";
+import { keyResultProgress } from "@/lib/key-results";
 import { requireTeamBySlug } from "@/lib/rbac";
 import * as projectsService from "@/lib/services/projects";
 import { listDocuments, saveDocument } from "@/lib/services/surface";
@@ -141,6 +143,26 @@ export default async function InitiativesPage({
                         {healthStyle.label}
                       </span>
                     </div>
+                    <div className="text-xs text-muted">
+                      Key results{" "}
+                      {keyResultProgress(initiative.keyResults) == null
+                        ? "not set"
+                        : `${Math.round((keyResultProgress(initiative.keyResults) ?? 0) * 100)}%`}
+                      {" · "}
+                      {initiative.projects.length} projects
+                    </div>
+                    {!isGuest ? (
+                      <form
+                        action={createKeyResultAction.bind(null, teamSlug, initiative.id)}
+                        className="flex flex-wrap gap-2 text-xs"
+                      >
+                        <input className="h-7 rounded border border-separator px-1" name="name" placeholder="Key result" required />
+                        <input className="h-7 w-16 rounded border border-separator px-1" name="target" placeholder="Target" type="number" />
+                        <input className="h-7 w-16 rounded border border-separator px-1" name="current" placeholder="Now" type="number" />
+                        <input className="h-7 w-16 rounded border border-separator px-1" name="unit" placeholder="Unit" />
+                        <Button type="submit">Add</Button>
+                      </form>
+                    ) : null}
                     <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
                       {initiative.targetDate ? (
                         <span>

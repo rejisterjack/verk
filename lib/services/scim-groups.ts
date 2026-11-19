@@ -86,12 +86,24 @@ export async function applyGroupMembership(
       where: { teamId, userId: { in: toRemove }, role: { not: "OWNER" } },
     });
   }
+  const team = await prisma.team.findUnique({
+    where: { id: teamId },
+    select: { name: true, scimGroupRoles: true },
+  });
+  const mapped =
+    team?.scimGroupRoles &&
+    typeof team.scimGroupRoles === "object" &&
+    !Array.isArray(team.scimGroupRoles)
+      ? (team.scimGroupRoles as Record<string, string>)[team.name]
+      : undefined;
+  const role = mapped === "ADMIN" ? "ADMIN" : "MEMBER";
+
   if (toAdd.length) {
     await prisma.membership.createMany({
       data: toAdd.map((userId) => ({
         teamId,
         userId,
-        role: "MEMBER" as const,
+        role,
       })),
       skipDuplicates: true,
     });

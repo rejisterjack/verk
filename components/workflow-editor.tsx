@@ -11,6 +11,15 @@ import {
 } from "@/lib/actions/workflow";
 import { TYPE_LABELS, WORKFLOW_TYPES } from "@/lib/workflow";
 
+const REQUIRED_FIELDS = [
+  "assignee",
+  "estimate",
+  "dueDate",
+  "startDate",
+  "project",
+  "cycle",
+] as const;
+
 type Row = {
   id: string;
   name: string;
@@ -18,6 +27,7 @@ type Row = {
   type: (typeof WORKFLOW_TYPES)[number];
   color: string;
   count: number;
+  requiredFields: string[];
 };
 
 const inputClass =
@@ -189,6 +199,28 @@ export function WorkflowEditor({
                 />
                 <span className="rounded bg-default px-1.5 py-0.5 text-[11px] text-muted">
                   {TYPE_LABELS[row.type]}
+                </span>
+                <span className="flex flex-wrap gap-2 text-[11px] text-muted">
+                  {REQUIRED_FIELDS.map((field) => (
+                    <label key={field} className="inline-flex items-center gap-1">
+                      <input
+                        checked={row.requiredFields.includes(field)}
+                        type="checkbox"
+                        onChange={(e) => {
+                          const next = e.target.checked
+                            ? [...row.requiredFields, field]
+                            : row.requiredFields.filter((item) => item !== field);
+
+                          act(() =>
+                            updateStatusAction(teamSlug, row.id, {
+                              requiredFields: next,
+                            }),
+                          );
+                        }}
+                      />
+                      {field}
+                    </label>
+                  ))}
                 </span>
                 <span className="w-16 text-right text-[11px] text-muted">
                   {row.count} issue{row.count === 1 ? "" : "s"}

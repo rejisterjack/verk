@@ -28,6 +28,7 @@ export async function createIssueAction(teamSlug: string, formData: FormData) {
   const status = String(formData.get("status") || "BACKLOG");
   const priority = String(formData.get("priority") || "NONE");
   const estimate = String(formData.get("estimate") || "NONE");
+  const startRaw = String(formData.get("startDate") || "");
   const dueRaw = String(formData.get("dueDate") || "");
   const assigneeId = formNullId(formData, "assigneeId");
   const cycleId = formNullId(formData, "cycleId");
@@ -43,6 +44,7 @@ export async function createIssueAction(teamSlug: string, formData: FormData) {
       status,
       priority,
       estimate,
+      startDate: startRaw ? new Date(startRaw) : null,
       dueDate: dueRaw ? new Date(dueRaw) : null,
       assigneeId,
       cycleId,
@@ -89,6 +91,11 @@ export async function updateIssueAction(
   for (const key of ["assigneeId", "cycleId", "projectId"] as const) {
     if (formData.has(key)) payload[key] = formNullId(formData, key);
   }
+  if (formData.has("startDate")) {
+    const startRaw = String(formData.get("startDate") || "");
+
+    payload.startDate = startRaw ? new Date(startRaw) : null;
+  }
   if (formData.has("dueDate")) {
     const dueRaw = String(formData.get("dueDate") || "");
 
@@ -99,6 +106,19 @@ export async function updateIssueAction(
   }
   if (formData.has("workflowStatusId")) {
     payload.workflowStatusId = formNullId(formData, "workflowStatusId");
+  }
+  if (formData.has("visibility")) {
+    const visibility = String(formData.get("visibility"));
+
+    if (visibility === "TEAM" || visibility === "RESTRICTED") {
+      payload.visibility = visibility;
+    }
+  }
+  if (formData.get("readersTouched") === "1") {
+    payload.readerIds = formData
+      .getAll("readerIds")
+      .map(String)
+      .filter((id) => id.length > 0);
   }
   if (formData.has("revision")) {
     const revision = Number(formData.get("revision"));

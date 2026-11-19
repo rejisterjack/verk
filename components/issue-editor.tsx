@@ -80,6 +80,7 @@ export function IssueEditor({
   labels = [],
   workflows = [],
   initialLabelIds = [],
+  readerIds = [],
   canDelete,
   archived = false,
   favorite = false,
@@ -103,12 +104,14 @@ export function IssueEditor({
     status: string;
     priority: string;
     estimate?: string;
+    startDate?: string | null;
     dueDate?: string | null;
     assigneeId: string | null;
     cycleId: string | null;
     projectId?: string | null;
     milestoneId?: string | null;
     workflowStatusId?: string | null;
+    visibility?: "TEAM" | "RESTRICTED";
     revision: number;
   };
   members: Member[];
@@ -118,6 +121,8 @@ export function IssueEditor({
   labels?: LabelOpt[];
   workflows?: WorkflowOpt[];
   initialLabelIds?: string[];
+  /** Extra people who can see a restricted issue, besides the creator, assignee, and admins. */
+  readerIds?: string[];
   canDelete: boolean;
   /** The issue is in the archive. The page shows a banner and a Restore button. */
   archived?: boolean;
@@ -194,6 +199,7 @@ export function IssueEditor({
     formData.delete("labelIds");
     for (const id of selectedLabels) formData.append("labelIds", id);
 
+    const startRaw = String(formData.get("startDate") || "");
     const dueRaw = String(formData.get("dueDate") || "");
     const patch = {
       title: String(formData.get("title") ?? ""),
@@ -201,6 +207,7 @@ export function IssueEditor({
       status: String(formData.get("status") ?? ""),
       priority: String(formData.get("priority") ?? ""),
       estimate: String(formData.get("estimate") ?? "NONE"),
+      startDate: startRaw || null,
       dueDate: dueRaw || null,
       assigneeId: formData.get("assigneeId")
         ? String(formData.get("assigneeId"))
@@ -507,6 +514,21 @@ export function IssueEditor({
           />
           <DatePicker
             className="w-full"
+            defaultValue={
+              issue.startDate ? parseDate(issue.startDate.slice(0, 10)) : null
+            }
+            isReadOnly={readOnly}
+            name="startDate"
+          >
+            <Label>Start date</Label>
+            <DateField.Group>
+              <DateField.Input>
+                {(segment) => <DateField.Segment segment={segment} />}
+              </DateField.Input>
+            </DateField.Group>
+          </DatePicker>
+          <DatePicker
+            className="w-full"
             defaultValue={dueValue ? parseDate(dueValue) : null}
             isReadOnly={readOnly}
             name="dueDate"
@@ -603,6 +625,41 @@ export function IssueEditor({
               }}
             />
           ) : null}
+          {readOnly ? (
+            <p className="text-sm text-muted">
+              Visibility: {issue.visibility === "RESTRICTED" ? "Restricted" : "Team"}
+            </p>
+          ) : (
+            <SelectField
+              defaultValue={issue.visibility ?? "TEAM"}
+              label="Visibility"
+              name="visibility"
+              options={[
+                { id: "TEAM", label: "Team" },
+                { id: "RESTRICTED", label: "Restricted" },
+              ]}
+            />
+          )}
+          {readOnly ? null : (
+            <input name="readersTouched" type="hidden" value="1" />
+          )}
+          <fieldset className="flex flex-col gap-1 text-sm">
+            <legend className="text-muted">Extra readers</legend>
+            {members
+              .filter((member) => member.id !== currentUserId)
+              .map((member) => (
+                <label key={member.id} className="flex items-center gap-2">
+                  <input
+                    defaultChecked={readerIds.includes(member.id)}
+                    disabled={readOnly}
+                    name="readerIds"
+                    type="checkbox"
+                    value={member.id}
+                  />
+                  {member.name ?? member.email}
+                </label>
+              ))}
+          </fieldset>
           {!readOnly ? (
             <SubscribeToggle issueId={issue.id} teamId={teamId} />
           ) : null}

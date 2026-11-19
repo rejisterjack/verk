@@ -8,6 +8,7 @@ import { TriageRulesForm } from "@/components/triage-rules-form";
 import { triageIssueAction } from "@/lib/actions/issues";
 import { suggestTriage } from "@/lib/ai";
 import { requireTeamBySlug } from "@/lib/rbac";
+import { serverTranslator } from "@/lib/server-locale";
 import * as issuesService from "@/lib/services/issues";
 import * as labelsService from "@/lib/services/labels";
 import * as membersService from "@/lib/services/members";
@@ -75,7 +76,7 @@ export default async function TriagePage({
     <div className="flex min-h-full flex-col">
       <ViewToolbar
         description="New work. The first matching rule sets assignee, status, and label. Otherwise the triage owner is notified."
-        title="Triage"
+        title={(await serverTranslator())("triage.title")}
       />
       {membership.role !== "GUEST" ? (
         <section className="border-b border-separator px-4 py-4">

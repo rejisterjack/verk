@@ -149,6 +149,7 @@ export async function listInitiatives(teamId: string) {
       projects: {
         select: { id: true, name: true, targetDate: true, status: true },
       },
+      keyResults: true,
     },
     orderBy: { createdAt: "desc" },
   });

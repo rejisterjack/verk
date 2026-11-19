@@ -21,12 +21,16 @@ export const TRIGGERS = [
   { id: "issue.assigned", label: "An issue is assigned or reassigned" },
   { id: "issue.priority_changed", label: "An issue's priority changes" },
   { id: "issue.label_added", label: "A label is added to an issue" },
+  { id: "issue.comment_created", label: "A comment is added" },
+  { id: "issue.due_changed", label: "The due date changes" },
+  { id: "issue.cycle_changed", label: "The cycle changes" },
 ] as const;
 
 export type TriggerId = (typeof TRIGGERS)[number]["id"];
 
-export const MAX_AUTOMATIONS_PER_TEAM = 50;
-export const MAX_ACTIONS = 5;
+export const MAX_AUTOMATIONS_PER_TEAM = 100;
+export const MAX_ACTIONS = 10;
+export const MAX_AUTOMATION_DEPTH = 2;
 
 const STATUSES = [
   "BACKLOG",
@@ -122,6 +126,11 @@ export type IssueChange = {
   priorityChanged?: boolean;
   assigneeChanged?: boolean;
   labelsAdded?: string[];
+  commentCreated?: boolean;
+  dueChanged?: boolean;
+  cycleChanged?: boolean;
+  /** Rules that already ran in this chain, so a rule cannot trigger itself. */
+  skipRuleIds?: string[];
 };
 
 export function triggersFor(change: IssueChange | "created"): TriggerId[] {
@@ -132,6 +141,9 @@ export function triggersFor(change: IssueChange | "created"): TriggerId[] {
   if (change.assigneeChanged) out.push("issue.assigned");
   if (change.priorityChanged) out.push("issue.priority_changed");
   if (change.labelsAdded?.length) out.push("issue.label_added");
+  if (change.commentCreated) out.push("issue.comment_created");
+  if (change.dueChanged) out.push("issue.due_changed");
+  if (change.cycleChanged) out.push("issue.cycle_changed");
 
   return out;
 }

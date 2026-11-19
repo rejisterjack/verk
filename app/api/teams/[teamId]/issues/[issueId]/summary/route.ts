@@ -1,7 +1,10 @@
 import { NextRequest } from "next/server";
 
+import { createHash } from "node:crypto";
+
 import { authenticateRequest, jsonError } from "@/lib/api-auth";
 import { summarizeIssue } from "@/lib/ai";
+import { prisma } from "@/lib/db";
 import { rateLimitShared } from "@/lib/rate-limit";
 import { canSeeIssue } from "@/lib/services/guest-scope";
 import * as comments from "@/lib/services/comments";
@@ -35,15 +38,30 @@ export async function GET(
         { status: 404 },
       );
     }
-    const thread = await comments.listComments(teamId, issueId);
+    const hash = createHash("sha256")
+      .update(`${issue.title}\n${issue.description}`)
+      .digest("hex");
 
-    return Response.json(
-      await summarizeIssue({
-        title: issue.title,
-        description: issue.description,
-        comments: thread,
-      }),
-    );
+    if (issue.summaryText && issue.summaryHash === hash) {
+      return Response.json({
+        summary: issue.summaryText,
+        source: "cache",
+      });
+    }
+    const thread = await comments.listComments(teamId, issueId);
+    const result = await summarizeIssue({
+      title: issue.title,
+      description: issue.description,
+      comments: thread,
+    });
+    const source = result.source === "extract" ? "keyword" : result.source;
+
+    await prisma.issue.update({
+      where: { id: issue.id },
+      data: { summaryText: result.summary, summaryHash: hash },
+    });
+
+    return Response.json({ summary: result.summary, source });
   } catch (error) {
     return jsonError(error);
   }

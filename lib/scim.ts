@@ -61,10 +61,12 @@ export function userResource(user: {
   email: string;
   name: string | null;
   disabled: boolean;
+  externalId?: string | null;
 }) {
   return {
     schemas: [SCIM_USER_SCHEMA],
     id: user.id,
+    externalId: user.externalId ?? undefined,
     userName: user.email,
     name: { formatted: user.name ?? user.email },
     active: !user.disabled,

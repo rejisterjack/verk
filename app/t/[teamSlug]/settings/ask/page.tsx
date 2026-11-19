@@ -4,7 +4,8 @@ import { notFound } from "next/navigation";
 import { AskSettings } from "@/components/ask-settings";
 import { ViewToolbar } from "@/components/page-header";
 import { requireTeamBySlug } from "@/lib/rbac";
-import { getAskLink } from "@/lib/services/asks";
+import { createAskForm, getAskLink, listAskForms } from "@/lib/services/asks";
+import { SubmitButton as Button } from "@/components/submit-button";
 
 export default async function AskSettingsPage({
   params,
@@ -20,6 +21,25 @@ export default async function AskSettingsPage({
     notFound();
   }
   const link = await getAskLink(teamCtx.team.id, teamCtx.membership.role);
+  const forms = await listAskForms(teamCtx.team.id);
+
+  async function addForm(formData: FormData) {
+    "use server";
+    const ctx = await requireTeamBySlug(teamSlug, "ADMIN");
+    const fields = ["title", "details", "name", "email", "priority", "label", "project"].filter(
+      (field) => formData.get(field) === "on" || field === "title",
+    );
+    const showField = String(formData.get("showField") ?? "");
+    const showEquals = String(formData.get("showEquals") ?? "");
+
+    await createAskForm(
+      ctx.team.id,
+      String(formData.get("name") ?? "Ask"),
+      fields,
+      showField && showEquals ? { field: showField, equals: showEquals } : null,
+      ctx.membership.role,
+    );
+  }
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
   const proto = h.get("x-forwarded-proto") ?? "http";
@@ -44,6 +64,29 @@ export default async function AskSettingsPage({
         origin={origin}
         teamSlug={teamSlug}
       />
+      <form action={addForm} className="mt-6 space-y-2 text-sm">
+        <h2 className="font-medium">Another form</h2>
+        <input className="h-8 rounded border border-separator px-2" name="name" placeholder="Name" required />
+        <div className="flex flex-wrap gap-3 text-[12px]">
+          {["details", "name", "email", "priority", "label", "project"].map((field) => (
+            <label key={field} className="inline-flex items-center gap-1">
+              <input name={field} type="checkbox" /> {field}
+            </label>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <input className="h-8 rounded border border-separator px-2" name="showField" placeholder="Show if field" />
+          <input className="h-8 rounded border border-separator px-2" name="showEquals" placeholder="equals" />
+        </div>
+        <Button type="submit">Create form</Button>
+        <ul className="text-[12px] text-muted">
+          {forms.map((form) => (
+            <li key={form.id}>
+              {form.name} · {form.prefix}
+            </li>
+          ))}
+        </ul>
+      </form>
     </div>
   );
 }

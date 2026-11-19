@@ -27,6 +27,7 @@ export async function PATCH(request: Request, { params }: Params) {
   const { id } = await params;
   let body: {
     active?: boolean;
+    externalId?: string;
     teamId?: string;
     Operations?: { op?: string; path?: string; value?: unknown }[];
   };
@@ -49,6 +50,7 @@ export async function PATCH(request: Request, { params }: Params) {
         operation.op?.toLowerCase() === "replace" && operation.path === "name",
     );
   const replaceEmail = find("userName");
+  const replaceExternal = find("externalId");
   const active =
     typeof body.active === "boolean"
       ? body.active
@@ -61,8 +63,19 @@ export async function PATCH(request: Request, { params }: Params) {
     typeof replaceEmail?.value === "string"
       ? replaceEmail.value.toLowerCase()
       : undefined;
+  const externalId =
+    typeof replaceExternal?.value === "string"
+      ? replaceExternal.value
+      : typeof body.externalId === "string"
+        ? body.externalId
+        : undefined;
 
-  if (active === undefined && name === undefined && email === undefined) {
+  if (
+    active === undefined &&
+    name === undefined &&
+    email === undefined &&
+    externalId === undefined
+  ) {
     return scimError(400, "Nothing to update", "noTarget");
   }
   if (!(await findUser(id))) return scimError(404, "User not found");
@@ -73,6 +86,7 @@ export async function PATCH(request: Request, { params }: Params) {
       ...(active === undefined ? {} : { disabled: !active }),
       ...(name === undefined ? {} : { name }),
       ...(email === undefined ? {} : { email }),
+      ...(externalId === undefined ? {} : { externalId }),
     },
   });
 

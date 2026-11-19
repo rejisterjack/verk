@@ -49,6 +49,7 @@ export async function POST(request: Request) {
     name?: { formatted?: string };
     teamId?: string;
     active?: boolean;
+    externalId?: string;
   };
 
   try {
@@ -70,11 +71,13 @@ export async function POST(request: Request) {
     update: {
       disabled: body.active === false,
       ...(body.name?.formatted ? { name: body.name.formatted } : {}),
+      ...(body.externalId ? { externalId: body.externalId } : {}),
     },
     create: {
       email,
       name: body.name?.formatted ?? email,
       disabled: body.active === false,
+      externalId: body.externalId || null,
     },
   });
 

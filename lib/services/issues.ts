@@ -6,7 +6,9 @@ import {
 } from "@/lib/generated/prisma/client";
 import { prisma } from "@/lib/db";
 import { lifecycleStamps } from "@/lib/cycle-stats";
-import { guestIssueScope } from "@/lib/services/guest-scope";
+import { assertStartNotAfterDue } from "@/lib/dates";
+import { missingRequiredFields } from "@/lib/required-fields";
+import { readableIssueScope } from "@/lib/services/guest-scope";
 import {
   isAllowedEstimate,
   normalizeScale,
@@ -64,13 +66,16 @@ export async function listIssues(
     teamId,
     archivedAt: q.archived ? { not: null } : null,
   };
-  const guestScope = await guestIssueScope(teamId, opts.userId);
+  const readScope = await readableIssueScope(teamId, opts.userId);
 
-  if (guestScope) where.AND = [guestScope];
+  if (readScope) where.AND = [readScope];
 
   if (q.filter !== undefined && q.filter !== null && q.filter !== "") {
     const { compileFilter, parseFilter } = await import("@/lib/issue-filter");
-    const compiled = compileFilter(parseFilter(q.filter), {
+    const { parseIssueQuery } = await import("@/lib/issue-query");
+    const compiled = compileFilter(
+      typeof q.filter === "string" ? parseIssueQuery(q.filter) : parseFilter(q.filter),
+      {
       userId: opts.userId,
     });
 
@@ -149,16 +154,26 @@ export async function listIssues(
   return { issues, nextCursor };
 }
 
-export async function syncIssues(teamId: string, sinceIso: string) {
+export async function syncIssues(
+  teamId: string,
+  sinceIso: string,
+  userId?: string | null,
+) {
   const since = new Date(sinceIso);
 
   if (Number.isNaN(since.getTime())) {
     throw new AuthError("Invalid since timestamp", "BAD_REQUEST", 400);
   }
+  const scope = userId ? await readableIssueScope(teamId, userId) : null;
 
   const [issues, deletions, archived] = await Promise.all([
     prisma.issue.findMany({
-      where: { teamId, archivedAt: null, updatedAt: { gt: since } },
+      where: {
+        teamId,
+        archivedAt: null,
+        updatedAt: { gt: since },
+        ...(scope ? { AND: [scope] } : {}),
+      },
       include: issueInclude,
       orderBy: { updatedAt: "asc" },
       take: 200,
@@ -185,6 +200,15 @@ export async function syncIssues(teamId: string, sinceIso: string) {
     ],
     serverTime: new Date().toISOString(),
   };
+}
+
+export async function listIssueReaderIds(issueId: string) {
+  const rows = await prisma.issueReader.findMany({
+    where: { issueId },
+    select: { userId: true },
+  });
+
+  return rows.map((row) => row.userId);
 }
 
 export async function getIssueByNumber(teamId: string, number: number) {
@@ -228,7 +252,14 @@ export async function createIssue(
   }
 
   const data = createIssueSchema.parse(input);
-  const { labelIds: parsedLabels, clientMutationId: _cm, ...issueData } = data;
+  const {
+    labelIds: parsedLabels,
+    clientMutationId: _cm,
+    readerIds,
+    ...issueData
+  } = data;
+
+  assertStartNotAfterDue(issueData.startDate, issueData.dueDate);
   let labelIds = parsedLabels ? [...parsedLabels] : [];
 
   void _cm;
@@ -328,6 +359,11 @@ export async function createIssue(
         priority: issueData.priority ?? "NONE",
         estimate: issueData.estimate ?? "NONE",
         dueDate: issueData.dueDate ?? null,
+        startDate: issueData.startDate ?? null,
+        visibility: issueData.visibility ?? "TEAM",
+        readers: readerIds?.length
+          ? { create: readerIds.map((readerId) => ({ userId: readerId })) }
+          : undefined,
         assigneeId: issueData.assigneeId ?? null,
         cycleId: issueData.cycleId ?? null,
         projectId: issueData.projectId ?? null,
@@ -398,6 +434,19 @@ export async function createIssue(
     return created;
   });
 
+  if (issue.visibility === "RESTRICTED") {
+    const { recordAudit } = await import("@/lib/audit");
+
+    await recordAudit({
+      teamId,
+      actor: { id: userId },
+      action: "issue.restricted",
+      targetType: "issue",
+      targetId: issue.id,
+      summary: `Restricted ${issue.title}`,
+    });
+  }
+
   try {
     const { dispatchWebhooks } = await import("@/lib/services/webhooks");
     const { notifyTeamSlack } = await import("@/lib/services/surface");
@@ -405,6 +454,38 @@ export async function createIssue(
     await dispatchWebhooks(teamId, "issue.created", issue);
     const team = await prisma.team.findUnique({ where: { id: teamId } });
 
+    if (team?.triageAutoApply) {
+      const { suggestTriage } = await import("@/lib/ai");
+      const labels = await prisma.label.findMany({
+        where: { teamId },
+        select: { id: true, name: true },
+      });
+      const suggestion = await suggestTriage(
+        issue.title,
+        issue.description,
+        labels.map((label) => label.name),
+      );
+
+      if (suggestion.source === "ai") {
+        await prisma.issue.update({
+          where: { id: issue.id },
+          data: { priority: suggestion.priority },
+        });
+        const chosen = labels.filter((label) =>
+          suggestion.labels.includes(label.name),
+        );
+
+        if (chosen.length) {
+          await prisma.issueLabel.createMany({
+            data: chosen.map((label) => ({
+              issueId: issue.id,
+              labelId: label.id,
+            })),
+            skipDuplicates: true,
+          });
+        }
+      }
+    }
     if (
       !issue.assigneeId &&
       team?.triageOwnerId &&
@@ -498,6 +579,11 @@ export async function updateIssue(
     await assertEstimateAllowed(teamId, data.estimate);
   }
 
+  assertStartNotAfterDue(
+    data.startDate === undefined ? existing.startDate : data.startDate,
+    data.dueDate === undefined ? existing.dueDate : data.dueDate,
+  );
+
   if (data.parentId !== undefined && data.parentId !== existing.parentId) {
     if (data.parentId) {
       const { assertValidParent } = await import("@/lib/services/sub-issues");
@@ -539,6 +625,39 @@ export async function updateIssue(
 
     if (resolved) data.status = resolved.status;
     workflowRuleId = workflow?.statusRuleId ?? null;
+  }
+
+  const nextWorkflowId =
+    data.workflowStatusId === undefined
+      ? existing.workflowStatusId
+      : data.workflowStatusId;
+
+  if (data.status || data.workflowStatusId !== undefined) {
+    const workflow = nextWorkflowId
+      ? await prisma.workflowStatus.findFirst({
+          where: { id: nextWorkflowId, teamId },
+          select: { requiredFields: true },
+        })
+      : null;
+    const missing = missingRequiredFields(workflow?.requiredFields ?? [], {
+      assigneeId:
+        data.assigneeId === undefined ? existing.assigneeId : data.assigneeId,
+      estimate: data.estimate ?? existing.estimate,
+      dueDate: data.dueDate === undefined ? existing.dueDate : data.dueDate,
+      startDate:
+        data.startDate === undefined ? existing.startDate : data.startDate,
+      projectId:
+        data.projectId === undefined ? existing.projectId : data.projectId,
+      cycleId: data.cycleId === undefined ? existing.cycleId : data.cycleId,
+    });
+
+    if (missing.length) {
+      throw new AuthError(
+        `Required before this status: ${missing.join(", ")}`,
+        "BAD_REQUEST",
+        400,
+      );
+    }
   } else if (data.status && data.status !== existing.status) {
     // A bare status change moves the issue to the first workflow status of that type.
     const resolved = await resolveStatus(teamId, { status: data.status });
@@ -589,6 +708,7 @@ export async function updateIssue(
     throw new ConflictError("Issue revision conflict", current);
   }
 
+  const { readerIds, ...columnData } = data;
   const updated = await prisma.issue.updateMany({
     where: {
       id: issueId,
@@ -596,7 +716,7 @@ export async function updateIssue(
       ...(expected != null ? { revision: expected } : {}),
     },
     data: {
-      ...data,
+      ...columnData,
       assigneeId: data.assigneeId === undefined ? undefined : data.assigneeId,
       cycleId: data.cycleId === undefined ? undefined : data.cycleId,
       ...(triageAt !== undefined ? { triageAt } : {}),
@@ -611,6 +731,26 @@ export async function updateIssue(
     const current = await getIssueById(teamId, issueId);
 
     throw new ConflictError("Issue revision conflict", current);
+  }
+
+  if (readerIds) {
+    await prisma.issueReader.deleteMany({ where: { issueId } });
+    if (readerIds.length) {
+      await prisma.issueReader.createMany({
+        data: readerIds.map((readerId) => ({ issueId, userId: readerId })),
+      });
+    }
+  }
+  if (data.visibility === "RESTRICTED" && existing.visibility !== "RESTRICTED") {
+    const { recordAudit } = await import("@/lib/audit");
+
+    await recordAudit({
+      teamId,
+      actor: { id: userId },
+      action: "issue.restricted",
+      targetType: "issue",
+      summary: `Restricted ${existing.title}`,
+    });
   }
 
   const saved = await getIssueById(teamId, issueId);
@@ -701,6 +841,13 @@ export async function updateIssue(
         ),
         assigneeChanged: Boolean(
           data.assigneeId && data.assigneeId !== existing.assigneeId,
+        ),
+        dueChanged: Boolean(
+          data.dueDate !== undefined &&
+            String(data.dueDate ?? "") !== String(existing.dueDate ?? ""),
+        ),
+        cycleChanged: Boolean(
+          data.cycleId !== undefined && data.cycleId !== existing.cycleId,
         ),
       },
       userId,
@@ -867,7 +1014,7 @@ export async function getBoardIssues(
     archivedAt: null,
     status: { in: [...BOARD_STATUSES, "CANCELLED"] },
   };
-  const boardScope = await guestIssueScope(teamId, opts.userId);
+  const boardScope = await readableIssueScope(teamId, opts.userId);
 
   if (boardScope) where.AND = [boardScope];
 
@@ -877,11 +1024,20 @@ export async function getBoardIssues(
     filters.filter !== ""
   ) {
     const { compileFilter, parseFilter } = await import("@/lib/issue-filter");
-    const compiled = compileFilter(parseFilter(filters.filter), {
+    const { parseIssueQuery } = await import("@/lib/issue-query");
+    const compiled = compileFilter(
+      typeof filters.filter === "string"
+        ? parseIssueQuery(filters.filter)
+        : parseFilter(filters.filter),
+      {
       userId: opts.userId,
     });
 
-    if (Object.keys(compiled).length) where.AND = [compiled];
+    if (Object.keys(compiled).length) {
+      const current = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
+
+      where.AND = [...current, compiled];
+    }
   }
   if (filters?.cycleId) where.cycleId = filters.cycleId;
   if (filters?.priority) where.priority = filters.priority;

@@ -33,7 +33,10 @@ export default async function IssueDetailPage({
 
   if (!issue || !(await canSeeIssue(team.id, user.id, issue))) notFound();
 
-  const starred = await favoriteIds(user.id, team.id, "issue");
+  const [starred, readerIds] = await Promise.all([
+    favoriteIds(user.id, team.id, "issue"),
+    issuesService.listIssueReaderIds(issue.id),
+  ]);
   const [cycles, members, projects, labels, workflows] = await Promise.all([
     cyclesService.listCycles(team.id),
     membersService.listMembers(team.id),
@@ -68,6 +71,8 @@ export default async function IssueDetailPage({
         priority: issue.priority,
         estimate: issue.estimate,
         dueDate: issue.dueDate?.toISOString() ?? null,
+        startDate: issue.startDate?.toISOString() ?? null,
+        visibility: issue.visibility,
         assigneeId: issue.assigneeId,
         cycleId: issue.cycleId,
         projectId: issue.projectId,
@@ -76,6 +81,7 @@ export default async function IssueDetailPage({
         revision: issue.revision,
       }}
       initialLabelIds={issue.labels.map((l) => l.labelId)}
+      readerIds={readerIds}
       issueNumber={issue.number}
       labels={labels.map((l) => ({
         id: l.id,

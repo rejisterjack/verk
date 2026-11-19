@@ -4,7 +4,7 @@ import { authenticateRequest, jsonError } from "@/lib/api-auth";
 import { rankWork } from "@/lib/agent-work";
 import { prisma } from "@/lib/db";
 import { rateLimitShared } from "@/lib/rate-limit";
-import { guestIssueScope } from "@/lib/services/guest-scope";
+import { readableIssueScope } from "@/lib/services/guest-scope";
 
 /**
  * `GET ?limit=5`: the open issues this API key's user could pick up next, best first. Issues
@@ -31,7 +31,7 @@ export async function GET(
       20,
       Math.max(1, Number(new URL(request.url).searchParams.get("limit")) || 5),
     );
-    const scope = await guestIssueScope(teamId, auth.user.id);
+    const scope = await readableIssueScope(teamId, auth.user.id);
     const rows = await prisma.issue.findMany({
       where: {
         teamId,

@@ -12,6 +12,7 @@ export type ExportIssue = {
   priority: string;
   estimate: string;
   dueDate: string;
+  startDate: string;
   assignee: string;
   creator: string;
   project: string;
@@ -34,6 +35,7 @@ export const EXPORT_COLUMNS: (keyof ExportIssue)[] = [
   "priority",
   "estimate",
   "dueDate",
+  "startDate",
   "assignee",
   "creator",
   "project",

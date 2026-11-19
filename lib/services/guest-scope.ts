@@ -35,14 +35,73 @@ export async function guestIssueScope(
 export async function canSeeIssue(
   teamId: string,
   userId: string | null | undefined,
-  issue: { projectId: string | null },
+  issue: {
+    id?: string;
+    projectId: string | null;
+    visibility?: "TEAM" | "RESTRICTED";
+    creatorId?: string;
+    assigneeId?: string | null;
+  },
 ): Promise<boolean> {
   const scope = await guestIssueScope(teamId, userId);
 
-  if (!scope) return true;
-  const allowed = (scope.projectId as { in: string[] }).in;
+  if (scope) {
+    const allowed = (scope.projectId as { in: string[] }).in;
 
-  return issue.projectId !== null && allowed.includes(issue.projectId);
+    if (issue.projectId === null || !allowed.includes(issue.projectId)) {
+      return false;
+    }
+  }
+  if (issue.visibility !== "RESTRICTED") return true;
+  if (!userId) return false;
+  const membership = await prisma.membership.findUnique({
+    where: { userId_teamId: { userId, teamId } },
+    select: { role: true },
+  });
+
+  if (membership?.role === "ADMIN" || membership?.role === "OWNER") return true;
+  if (issue.creatorId === userId || issue.assigneeId === userId) return true;
+  if (!issue.id) return false;
+  const reader = await prisma.issueReader.findUnique({
+    where: { issueId_userId: { issueId: issue.id, userId } },
+  });
+
+  return Boolean(reader);
+}
+
+/**
+ * Extra `where` for every issue list: guest project scope, plus restricted-issue visibility.
+ * Admins and owners see restricted issues. An empty result means no extra constraint.
+ */
+export async function readableIssueScope(
+  teamId: string,
+  userId: string | null | undefined,
+): Promise<Prisma.IssueWhereInput | null> {
+  const parts: Prisma.IssueWhereInput[] = [];
+  const guest = await guestIssueScope(teamId, userId);
+
+  if (guest) parts.push(guest);
+  if (userId) {
+    const membership = await prisma.membership.findUnique({
+      where: { userId_teamId: { userId, teamId } },
+      select: { role: true },
+    });
+
+    if (membership && membership.role !== "ADMIN" && membership.role !== "OWNER") {
+      parts.push({
+        OR: [
+          { visibility: "TEAM" },
+          { visibility: "RESTRICTED", creatorId: userId },
+          { visibility: "RESTRICTED", assigneeId: userId },
+          { visibility: "RESTRICTED", readers: { some: { userId } } },
+        ],
+      });
+    }
+  }
+  if (!parts.length) return null;
+  if (parts.length === 1) return parts[0];
+
+  return { AND: parts };
 }
 
 /**

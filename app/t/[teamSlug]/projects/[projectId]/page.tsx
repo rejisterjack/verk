@@ -16,7 +16,9 @@ import {
 } from "@/components/project-detail-forms";
 import { StatusChip } from "@/components/status-chip";
 import { SubmitButton as Button } from "@/components/submit-button";
+import { linkProjectTeamAction } from "@/lib/actions/planning";
 import { requireTeamBySlug } from "@/lib/rbac";
+import { siblingTeams } from "@/lib/services/planning";
 import { favoriteIds } from "@/lib/services/favorites";
 import * as membersService from "@/lib/services/members";
 import * as projectsService from "@/lib/services/projects";
@@ -62,6 +64,7 @@ export default async function ProjectDetailPage({
     allProjects,
     dependencies,
     report,
+    siblings,
   ] = await Promise.all([
     listProjectUpdates(teamId, projectId),
     membersService.listMembers(teamId),
@@ -71,6 +74,7 @@ export default async function ProjectDetailPage({
     projectsService.listProjects(teamId, teamCtx.user.id),
     dependencyService.listDependencies(teamId, teamCtx.user.id),
     dependencyService.dependencyReport(teamId, teamCtx.user.id),
+    siblingTeams(teamId),
   ]);
   const projectDocs = documents.filter((doc) => doc.projectId === projectId);
   const waitsOn = dependencies.filter((dep) => dep.projectId === projectId);
@@ -440,6 +444,27 @@ export default async function ProjectDetailPage({
             members={members}
             project={project}
           />
+          {canAdmin && siblings.length ? (
+            <form
+              action={linkProjectTeamAction.bind(null, teamSlug, projectId)}
+              className="mt-4 space-y-2 text-sm"
+            >
+              <label className="block text-[11px] uppercase text-muted">
+                Contributing team
+              </label>
+              <select
+                className="h-8 w-full rounded border border-separator bg-surface px-2"
+                name="teamId"
+              >
+                {siblings.map((team) => (
+                  <option key={team.id} value={team.id}>
+                    {team.name}
+                  </option>
+                ))}
+              </select>
+              <Button type="submit">Link team</Button>
+            </form>
+          ) : null}
           {canAdmin ? (
             <form action={removeProject} className="mt-4">
               <Button type="submit" variant="danger">

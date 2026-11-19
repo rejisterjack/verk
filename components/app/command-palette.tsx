@@ -5,6 +5,7 @@ import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
+import { parseIssueQuery } from "@/lib/issue-query";
 import { PRIORITY_LABELS, STATUS_LABELS } from "@/lib/labels";
 
 type SearchIssue = {
@@ -160,12 +161,21 @@ export function CommandPalette({
 
     if (!name) return;
     const params = new URLSearchParams(window.location.search);
-    const filterJson: Record<string, string> = {};
+    const textQuery = params.get("filter");
+    let filterJson: Record<string, unknown> = {};
 
-    for (const key of ["status", "priority", "cycleId", "search", "assignee"]) {
-      const v = params.get(key);
+    if (textQuery) {
+      try {
+        filterJson = { version: 2, filter: parseIssueQuery(textQuery) };
+      } catch {
+        return;
+      }
+    } else {
+      for (const key of ["status", "priority", "cycleId", "search", "assignee"]) {
+        const v = params.get(key);
 
-      if (v) filterJson[key === "assignee" ? "assigneeId" : key] = v;
+        if (v) filterJson[key === "assignee" ? "assigneeId" : key] = v;
+      }
     }
     await fetch(`/api/teams/${teamId}/views`, {
       method: "POST",

@@ -92,6 +92,12 @@ export async function addProjectUpdate(
   const { dispatchWebhooks } = await import("@/lib/services/webhooks");
 
   await dispatchWebhooks(teamId, "project.updated", update);
+  const team = await prisma.team.findUnique({ where: { id: teamId } });
+
+  await notifyTeamSlack(
+    team,
+    `Project update on ${project.name}: ${update.health}. ${process.env.AUTH_URL ?? ""}/t/${team?.slug ?? ""}/projects/${project.id}`,
+  );
 
   return update;
 }

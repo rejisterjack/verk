@@ -44,6 +44,7 @@ export const FILTER_FIELDS = [
   "created",
   "updated",
   "due",
+  "start",
   "blocked",
   "has_sub_issues",
 ] as const;
@@ -160,6 +161,11 @@ export const FILTER_SPEC: Record<FilterField, FieldSpec> = {
     kind: "date",
     ops: [...DATE_OPS, "is_empty", "is_not_empty"],
     label: "Due date",
+  },
+  start: {
+    kind: "date",
+    ops: [...DATE_OPS, "is_empty", "is_not_empty"],
+    label: "Start date",
   },
   blocked: { kind: "bool", ops: ["is"], label: "Blocked" },
   has_sub_issues: { kind: "bool", ops: ["is"], label: "Has sub-issues" },
@@ -540,7 +546,9 @@ function dateCondition(
       ? "createdAt"
       : field === "updated"
         ? "updatedAt"
-        : "dueDate";
+        : field === "start"
+          ? "startDate"
+          : "dueDate";
   const now = ctx.now ?? new Date();
   const value = condition.value;
 

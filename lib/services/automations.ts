@@ -4,6 +4,7 @@ import {
   automationInputSchema,
   fieldPatch,
   type IssueChange,
+  MAX_AUTOMATION_DEPTH,
   MAX_AUTOMATIONS_PER_TEAM,
   parseActions,
   parseConditions,
@@ -275,6 +276,7 @@ export async function runAutomations(
   issueId: string,
   change: IssueChange | "created",
   actorId: string,
+  depth = 0,
 ): Promise<number> {
   let ran = 0;
 
@@ -290,6 +292,9 @@ export async function runAutomations(
 
     for (const rule of rules) {
       try {
+        if (change !== "created" && change.skipRuleIds?.includes(rule.id)) {
+          continue;
+        }
         const conditions = parseConditions(rule.conditions);
         const actions = parseActions(rule.actions);
 
@@ -303,6 +308,27 @@ export async function runAutomations(
           if (!hit) continue;
         }
         await applyActions(teamId, issueId, actions, actorId);
+        if (depth + 1 < MAX_AUTOMATION_DEPTH) {
+          const patch = fieldPatch(actions);
+          const skip = [
+            ...(change === "created" ? [] : (change.skipRuleIds ?? [])),
+            rule.id,
+          ];
+
+          await runAutomations(
+            teamId,
+            issueId,
+            {
+              statusChanged: Boolean(patch.status),
+              priorityChanged: Boolean(patch.priority),
+              assigneeChanged: patch.assigneeId !== undefined,
+              cycleChanged: patch.cycleId !== undefined,
+              skipRuleIds: skip,
+            },
+            actorId,
+            depth + 1,
+          );
+        }
         await prisma.automation.update({
           where: { id: rule.id },
           data: { runCount: { increment: 1 }, lastRunAt: new Date() },

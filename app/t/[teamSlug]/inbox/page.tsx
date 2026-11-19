@@ -6,6 +6,7 @@ import { SubmitButton as Button } from "@/components/submit-button";
 import { ViewToolbar } from "@/components/page-header";
 import { auth } from "@/lib/auth";
 import { requireTeamBySlug } from "@/lib/rbac";
+import { serverTranslator } from "@/lib/server-locale";
 import * as notifications from "@/lib/services/notifications";
 import { listPulse } from "@/lib/services/surface";
 
@@ -50,6 +51,8 @@ export default async function InboxPage({
     revalidatePath(teamPath, "layout");
   }
 
+  const t = await serverTranslator();
+
   return (
     <div className="flex min-h-full flex-col">
       <ViewToolbar
@@ -60,7 +63,7 @@ export default async function InboxPage({
             </Button>
           </form>
         }
-        title="Inbox"
+        title={t("inbox.title")}
       />
       <div className="flex gap-3 border-b border-separator px-4 py-2 text-[13px]">
         <NextLink

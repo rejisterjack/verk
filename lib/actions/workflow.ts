@@ -41,7 +41,7 @@ export async function addStatusAction(
 export async function updateStatusAction(
   teamSlug: string,
   statusId: string,
-  input: { name?: string; color?: string },
+  input: { name?: string; color?: string; requiredFields?: string[] },
 ) {
   return run(teamSlug, ({ teamId, role }) =>
     workflow.updateWorkflowStatus(teamId, statusId, input, role),

@@ -159,6 +159,12 @@ export async function createWorkflowStatus(
 const updateSchema = z.object({
   name: z.string().trim().min(1).max(40).optional(),
   color: z.string().optional(),
+  requiredFields: z
+    .array(
+      z.enum(["assignee", "estimate", "dueDate", "startDate", "project", "cycle"]),
+    )
+    .max(6)
+    .optional(),
 });
 
 /** Rename or recolor. The type cannot change, because issues in it would change meaning. */
@@ -190,6 +196,9 @@ export async function updateWorkflowStatus(
     data: {
       ...(data.name !== undefined ? { name: data.name } : {}),
       ...(data.color !== undefined ? { color: data.color } : {}),
+      ...(data.requiredFields !== undefined
+        ? { requiredFields: data.requiredFields }
+        : {}),
     },
   });
 }

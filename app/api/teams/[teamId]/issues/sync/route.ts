@@ -10,7 +10,7 @@ export async function GET(
   try {
     const { teamId } = await context.params;
 
-    await authenticateRequest(request, teamId, "GUEST");
+    const auth = await authenticateRequest(request, teamId, "GUEST");
     const since = new URL(request.url).searchParams.get("since");
 
     if (!since) {
@@ -20,7 +20,7 @@ export async function GET(
       );
     }
 
-    const result = await issuesService.syncIssues(teamId, since);
+    const result = await issuesService.syncIssues(teamId, since, auth.user.id);
 
     return Response.json(result);
   } catch (error) {

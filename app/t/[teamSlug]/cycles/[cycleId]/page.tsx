@@ -8,6 +8,8 @@ import { SubmitButton as Button } from "@/components/submit-button";
 import { ViewToolbar } from "@/components/page-header";
 import { PriorityChip, StatusChip } from "@/components/status-chip";
 import { deleteCycleAction, updateCycleAction } from "@/lib/actions/cycles";
+import { saveCapacityAction } from "@/lib/actions/planning";
+import { listCycleCapacity } from "@/lib/services/planning";
 import { requireTeamBySlug } from "@/lib/rbac";
 import { cycleAnalytics } from "@/lib/services/cycle-analytics";
 import * as cyclesService from "@/lib/services/cycles";
@@ -33,9 +35,10 @@ export default async function CycleDetailPage({
 
   if (!cycle) notFound();
 
-  const [starred, analytics] = await Promise.all([
+  const [starred, analytics, capacity] = await Promise.all([
     favoriteIds(teamCtx.user.id, teamCtx.team.id, "cycle"),
     cycleAnalytics(teamCtx.team.id, cycleId),
+    listCycleCapacity(teamCtx.team.id, cycleId),
   ]);
   const usePoints = analytics.points.some((p) => p.scope > 0);
   const done = cycle.issues.filter((i) => i.status === "DONE").length;
@@ -141,6 +144,44 @@ export default async function CycleDetailPage({
             }}
             cycle={cycle}
           />
+          <div className="mt-4 space-y-2">
+            <h2 className="text-[12px] font-medium uppercase tracking-wide text-muted">
+              Person capacity
+            </h2>
+            {capacity.overflow ? (
+              <p className="text-[12px] text-danger">
+                {capacity.overflow.used} points is over the cycle cap of{" "}
+                {capacity.overflow.teamCap}.
+              </p>
+            ) : null}
+            {capacity.rows.map((row) => (
+              <form
+                key={row.userId}
+                action={saveCapacityAction.bind(null, teamSlug, cycleId)}
+                className="flex items-center gap-2 text-[12px]"
+              >
+                <input name="userId" type="hidden" value={row.userId} />
+                <span className="w-28 truncate">{row.name}</span>
+                <input
+                  aria-label={`${row.name} points`}
+                  className="h-7 w-16 rounded border border-separator bg-surface px-1"
+                  defaultValue={row.points}
+                  min={0}
+                  name="points"
+                  type="number"
+                />
+                <input
+                  aria-label={`${row.name} days off`}
+                  className="h-7 w-16 rounded border border-separator bg-surface px-1"
+                  defaultValue={row.daysOff}
+                  min={0}
+                  name="daysOff"
+                  type="number"
+                />
+                <Button type="submit">Save</Button>
+              </form>
+            ))}
+          </div>
           {teamCtx.membership.role === "ADMIN" ||
           teamCtx.membership.role === "OWNER" ? (
             <form

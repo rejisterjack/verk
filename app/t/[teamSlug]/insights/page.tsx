@@ -7,6 +7,7 @@ import * as cyclesService from "@/lib/services/cycles";
 import * as labelsService from "@/lib/services/labels";
 import * as membersService from "@/lib/services/members";
 import * as projectsService from "@/lib/services/projects";
+import { flowReport } from "@/lib/services/flow-report";
 import {
   insightCounts,
   listSavedInsights,
@@ -120,13 +121,14 @@ export default async function InsightsPage({
     group: pick("group"),
   };
   const teamId = teamCtx.team.id;
-  const [stats, members, projects, cycles, labels, saved] = await Promise.all([
+  const [stats, members, projects, cycles, labels, saved, flow] = await Promise.all([
     insightCounts(teamId, filter),
     membersService.listMembers(teamId),
     projectsService.listProjects(teamId),
     cyclesService.listCycles(teamId),
     labelsService.listLabels(teamId),
     listSavedInsights(teamId),
+    flowReport(teamId, teamCtx.user.id),
   ]);
   const cards = await Promise.all(
     saved.map(async (card) => ({
@@ -154,6 +156,27 @@ export default async function InsightsPage({
         description={`Created ${stats.created} · Completed ${stats.done}`}
         title="Insights"
       />
+      <section className="grid gap-4 border-b border-separator px-4 py-3 md:grid-cols-2">
+        <div>
+          <h2 className="mb-2 text-[12px] font-medium uppercase text-muted">Cumulative flow</h2>
+          <ul className="space-y-1 text-[12px]">
+            {flow.flow.map((day) => (
+              <li key={day.day}>
+                {day.day}: {day.counts.BACKLOG}/{day.counts.TODO}/{day.counts.IN_PROGRESS}/
+                {day.counts.DONE}/{day.counts.CANCELLED}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <h2 className="mb-2 text-[12px] font-medium uppercase text-muted">Cycle time</h2>
+          <p className="text-[13px]">
+            {flow.cycleTimes.length
+              ? `${flow.cycleTimes.length} completed · median ${flow.cycleTimes.slice().sort((a, b) => a - b)[Math.floor(flow.cycleTimes.length / 2)]} days`
+              : "No completed issues with a start time yet."}
+          </p>
+        </div>
+      </section>
       <section className="border-b border-separator px-4 py-3">
         <div className="flex flex-wrap gap-2">
           {cards.map(({ card, stats: cardStats }) => (

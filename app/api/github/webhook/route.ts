@@ -37,8 +37,56 @@ export async function POST(request: Request) {
   if (!signature || !verifyGithubSignature(secret, raw, signature)) {
     return Response.json({ error: "Invalid signature" }, { status: 401 });
   }
-  if (request.headers.get("x-github-event") === "ping") {
+  const githubEvent = request.headers.get("x-github-event");
+
+  if (githubEvent === "ping") {
     return Response.json({ ok: true, pong: true });
+  }
+  if (githubEvent === "check_run" || githubEvent === "deployment_status") {
+    const { recordGitStatus } = await import("@/lib/services/git-status");
+    const payload = JSON.parse(raw) as {
+      repository?: { full_name?: string };
+      check_run?: {
+        name?: string;
+        conclusion?: string;
+        status?: string;
+        html_url?: string;
+        pull_requests?: { html_url?: string }[];
+      };
+      deployment?: { environment?: string; description?: string };
+      deployment_status?: {
+        state?: string;
+        environment?: string;
+        target_url?: string;
+        description?: string;
+      };
+    };
+    const repo = payload.repository?.full_name ?? "";
+    const pull = payload.check_run?.pull_requests?.[0]?.html_url;
+
+    await recordGitStatus({
+      provider: "github",
+      repo,
+      url: pull,
+      text: payload.deployment?.description ?? payload.deployment_status?.description,
+      ...(githubEvent === "check_run"
+        ? {
+            checkName: payload.check_run?.name ?? "",
+            checkStatus:
+              payload.check_run?.conclusion || payload.check_run?.status || "",
+            checkUrl: payload.check_run?.html_url ?? "",
+          }
+        : {
+            deployEnvironment:
+              payload.deployment_status?.environment ||
+              payload.deployment?.environment ||
+              "",
+            deployStatus: payload.deployment_status?.state ?? "",
+            deployUrl: payload.deployment_status?.target_url ?? "",
+          }),
+    });
+
+    return Response.json({ ok: true });
   }
   let event: PullRequestPayload;
 

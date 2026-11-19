@@ -30,6 +30,7 @@ export async function GET(
     if (format === "json") {
       const { rows, truncated } = await exportIssues(teamId, auth.team.slug, {
         includeArchived,
+        userId: auth.user.id,
       });
 
       await recordAudit({
@@ -53,7 +54,7 @@ export async function GET(
     const { csv, count, truncated } = await exportIssuesCsv(
       teamId,
       auth.team.slug,
-      { includeArchived },
+      { includeArchived, userId: auth.user.id },
     );
 
     await recordAudit({

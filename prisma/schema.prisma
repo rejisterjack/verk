@@ -93,6 +93,11 @@ enum ViewLayout {
   BOARD
 }
 
+enum IssueVisibility {
+  TEAM
+  RESTRICTED
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -101,6 +106,7 @@ model User {
   image         String?
   passwordHash  String?
   disabled      Boolean   @default(false)
+  externalId    String?   @unique
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -136,6 +142,9 @@ model User {
   statusRuleAssignees    StatusRule[]            @relation("StatusAssignee")
   issuePresence          IssuePresence[]
   favorites              Favorite[]
+  issueReads             IssueReader[]
+  cycleCapacities        CycleCapacity[]
+  dashboards             Dashboard[]
 }
 
 model Account {
@@ -249,6 +258,9 @@ model Team {
   autoCloseParent      Boolean @default(false)
   subIssueInherit      Boolean @default(true)
   estimateScale        String  @default("fibonacci")
+  triageAutoApply      Boolean @default(false)
+  /// Map of SCIM group display name to MEMBER or ADMIN. OWNER is never assigned here.
+  scimGroupRoles       Json?
 
   parent              Team?               @relation("SubTeams", fields: [parentId], references: [id], onDelete: SetNull)
   children            Team[]              @relation("SubTeams")
@@ -285,6 +297,9 @@ model Team {
   statusRules         StatusRule[]
   favorites           Favorite[]
   projectDependencies ProjectDependency[]
+  projectContributions ProjectTeam[]
+  dashboards          Dashboard[]
+  askForms            AskForm[]
 
   @@unique([slackTeamId, slackChannelId])
   @@index([slackTeamId])
@@ -343,6 +358,7 @@ model Cycle {
   issues      Issue[]
   statusRules StatusRule[]
   snapshots   CycleSnapshot[]
+  capacities  CycleCapacity[]
 
   @@index([teamId])
 }
@@ -354,8 +370,10 @@ model WorkflowStatus {
   name         String
   type         WorkflowStatusType
   position     Int                @default(0)
-  color        String             @default("#94a3b8")
-  statusRuleId String?
+  color          String             @default("#94a3b8")
+  statusRuleId   String?
+  /// Field keys that must be set before an issue can enter this status.
+  requiredFields String[]           @default([])
 
   team       Team        @relation(fields: [teamId], references: [id], onDelete: Cascade)
   issues     Issue[]
@@ -377,9 +395,10 @@ model Initiative {
   parentId  String?
   team      Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
   parent    Initiative?  @relation("InitiativeTree", fields: [parentId], references: [id], onDelete: SetNull)
-  children  Initiative[] @relation("InitiativeTree")
-  projects  Project[]
-  documents Document[]
+  children   Initiative[] @relation("InitiativeTree")
+  projects   Project[]
+  documents  Document[]
+  keyResults KeyResult[]
 
   @@index([teamId])
   @@index([parentId])
@@ -441,6 +460,7 @@ model Project {
   /// Projects this one waits on, and projects that wait on this one.
   dependencies ProjectDependency[] @relation("ProjectDependsOn")
   dependents   ProjectDependency[] @relation("ProjectBlocks")
+  contributors ProjectTeam[]
 
   @@index([teamId])
   @@index([workspaceId])
@@ -487,8 +507,12 @@ model Issue {
   description      String      @default("") @db.Text
   status           IssueStatus @default(BACKLOG)
   priority         Priority    @default(NONE)
-  estimate         Estimate    @default(NONE)
+  estimate         Estimate        @default(NONE)
   dueDate          DateTime?
+  startDate        DateTime?
+  visibility       IssueVisibility @default(TEAM)
+  summaryText      String?         @db.Text
+  summaryHash      String?
   triageAt         DateTime?
   order            Float       @default(0)
   revision         Int         @default(0)
@@ -529,6 +553,7 @@ model Issue {
   presence       IssuePresence[]
   parent         Issue?              @relation("IssueParent", fields: [parentId], references: [id], onDelete: SetNull)
   children       Issue[]             @relation("IssueParent")
+  readers        IssueReader[]
 
   @@unique([teamId, number])
   @@index([cycleId, completedAt])
@@ -855,9 +880,15 @@ model IssueLink {
   issueId     String
   kind        String
   url         String
-  title       String   @default("")
-  description String   @default("")
-  createdAt   DateTime @default(now())
+  title              String   @default("")
+  description        String   @default("")
+  checkName          String   @default("")
+  checkStatus        String   @default("")
+  checkUrl           String   @default("")
+  deployEnvironment  String   @default("")
+  deployStatus       String   @default("")
+  deployUrl          String   @default("")
+  createdAt          DateTime @default(now())
 
   issue Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
 
@@ -1264,4 +1295,105 @@ model AgentClaim {
 
   @@index([agentUserId, state])
   @@index([teamId, state])
+}
+
+/// People who may see a restricted issue besides its creator, assignee, and admins.
+model IssueReader {
+  issueId String
+  userId  String
+
+  issue Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([issueId, userId])
+  @@index([userId])
+}
+
+/// Points and days off for one person in one cycle. The cycle's own capacity stays the team cap.
+model CycleCapacity {
+  id       String @id @default(cuid())
+  cycleId  String
+  userId   String
+  points   Int    @default(0)
+  daysOff  Int    @default(0)
+
+  cycle Cycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([cycleId, userId])
+  @@index([userId])
+}
+
+/// A team other than the owner that may put its issues on this project.
+model ProjectTeam {
+  projectId String
+  teamId    String
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  team    Team    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, teamId])
+  @@index([teamId])
+}
+
+model KeyResult {
+  id           String @id @default(cuid())
+  initiativeId String
+  name         String
+  target       Int
+  current      Int    @default(0)
+  unit         String @default("")
+
+  initiative Initiative @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+
+  @@index([initiativeId])
+}
+
+model Dashboard {
+  id        String   @id @default(cuid())
+  teamId    String
+  ownerId   String?
+  name      String
+  shared    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  team    Team              @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  owner   User?             @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  widgets DashboardWidget[]
+
+  @@index([teamId])
+  @@index([ownerId])
+}
+
+model DashboardWidget {
+  id              String @id @default(cuid())
+  dashboardId     String
+  kind            String
+  title           String @default("")
+  insightReportId String?
+  body            String @default("")
+  position        Int    @default(0)
+
+  dashboard Dashboard @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+
+  @@index([dashboardId])
+}
+
+/// An extra public ask form. The original one-per-team AskLink stays in place.
+model AskForm {
+  id        String   @id @default(cuid())
+  teamId    String
+  name      String
+  tokenHash String   @unique
+  prefix    String
+  enabled   Boolean  @default(true)
+  heading   String   @default("")
+  fields    Json
+  showIf    Json?
+  createdAt DateTime @default(now())
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
 }

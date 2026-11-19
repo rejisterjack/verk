@@ -92,9 +92,63 @@ export async function findTeamByAskToken(token: string) {
     include: { team: { select: { id: true, name: true, slug: true } } },
   });
 
-  if (!link || !link.enabled) return null;
+  if (link?.enabled) {
+    return {
+      team: link.team,
+      heading: link.heading,
+      fields: ["title", "details", "name", "email"],
+      showIf: null as { field: string; equals: string } | null,
+    };
+  }
+  const form = await prisma.askForm.findUnique({
+    where: { tokenHash: await sha256(token) },
+    include: { team: { select: { id: true, name: true, slug: true } } },
+  });
 
-  return { team: link.team, heading: link.heading };
+  if (!form?.enabled) return null;
+
+  return {
+    team: form.team,
+    heading: form.heading || form.name,
+    fields: Array.isArray(form.fields) ? (form.fields as string[]) : ["title"],
+    showIf: form.showIf as { field: string; equals: string } | null,
+  };
+}
+
+const ASK_FIELDS = ["title", "details", "name", "email", "priority", "label", "project"];
+
+export async function listAskForms(teamId: string) {
+  return prisma.askForm.findMany({
+    where: { teamId },
+    orderBy: { createdAt: "asc" },
+  });
+}
+
+export async function createAskForm(
+  teamId: string,
+  name: string,
+  fields: string[],
+  showIf: { field: string; equals: string } | null,
+  role: Role,
+) {
+  assertRole(role, "ADMIN");
+  const chosen = fields.filter((field) => ASK_FIELDS.includes(field));
+
+  if (!chosen.includes("title")) chosen.unshift("title");
+  const token = `ask_${randomToken(18)}`;
+
+  await prisma.askForm.create({
+    data: {
+      teamId,
+      name,
+      tokenHash: await sha256(token),
+      prefix: token.slice(0, 12),
+      fields: chosen,
+      showIf: showIf ?? undefined,
+    },
+  });
+
+  return token;
 }
 
 /**

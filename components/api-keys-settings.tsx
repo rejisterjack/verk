@@ -56,9 +56,10 @@ export function ApiKeysSettings({
         className="flex flex-wrap items-end gap-2 rounded-xl border border-separator p-4"
         onSubmit={async (e) => {
           e.preventDefault();
+          const form = e.currentTarget;
           setError(null);
           setPlaintext(null);
-          const formData = new FormData(e.currentTarget);
+          const formData = new FormData(form);
           const result = await createApiKeyAction(teamSlug, formData);
 
           if (result.error) {
@@ -67,7 +68,7 @@ export function ApiKeysSettings({
             return;
           }
           setPlaintext(result.plaintext ?? null);
-          e.currentTarget.reset();
+          form.reset();
           router.refresh();
         }}
       >

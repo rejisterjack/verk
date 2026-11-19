@@ -273,6 +273,7 @@ export function CreateIssueForm({
                           status: named("status") || "BACKLOG",
                           priority: named("priority") || "NONE",
                           estimate: named("estimate") || "NONE",
+                          startDate: named("startDate") || null,
                           dueDate: dueRaw || null,
                           assigneeId: named("assigneeId") || null,
                           cycleId: named("cycleId") || null,
@@ -427,6 +428,14 @@ export function CreateIssueForm({
                           template?.estimate,
                         )}
                       />
+                      <DateField name="startDate">
+                        <Label>Start date</Label>
+                        <DateField.Group>
+                          <DateField.Input>
+                            {(segment) => <DateField.Segment segment={segment} />}
+                          </DateField.Input>
+                        </DateField.Group>
+                      </DateField>
                       <DateField
                         defaultValue={validDate(prefill?.dueDate)}
                         name="dueDate"

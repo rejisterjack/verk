@@ -39,6 +39,7 @@ export default async function WorkflowSettingsPage({
           type: status.type,
           color: status.color,
           count: counts.get(status.id) ?? 0,
+          requiredFields: status.requiredFields,
         }))}
         teamSlug={teamSlug}
       />

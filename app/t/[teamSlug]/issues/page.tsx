@@ -29,7 +29,9 @@ import { statusToWorkflowKey } from "@/lib/labels";
 import { getWorkflow } from "@/lib/services/workflow";
 import { TYPE_TO_STATUS } from "@/lib/workflow";
 import { listTemplates } from "@/lib/services/surface";
-import { type Filter, parseFilter } from "@/lib/issue-filter";
+import { type Filter } from "@/lib/issue-filter";
+import { serverTranslator } from "@/lib/server-locale";
+import { parseIssueQuery } from "@/lib/issue-query";
 
 export default async function IssuesPage({
   params,
@@ -118,7 +120,7 @@ export default async function IssuesPage({
 
   if (advancedFilter !== undefined && advancedFilter !== "") {
     try {
-      activeFilter = parseFilter(advancedFilter);
+      activeFilter = parseIssueQuery(String(advancedFilter));
     } catch (error) {
       filterError =
         error instanceof Error ? error.message : "That filter is not valid";
@@ -333,6 +335,7 @@ export default async function IssuesPage({
             />
             {!isGuest ? (
               <SaveViewButton
+                advancedFilter={activeFilter}
                 filters={{
                   status: query.status,
                   priority: query.priority,
@@ -371,7 +374,7 @@ export default async function IssuesPage({
               </NextLink>
             }
             description="Try adjusting search or filters, or clear them to see all issues."
-            title="No matching issues"
+            title={(await serverTranslator())("issues.empty")}
           />
         ) : (
           <EmptyState
@@ -480,6 +483,7 @@ export default async function IssuesPage({
             labelIds: groupLabelIds,
           }}
           groupBy={listGroup}
+          keepServerList={activeFilter != null}
           initialCursor={listResult.nextCursor}
           initialIssues={listResult.issues.map((issue) => ({
             createdAt: issue.createdAt.toISOString(),
@@ -526,11 +530,13 @@ function SaveViewButton({
   teamId,
   teamSlug,
   filters,
+  advancedFilter = null,
   layout = "LIST",
 }: {
   teamId: string;
   teamSlug: string;
   filters: Record<string, string | undefined>;
+  advancedFilter?: Filter | null;
   layout?: "LIST" | "BOARD";
 }) {
   async function saveView(formData: FormData) {
@@ -538,10 +544,14 @@ function SaveViewButton({
     const name = String(formData.get("name") ?? "").trim();
 
     if (!name) return;
-    const filterJson: Record<string, string> = {};
+    const filterJson: Record<string, unknown> = advancedFilter
+      ? { version: 2, filter: advancedFilter }
+      : {};
 
-    for (const [k, v] of Object.entries(filters)) {
-      if (v) filterJson[k] = v;
+    if (!advancedFilter) {
+      for (const [k, v] of Object.entries(filters)) {
+        if (v) filterJson[k] = v;
+      }
     }
     const session = await auth();
 

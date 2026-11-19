@@ -6,7 +6,12 @@ import { isDemoMode } from "@/lib/utils";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ callbackUrl?: string; error?: string }>;
+  searchParams: Promise<{
+    callbackUrl?: string;
+    email?: string;
+    error?: string;
+    step?: string;
+  }>;
 }) {
   const params = await searchParams;
   const demo = isDemoMode();
@@ -14,7 +19,11 @@ export default async function LoginPage({
   return (
     <LoginForm
       accessDenied={params.error === "AccessDenied"}
+      askForCode={params.step === "code"}
       callbackUrl={params.callbackUrl ?? "/onboarding"}
+      credentialsError={params.error === "CredentialsSignin"}
+      throttled={params.error === "Throttle"}
+      initialEmail={params.email ?? ""}
       demoMode={demo}
       githubEnabled={Boolean(
         process.env.AUTH_GITHUB_ID && process.env.AUTH_GITHUB_SECRET,

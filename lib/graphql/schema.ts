@@ -89,6 +89,7 @@ export const typeDefs = /* GraphQL */ `
     priority: Priority!
     estimate: String!
     dueDate: String
+    startDate: String
     revision: Int!
     createdAt: String!
     updatedAt: String!
@@ -264,6 +265,11 @@ export const typeDefs = /* GraphQL */ `
     setCustomerValue(customerId: ID!, tier: String, arr: Int): Customer!
     addProjectDependency(projectId: ID!, dependsOnId: ID!): Boolean!
     removeProjectDependency(projectId: ID!, dependsOnId: ID!): Boolean!
+    createProject(name: String!): Project!
+    createCycle(name: String!, startDate: String!, endDate: String!): Cycle!
+    createLabel(name: String!, color: String!): Label!
+    archiveIssue(id: ID!): Boolean!
+    restoreIssue(id: ID!): Boolean!
   }
 `;
 
@@ -282,6 +288,7 @@ function shapeIssue(row: Json) {
   return {
     ...row,
     dueDate: iso(row.dueDate),
+    startDate: iso(row.startDate),
     createdAt: iso(row.createdAt),
     updatedAt: iso(row.updatedAt),
     labels: ((row.labels as { label: Json }[] | undefined) ?? []).map(
@@ -556,6 +563,40 @@ export const rootValue = {
     return comments.addComment(ctx.teamId, args.issueId, ctx.userId, {
       body: args.body,
     });
+  },
+  async createProject(args: { name: string }, ctx: GqlContext) {
+    assertRole(ctx.role, "MEMBER");
+    const { createProject } = await import("@/lib/services/projects");
+
+    return createProject(ctx.teamId, { name: args.name });
+  },
+  async createCycle(
+    args: { name: string; startDate: string; endDate: string },
+    ctx: GqlContext,
+  ) {
+    const { createCycle } = await import("@/lib/services/cycles");
+
+    return createCycle(
+      ctx.teamId,
+      { name: args.name, startDate: args.startDate, endDate: args.endDate },
+      ctx.role,
+    );
+  },
+  async createLabel(args: { name: string; color: string }, ctx: GqlContext) {
+    assertRole(ctx.role, "MEMBER");
+    const { createLabel } = await import("@/lib/services/labels");
+
+    return createLabel(ctx.teamId, { name: args.name, color: args.color });
+  },
+  async archiveIssue(args: { id: string }, ctx: GqlContext) {
+    await issues.archiveIssue(ctx.teamId, args.id, ctx.role, ctx.userId);
+
+    return true;
+  },
+  async restoreIssue(args: { id: string }, ctx: GqlContext) {
+    await issues.restoreIssue(ctx.teamId, args.id, ctx.role, ctx.userId);
+
+    return true;
   },
 };
 

@@ -163,6 +163,8 @@ const NAV_LABEL_KEYS: Record<string, MessageKey> = {
   Initiatives: "nav.initiatives",
   Roadmap: "nav.roadmap",
   Timeline: "nav.timeline",
+  Calendar: "nav.calendar",
+  Dashboards: "nav.dashboards",
   Insights: "nav.insights",
   Releases: "nav.releases",
   Settings: "nav.settings",
@@ -491,6 +493,8 @@ export function AppSidebar({
     pathname.startsWith(`${base}/initiatives`) ||
     pathname.startsWith(`${base}/roadmap`) ||
     pathname.startsWith(`${base}/timeline`) ||
+    pathname.startsWith(`${base}/calendar`) ||
+    pathname.startsWith(`${base}/dashboards`) ||
     pathname.startsWith(`${base}/insights`) ||
     pathname.startsWith(`${base}/docs`) ||
     pathname.startsWith(`${base}/customers`) ||
@@ -596,6 +600,16 @@ export function AppSidebar({
       href: `${base}/timeline`,
       label: "Timeline",
       icon: CalendarDaysIcon,
+    },
+    {
+      href: `${base}/calendar`,
+      label: "Calendar",
+      icon: CalendarDaysIcon,
+    },
+    {
+      href: `${base}/dashboards`,
+      label: "Dashboards",
+      icon: ChartBarIcon,
     },
     {
       href: `${base}/insights`,

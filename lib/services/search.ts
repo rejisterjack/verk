@@ -1,7 +1,7 @@
 import type { Prisma } from "@/lib/generated/prisma/client";
 
 import { prisma } from "@/lib/db";
-import { guestIssueScope } from "@/lib/services/guest-scope";
+import { readableIssueScope } from "@/lib/services/guest-scope";
 import {
   isEmptyQuery,
   parseQuery,
@@ -114,9 +114,8 @@ export async function searchTeam(
   // ---- issues ---------------------------------------------------------------------------
   const issueWhere: Prisma.IssueWhereInput = { teamId, archivedAt: null };
   const and: Prisma.IssueWhereInput[] = [];
-  const guestScope = await guestIssueScope(teamId, opts.userId);
+  const guestScope = await readableIssueScope(teamId, opts.userId);
 
-  // A guest limited to some projects must not find anything outside them.
   if (guestScope) and.push(guestScope);
 
   for (const op of parsed.operators) {

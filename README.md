@@ -96,6 +96,10 @@ Seeded demo login: `demo@verk.dev` / `demo1234` · team slug `acme-engineering`
 2. Deploy to Vercel. The button asks for the four required variables: `DATABASE_URL`, `DIRECT_URL`, `AUTH_SECRET`, and `AUTH_URL`. Add GitHub, Resend, or Blob from `.env.example` only for those features.
 3. `vercel-build` runs `prisma migrate deploy` then `next build --webpack`.
 4. Sign in (or seed), confirm issues/board, point your domain.
+5. `GET /api/health` should return 200 once the app and database are up.
+6. Cron routes are `GET /api/cron/cycles` and `GET /api/cron/demo-reset`. Send `Authorization: Bearer $CRON_SECRET`. Without the secret they stay off (404).
+7. A private host is a normal deployment: sign-in is required and data stays in your database. `DEMO_MODE=true` is the public demo only. It resets on the demo cron and must not be set on a private host.
+8. Turn on Slack with `SLACK_SIGNING_SECRET` and `SLACK_BOT_TOKEN`, SCIM with `SCIM_TOKEN`, AI summaries and triage with `AI_API_KEY`, and git status with `GITHUB_WEBHOOK_SECRET` plus `GITLAB_WEBHOOK_SECRET`. Missing `AI_API_KEY` is a supported setup: summaries fall back to a keyword extract.
 
 ## Environment variables
 

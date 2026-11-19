@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { guestIssueScope } from "@/lib/services/guest-scope";
+import { guestIssueScope, readableIssueScope } from "@/lib/services/guest-scope";
 import {
   buildRoadmap,
   type InitiativeInput,
@@ -13,6 +13,7 @@ import {
  */
 export async function getRoadmap(teamId: string, userId?: string | null) {
   const scope = await guestIssueScope(teamId, userId);
+  const readScope = await readableIssueScope(teamId, userId);
   const allowed = scope ? (scope.projectId as { in: string[] }).in : null;
   const [initiatives, projects, counts] = await Promise.all([
     prisma.initiative.findMany({
@@ -27,7 +28,12 @@ export async function getRoadmap(teamId: string, userId?: string | null) {
       orderBy: { createdAt: "asc" },
     }),
     prisma.project.findMany({
-      where: { teamId, ...(allowed ? { id: { in: allowed } } : {}) },
+      where: {
+        OR: [
+          { teamId, ...(allowed ? { id: { in: allowed } } : {}) },
+          { contributors: { some: { teamId } } },
+        ],
+      },
       select: {
         id: true,
         name: true,
@@ -40,10 +46,15 @@ export async function getRoadmap(teamId: string, userId?: string | null) {
     prisma.issue.groupBy({
       by: ["projectId", "status"],
       where: {
-        teamId,
         archivedAt: null,
         projectId: { not: null },
-        ...(allowed ? { projectId: { in: allowed } } : {}),
+        project: {
+          OR: [
+            { teamId, ...(allowed ? { id: { in: allowed } } : {}) },
+            { contributors: { some: { teamId } } },
+          ],
+        },
+        ...(readScope ? { AND: [readScope] } : {}),
       },
       _count: { _all: true },
     }),

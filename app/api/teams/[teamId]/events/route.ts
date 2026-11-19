@@ -64,7 +64,7 @@ export async function GET(
           if (busy || closed) return; // never stack overlapping polls
           busy = true;
           void Promise.all([
-            syncIssues(teamId, since),
+            syncIssues(teamId, since, auth.user.id),
             prisma.comment.count({
               where: {
                 issue: { teamId },

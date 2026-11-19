@@ -41,6 +41,31 @@ export async function POST(request: Request) {
   } catch {
     return Response.json({ error: "Invalid JSON" }, { status: 400 });
   }
+  const gitlabEvent = request.headers.get("x-gitlab-event") ?? "";
+
+  if (gitlabEvent.toLowerCase().includes("pipeline")) {
+    const { recordGitStatus } = await import("@/lib/services/git-status");
+    const pipeline = event as MergeRequestPayload & {
+      object_attributes?: {
+        status?: string;
+        url?: string;
+        ref?: string;
+      };
+      commit?: { message?: string };
+    };
+
+    await recordGitStatus({
+      provider: "gitlab",
+      repo: event.project?.path_with_namespace ?? "",
+      text: pipeline.commit?.message,
+      url: pipeline.object_attributes?.url,
+      checkName: pipeline.object_attributes?.ref ?? "pipeline",
+      checkStatus: pipeline.object_attributes?.status ?? "",
+      checkUrl: pipeline.object_attributes?.url ?? "",
+    });
+
+    return Response.json({ ok: true });
+  }
   const action = classifyMergeRequest(event);
   const project = event.project?.path_with_namespace;
 

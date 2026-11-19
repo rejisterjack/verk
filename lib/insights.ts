@@ -14,6 +14,8 @@ export const MEASURES = [
     label: "Average time from start to finish",
     unit: "days",
   },
+  { id: "cfd", label: "Cumulative flow", unit: "issues" },
+  { id: "cycle_time", label: "Cycle time distribution", unit: "days" },
 ] as const;
 
 export const DIMENSIONS = [
@@ -143,6 +145,9 @@ function contribution(
             (row.completedAt.getTime() - row.startedAt.getTime()) / DAY,
           )
         : null;
+    case "cfd":
+    case "cycle_time":
+      return null;
   }
 }
 

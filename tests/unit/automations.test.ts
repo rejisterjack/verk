@@ -55,7 +55,7 @@ describe("automationInputSchema", () => {
     expect(parsed.name).toBe("Close stale");
   });
 
-  it("needs a known trigger, a name, and between 1 and 5 actions", () => {
+  it("needs a known trigger, a name, and actions inside the cap", () => {
     expect(automationInputSchema.safeParse({ ...base, trigger: "issue.deleted" }).success).toBe(false);
     expect(automationInputSchema.safeParse({ ...base, name: "   " }).success).toBe(false);
     expect(automationInputSchema.safeParse({ ...base, actions: [] }).success).toBe(false);
@@ -80,8 +80,11 @@ describe("parseActions", () => {
     ).toEqual([{ type: "set_priority", priority: "LOW" }]);
   });
 
-  it("caps the list at five and tolerates non-arrays", () => {
-    const many = Array.from({ length: 9 }, () => ({ type: "notify", userId: "u" }));
+  it("caps the list and tolerates non-arrays", () => {
+    const many = Array.from({ length: MAX_ACTIONS + 2 }, () => ({
+      type: "notify",
+      userId: "u",
+    }));
 
     expect(parseActions(many)).toHaveLength(MAX_ACTIONS);
     expect(parseActions(null)).toEqual([]);

@@ -21,6 +21,12 @@ type Link = {
   url: string;
   title?: string;
   description?: string;
+  checkName?: string;
+  checkStatus?: string;
+  checkUrl?: string;
+  deployEnvironment?: string;
+  deployStatus?: string;
+  deployUrl?: string;
 };
 
 export function IssueLinks({
@@ -73,6 +79,16 @@ export function IssueLinks({
                 </p>
                 {link.description ? (
                   <p className="text-[12px] text-muted">{link.description}</p>
+                ) : null}
+                {link.checkStatus ? (
+                  <p className="text-[12px] text-muted">
+                    Check {link.checkName}: {link.checkStatus}
+                  </p>
+                ) : null}
+                {link.deployStatus ? (
+                  <p className="text-[12px] text-muted">
+                    Deploy {link.deployEnvironment}: {link.deployStatus}
+                  </p>
                 ) : null}
               </a>
               <Button

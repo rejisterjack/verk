@@ -85,7 +85,9 @@ export function createVerkMcpServer(ctx: McpContext) {
       } else if (args.number) {
         issue = await issuesService.getIssueByNumber(ctx.teamId, args.number);
       }
-      if (!issue) {
+      const { canSeeIssue } = await import("@/lib/services/guest-scope");
+
+      if (!issue || !(await canSeeIssue(ctx.teamId, ctx.userId, issue))) {
         return {
           content: [{ type: "text", text: "Issue not found" }],
           isError: true,

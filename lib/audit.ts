@@ -32,6 +32,7 @@ export const AUDIT_ACTIONS = {
   "agent_claim.released": "Took an issue back from a coding agent",
   "passkey.added": "Added a passkey",
   "passkey.removed": "Removed a passkey",
+  "issue.restricted": "Restricted who can see an issue",
 } as const;
 
 export type AuditAction = keyof typeof AUDIT_ACTIONS;

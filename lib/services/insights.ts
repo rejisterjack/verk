@@ -9,7 +9,7 @@ import {
   type MeasureId,
   total,
 } from "@/lib/insights";
-import { guestIssueScope } from "@/lib/services/guest-scope";
+import { readableIssueScope } from "@/lib/services/guest-scope";
 
 /** Hard cap so a huge team can't turn one chart into a table scan of everything. */
 export const INSIGHT_ROW_LIMIT = 20_000;
@@ -29,7 +29,7 @@ export async function runInsight(
   },
 ) {
   const and: Prisma.IssueWhereInput[] = [];
-  const scope = await guestIssueScope(teamId, userId);
+  const scope = await readableIssueScope(teamId, userId);
 
   if (scope) and.push(scope);
   if (
@@ -37,7 +37,13 @@ export async function runInsight(
     query.filter !== null &&
     query.filter !== ""
   ) {
-    const compiled = compileFilter(parseFilter(query.filter), { userId });
+    const { parseIssueQuery } = await import("@/lib/issue-query");
+    const compiled = compileFilter(
+      typeof query.filter === "string"
+        ? parseIssueQuery(query.filter)
+        : parseFilter(query.filter),
+      { userId },
+    );
 
     if (Object.keys(compiled).length) and.push(compiled);
   }

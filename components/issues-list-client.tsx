@@ -105,11 +105,14 @@ export function IssuesListClient({
   groupBy = "none",
   sortBy = "manual",
   projectNames = {},
+  keepServerList = false,
 }: {
   /** Group headers and sort order for the loaded rows (kept in the URL). */
   groupBy?: GroupBy;
   sortBy?: SortBy;
   projectNames?: Record<string, string>;
+  /** A text query was applied on the server. The local cache cannot replay it. */
+  keepServerList?: boolean;
   /** Showing the archive: no offline cache, restore instead of archive. */
   archived?: boolean;
   readOnly?: boolean;
@@ -275,7 +278,7 @@ export function IssuesListClient({
 
   useEffect(() => {
     // The offline cache only holds live issues. Never let it overwrite the archive list.
-    if (archived || !isOfflineEnabled()) return;
+    if (archived || keepServerList || !isOfflineEnabled()) return;
 
     void upsertTeam({ id: teamId, slug: teamSlug, name: teamName });
     let cancelled = false;
@@ -334,7 +337,7 @@ export function IssuesListClient({
       cancelled = true;
       unsub();
     };
-  }, [teamId, teamSlug, teamName, initialIssues, filters, archived]);
+  }, [teamId, teamSlug, teamName, initialIssues, filters, archived, keepServerList]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {

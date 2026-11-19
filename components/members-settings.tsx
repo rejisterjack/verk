@@ -52,9 +52,10 @@ export function MembersSettings({
           className="flex flex-wrap items-end gap-2 rounded-xl border border-separator p-4"
           onSubmit={async (e) => {
             e.preventDefault();
+            const form = e.currentTarget;
             setMessage(null);
             setInviteUrl(null);
-            const formData = new FormData(e.currentTarget);
+            const formData = new FormData(form);
             const result = await inviteMemberAction(teamSlug, formData);
 
             if (result.error) {
@@ -68,7 +69,7 @@ export function MembersSettings({
                 ? "Invite emailed. Link below if you want to share it too."
                 : `Invite created. ${result.emailError ?? "Email not sent — copy the magic link below."}`,
             );
-            e.currentTarget.reset();
+            form.reset();
           }}
         >
           <TextField
@@ -87,6 +88,7 @@ export function MembersSettings({
             options={[
               { id: "MEMBER", label: "Member" },
               { id: "ADMIN", label: "Admin" },
+              { id: "GUEST", label: "Guest" },
             ]}
           />
           <Button type="submit">Invite</Button>

@@ -3,7 +3,6 @@
 import {
   Button,
   FieldError,
-  Form,
   Input,
   Label,
   TextField,
@@ -42,6 +41,10 @@ export function LoginForm({
   oidcEnabled,
   samlEnabled,
   samlError,
+  askForCode = false,
+  initialEmail = "",
+  credentialsError = false,
+  throttled = false,
 }: {
   callbackUrl?: string;
   demoMode?: boolean;
@@ -52,10 +55,20 @@ export function LoginForm({
   oidcEnabled?: boolean;
   samlEnabled?: boolean;
   samlError?: string;
+  askForCode?: boolean;
+  initialEmail?: string;
+  credentialsError?: boolean;
+  throttled?: boolean;
 }) {
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    throttled
+      ? "Too many attempts. Try again shortly."
+      : credentialsError
+        ? "Invalid email or password"
+        : null,
+  );
   const [pending, setPending] = useState(false);
-  const [needsCode, setNeedsCode] = useState(false);
+  const [needsCode, setNeedsCode] = useState(askForCode);
 
   return (
     <div className="mx-auto w-full max-w-[420px]">
@@ -110,29 +123,37 @@ export function LoginForm({
         ) : null}
 
         {privateHost ? null : (
-          <Form
+          <form
+            action="/api/auth/password"
             className="mt-6 flex flex-col gap-4"
-            onSubmit={async (e) => {
-              e.preventDefault();
+            method="post"
+            onSubmit={(event) => {
+              event.preventDefault();
               setPending(true);
               setError(null);
-              const formData = new FormData(e.currentTarget);
+              const formData = new FormData(event.currentTarget);
 
               formData.set("callbackUrl", callbackUrl);
-              const result = await loginAction(formData);
-
-              if (result && "needsCode" in result && result.needsCode) {
-                setNeedsCode(true);
-              }
-              if (result && "error" in result && result.error) {
-                setError(result.error);
-              }
-              setPending(false);
+              void loginAction(formData).then((result) => {
+                if (result && "needsCode" in result && result.needsCode) {
+                  setNeedsCode(true);
+                }
+                if (result && "error" in result && result.error) {
+                  setError(result.error);
+                }
+                setPending(false);
+              });
             }}
           >
+            <input name="callbackUrl" type="hidden" value={callbackUrl} />
             {/* Email and password stay in the form (hidden) while the code is asked for. */}
             <div className={needsCode ? "hidden" : "contents"}>
-              <TextField isRequired name="email" type="email">
+              <TextField
+                defaultValue={initialEmail}
+                isRequired
+                name="email"
+                type="email"
+              >
                 <Label>Email</Label>
                 <Input placeholder="you@company.com" />
                 <FieldError />
@@ -157,10 +178,14 @@ export function LoginForm({
               </TextField>
             ) : null}
             {error ? <p className="text-danger text-sm">{error}</p> : null}
-            <Button className="h-11 w-full" isDisabled={pending} type="submit">
+            <button
+              className="h-11 w-full rounded-xl bg-accent text-sm font-medium text-accent-foreground disabled:opacity-60"
+              disabled={pending}
+              type="submit"
+            >
               {pending ? "Signing in…" : needsCode ? "Verify" : "Sign in"}
-            </Button>
-          </Form>
+            </button>
+          </form>
         )}
 
         {!privateHost && githubEnabled ? (
@@ -274,8 +299,9 @@ export function RegisterForm({ githubEnabled }: { githubEnabled: boolean }) {
           </p>
         </div>
 
-        <Form
+        <form
           className="mt-6 flex flex-col gap-4"
+          method="post"
           onSubmit={async (e) => {
             e.preventDefault();
             setPending(true);
@@ -306,7 +332,7 @@ export function RegisterForm({ githubEnabled }: { githubEnabled: boolean }) {
           <Button className="h-11 w-full" isDisabled={pending} type="submit">
             {pending ? "Creating…" : "Create account"}
           </Button>
-        </Form>
+        </form>
 
         {githubEnabled ? (
           <>
