@@ -17,6 +17,9 @@ const withSerwist = withSerwistInit({
 const nextConfig = {
   poweredByHeader: false,
   turbopack: {},
+  experimental: {
+    agentUpgrade: "security",
+  },
   async headers() {
     return [
       {
