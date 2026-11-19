@@ -24,13 +24,23 @@ export async function POST(request: Request) {
     return NextResponse.redirect(loginUrl, 303);
   }
 
-  const formData = await request.formData();
+  let formData: FormData;
+
+  try {
+    formData = await request.formData();
+  } catch {
+    loginUrl.searchParams.set("error", "CredentialsSignin");
+
+    return NextResponse.redirect(loginUrl, 303);
+  }
   const email = String(formData.get("email") ?? "")
     .toLowerCase()
     .trim();
   const password = String(formData.get("password") ?? "");
   const code = String(formData.get("code") ?? "").trim();
-  const callbackUrl = safeCallbackPath(String(formData.get("callbackUrl") ?? ""));
+  const callbackUrl = safeCallbackPath(
+    String(formData.get("callbackUrl") ?? ""),
+  );
 
   if (!code) {
     const user = await prisma.user.findUnique({ where: { email } });
