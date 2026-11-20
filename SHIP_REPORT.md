@@ -128,7 +128,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | API-07 | VS Code extension | P2 | NOT STARTED |  |  |  | Sign in with a key and create an issue |
 | SET-01 | Workflow statuses | P1 | PASSED | 1 | 1 | 0 | Statuses showed 0 issues because seeded issues had no workflow status. Counts now read 6, 6, 4, 3, and 1. |
 | SET-02 | Automations | P1 | PASSED | 0 | 0 | 0 | Created a rule that sets priority when an issue is created, then deleted it. |
-| SET-03 | Audit log, export, and retention | P1 | NOT STARTED |  |  |  | Admin log of sensitive changes. Daily prune. |
+| SET-03 | Audit log, export, and retention | P1 | PASSED | 1 | 1 | 0 | The log lists invites, keys, automations, and the CSV export. Creating a key stored the actor as Unknown when only an id was passed. New rows now show Demo User. |
 | SET-04 | Appearance | P1 | PASSED | 0 | 0 | 0 | Dark theme turns the account page to ink on a dark surface and stays readable. Light restores it. Language, accent, and density controls are on the same page. |
 | SET-05 | Locales | P1 | PASSED | 0 | 0 | 0 | Deutsch switched the language heading to Sprache and the sidebar to German. |
 | SET-06 | In-app API reference | P2 | NOT STARTED |  |  |  | Settings → API describes the key and the routes |
@@ -8531,7 +8531,7 @@ Admins create rules: when an issue is created, changes status, is assigned, chan
 - **ID:** SET-03
 - **Name:** Audit log, export, and retention
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 

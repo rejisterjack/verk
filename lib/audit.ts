@@ -124,11 +124,22 @@ export async function recordUserAudit(
  */
 export async function recordAudit(event: AuditEvent): Promise<void> {
   try {
+    let actor = event.actor;
+
+    if (actor?.id && !actor.name && !actor.email) {
+      const user = await prisma.user.findUnique({
+        where: { id: actor.id },
+        select: { id: true, name: true, email: true },
+      });
+
+      if (user) actor = user;
+    }
+
     await prisma.auditLog.create({
       data: {
         teamId: event.teamId,
-        actorId: event.actor?.id ?? null,
-        actorLabel: actorLabel(event.actor).slice(0, 120),
+        actorId: actor?.id ?? null,
+        actorLabel: actorLabel(actor).slice(0, 120),
         action: event.action,
         targetType: event.targetType ?? "",
         targetId: event.targetId ?? null,
