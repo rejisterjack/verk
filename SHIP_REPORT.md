@@ -98,7 +98,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | PLAN-14 | Dashboards | PASSED | 1 | 1 | 0 | Creating Ship check board saved it but the list stayed blank until reload. Create now refreshes, and Delete removes the board. | Personal dashboards and widgets |
 | PLAN-15 | Insights | P1 | PASSED | 1 | 1 | 0 | Created 20 and completed 3 match the team. The flow chart ended the day before issues existed, so every row was zero. It now includes today and shows 6, 6, 4, 3, 1. |
 | PLAN-16 | Insight builder and saved reports | P1 | PASSED | 0 | 0 | 0 | The builder grouped 20 issues by status. Saving Ship check report listed it, and delete removed it. Build a query, keep it private or share it |
-| PLAN-17 | Public Ask form | P1 | NOT STARTED |  |  |  | Token URL that files a triage issue. Honeypot and rate limits. |
+| PLAN-17 | Public Ask form | P1 | PASSED | 0 | 0 | 0 | Create a link showed a public /ask URL. Sending Ship check ask filed ACM-24, which was then deleted. Turn off made the same URL a 404. Token URL that files a triage issue. Honeypot and rate limits. |
 | PLAN-18 | Signed-in intake form | P2 | PASSED | 0 | 0 | 0 | Intake created ACM-23 titled Ship check intake and opened that issue. Delete removed it. In-app intake plus POST /api/teams/{id}/intake |
 | INBOX-01 | Inbox | P1 | PASSED | 0 | 0 | 0 | Two notifications. Mark read dropped the badge from 2 to 1. |
 | INBOX-02 | Notification preferences | P1 | PASSED | 0 | 0 | 0 | Unchecking Assigned to you saved, and checking it again restored it. The other four types stayed on. |
@@ -131,7 +131,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | SET-03 | Audit log, export, and retention | P1 | PASSED | 1 | 1 | 0 | The log lists invites, keys, automations, and the CSV export. Creating a key stored the actor as Unknown when only an id was passed. New rows now show Demo User. |
 | SET-04 | Appearance | P1 | PASSED | 0 | 0 | 0 | Dark theme turns the account page to ink on a dark surface and stays readable. Light restores it. Language, accent, and density controls are on the same page. |
 | SET-05 | Locales | P1 | PASSED | 0 | 0 | 0 | Deutsch switched the language heading to Sprache and the sidebar to German. |
-| SET-06 | In-app API reference | P2 | NOT STARTED |  |  |  | Settings → API describes the key and the routes |
+| SET-06 | In-app API reference | P2 | PASSED | 0 | 0 | 0 | Settings API lists the REST groups, Bearer verk_ keys, POST /api/agent, and webhook events. No key secret is on the page. Settings → API describes the key and the routes |
 | SEC-02 | Shared rate limiter | P1 | NOT STARTED |  |  |  | Postgres buckets, fail-open to memory |
 | OBS-01 | Application error page | P1 | NOT STARTED |  |  |  | app/error.tsx reset control |
 | OBS-02 | Not-found page | P1 | PASSED | 0 | 0 | 0 | An unknown address shows This page isn't here, with links to teams and home. Title is Page Not Found - Verk. |
@@ -6313,7 +6313,7 @@ The builder takes a filter and a grouping and shows the count. A member can save
 - **ID:** PLAN-17
 - **Name:** Public Ask form
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -8754,7 +8754,7 @@ The locale is a cookie, or Accept-Language on the first visit. The html lang att
 - **ID:** SET-06
 - **Name:** In-app API reference
 - **Priority:** P2
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
