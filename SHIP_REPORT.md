@@ -22,7 +22,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | API-01 | Health check | P0 | PASSED | 0 | 0 | 0 | 200 when Postgres is up, 503 when it is stopped, then 200 again. Body is ok, status, demo, latencyMs. Query string is ignored. |
 | SEC-01 | Security headers and content security policy | P0 | PASSED | 1 | 1 | 0 | Dev responses omit HSTS so localhost HTTP is not cached as HTTPS-only. Production still sends the one-year preload header. A foreign script host is blocked. |
 | AUTH-01 | Email and password registration | P0 | PASSED | 1 | 1 | 0 | A blank name is rejected. A new account lands on Create your team. Demo and private hosts send /register back to login and create nothing. |
-| AUTH-02 | Password login and session | P0 | NOT STARTED |  |  |  | Credentials login and a JWT session. The second factor is asked only after the password is right. |
+| AUTH-02 | Password login and session | P0 | PASSED | 1 | 1 | 0 | Uppercase email signs in and follows a same-site callback. Wrong, empty, and disabled attempts stay on login with CredentialsSignin. An external callback is ignored. A stale session cookie no longer crashes the error overlay. |
 | GAP-01 | Password reset | P0 | NOT STARTED |  |  |  | BUILD. No reset flow. A forgotten password cannot be recovered. |
 | GAP-02 | Change password | P1 | NOT STARTED |  |  |  | BUILD. Nothing writes a new password hash. |
 | GAP-03 | Email verification | P1 | NOT STARTED |  |  |  | BUILD. Password signup never sets emailVerified. |
@@ -746,7 +746,7 @@ The register page posts a name, email, and password. registerAction rejects sign
 - **ID:** AUTH-02
 - **Name:** Password login and session
 - **Priority:** P0
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -763,11 +763,11 @@ Login accepts email and password. The password is checked with bcrypt. A wrong p
 
 ### Acceptance criteria
 
-- [ ] Right password and no 2FA creates a session and follows a same-site callback path.
-- [ ] Wrong, empty, or unknown email stays on login with CredentialsSignin and no password in the location.
-- [ ] An external callbackUrl is ignored.
-- [ ] A non-form body does not 500; it redirects as a failed login.
-- [ ] A disabled user cannot sign in.
+- [x] Right password and no 2FA creates a session and follows a same-site callback path.
+- [x] Wrong, empty, or unknown email stays on login with CredentialsSignin and no password in the location.
+- [x] An external callbackUrl is ignored.
+- [x] A non-form body does not 500; it redirects as a failed login.
+- [x] A disabled user cannot sign in.
 
 ### Test cases
 
@@ -811,11 +811,11 @@ Login accepts email and password. The password is checked with bcrypt. A wrong p
 
 ### Results
 
-- Bugs Found:
-- Bugs Fixed:
-- UI Issues Fixed:
-- Files Changed:
-- Notes:
+- Bugs Found: 1
+- Bugs Fixed: 1
+- UI Issues Fixed: 0
+- Files Changed: `lib/auth.ts`, `lib/auth-errors.ts`, `tests/unit/auth-errors.test.ts`
+- Notes: DEMO@verk.dev with the right password followed callbackUrl /t/acme-engineering/issues and opened the issue list. A SQL-looking email, a script password, an empty JSON body, and a 200-character password each returned 303 to /login?error=CredentialsSignin with no password in the location. callbackUrl https://evil.example/steal was not followed. A disabled user with the demo password got the same CredentialsSignin redirect. A cookie sealed with an older AUTH_SECRET used to throw JWTSessionError into the Next overlay on public pages. Auth.js now ignores only that stale-session error. The login card matches the register card, which held together in light and dark and at 360, 768, 1024, and 1440. The demo user has no second factor, so the email-in-the-query path was not exercised.
 
 ## GAP-01 Password reset
 

@@ -8,6 +8,7 @@ import GitHub from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
 
 import { isPrivateHost } from "@/lib/auth-allowlist";
+import { isStaleSessionError } from "@/lib/auth-errors";
 import { authConfig } from "@/lib/auth.config";
 import { prisma } from "@/lib/db";
 import { rateLimitShared } from "@/lib/rate-limit";
@@ -206,4 +207,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   providers,
   trustHost: true,
+  logger: {
+    error(error) {
+      if (isStaleSessionError(error)) return;
+      console.error("[auth][error]", error);
+    },
+  },
 });
