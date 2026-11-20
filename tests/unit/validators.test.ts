@@ -5,6 +5,7 @@ import {
   createIssueSchema,
   inviteSchema,
   listIssuesQuerySchema,
+  registerSchema,
 } from "@/lib/validators";
 
 describe("validators", () => {
@@ -30,6 +31,37 @@ describe("validators", () => {
       endDate: "2026-01-01",
     });
     expect(result.success).toBe(false);
+  });
+
+  it("trims a registration name and rejects a blank one", () => {
+    expect(
+      registerSchema.parse({
+        name: "  Ada  ",
+        email: " Ada@Example.com ",
+        password: "password1",
+      }),
+    ).toMatchObject({ name: "Ada", email: "Ada@Example.com" });
+    expect(
+      registerSchema.safeParse({
+        name: "   ",
+        email: "ada@example.com",
+        password: "password1",
+      }).success,
+    ).toBe(false);
+    expect(
+      registerSchema.safeParse({
+        name: "Ada",
+        email: "not-an-email",
+        password: "short",
+      }).success,
+    ).toBe(false);
+    expect(
+      registerSchema.safeParse({
+        name: "Ada",
+        email: "ada@example.com",
+        password: "a".repeat(129),
+      }).success,
+    ).toBe(false);
   });
 
   it("defaults invite role to MEMBER", () => {

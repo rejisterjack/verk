@@ -21,7 +21,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | DEVOPS-03 | GitHub Actions CI | P1 | PASSED | 0 | 0 | 0 | Workflow runs lint, tsc, vitest, and next build. E2E only when DATABASE_URL is set. Local tsc, vitest 651, and the production build passed. |
 | API-01 | Health check | P0 | PASSED | 0 | 0 | 0 | 200 when Postgres is up, 503 when it is stopped, then 200 again. Body is ok, status, demo, latencyMs. Query string is ignored. |
 | SEC-01 | Security headers and content security policy | P0 | PASSED | 1 | 1 | 0 | Dev responses omit HSTS so localhost HTTP is not cached as HTTPS-only. Production still sends the one-year preload header. A foreign script host is blocked. |
-| AUTH-01 | Email and password registration | P0 | NOT STARTED |  |  |  | Password signup, then onboarding. Off on the demo and on a private host. |
+| AUTH-01 | Email and password registration | P0 | PASSED | 1 | 1 | 0 | A blank name is rejected. A new account lands on Create your team. Demo and private hosts send /register back to login and create nothing. |
 | AUTH-02 | Password login and session | P0 | NOT STARTED |  |  |  | Credentials login and a JWT session. The second factor is asked only after the password is right. |
 | GAP-01 | Password reset | P0 | NOT STARTED |  |  |  | BUILD. No reset flow. A forgotten password cannot be recovered. |
 | GAP-02 | Change password | P1 | NOT STARTED |  |  |  | BUILD. Nothing writes a new password hash. |
@@ -672,7 +672,7 @@ Every path gets X-Frame-Options DENY, X-Content-Type-Options nosniff, Referrer-P
 - **ID:** AUTH-01
 - **Name:** Email and password registration
 - **Priority:** P0
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -687,11 +687,11 @@ The register page posts a name, email, and password. registerAction rejects sign
 
 ### Acceptance criteria
 
-- [ ] A new email and an 8-character password creates a user and lands on Create your team.
-- [ ] Demo mode returns the demo-login error and creates nothing.
-- [ ] A private host returns the deploy-your-own error and creates nothing.
-- [ ] A duplicate email returns An account with this email already exists and does not change the hash.
-- [ ] A password shorter than 8 or a bad email returns Invalid registration details.
+- [x] A new email and an 8-character password creates a user and lands on Create your team.
+- [x] Demo mode returns the demo-login error and creates nothing.
+- [x] A private host returns the deploy-your-own error and creates nothing.
+- [x] A duplicate email returns An account with this email already exists and does not change the hash.
+- [x] A password shorter than 8 or a bad email returns Invalid registration details.
 
 ### Test cases
 
@@ -735,11 +735,11 @@ The register page posts a name, email, and password. registerAction rejects sign
 
 ### Results
 
-- Bugs Found:
-- Bugs Fixed:
-- UI Issues Fixed:
-- Files Changed:
-- Notes:
+- Bugs Found: 1
+- Bugs Fixed: 1
+- UI Issues Fixed: 0
+- Files Changed: `lib/validators/index.ts`, `tests/unit/validators.test.ts`
+- Notes: A whitespace name used to create a user and open onboarding. The register schema now trims the name and email and rejects a blank name. Retest showed Invalid registration details and no row. A new address with an 8-character password, a plus-tag email, an emoji and CJK name, a script name, and a 100-character name each created one user and opened Create your team. The script name rendered as text on the account page. A quoted SQL email was rejected by the field. A duplicate email returned the exists message and left the bcrypt hash unchanged. Two submits of the same new email created one row. The 27th further attempt in the same minute returned Too many attempts. With DEMO_MODE true, /register redirected to /login and showed the demo credentials. With AUTH_ALLOWED_GITHUB set, /register redirected to /login and showed that the host is private. Both were restored afterward. The test users were deleted. Light and dark, and widths 360, 768, 1024, and 1440, kept the card on screen with no horizontal scroll. tsc and 655 tests passed.
 
 ## AUTH-02 Password login and session
 

@@ -17,8 +17,8 @@ export const prioritySchema = z.enum([
 ]);
 
 export const registerSchema = z.object({
-  name: z.string().min(1).max(100),
-  email: z.string().email(),
+  name: z.string().trim().min(1).max(100),
+  email: z.string().trim().email(),
   password: z.string().min(8).max(128),
 });
 
