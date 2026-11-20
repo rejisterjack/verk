@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import NextLink from "next/link";
 
 import { AppearanceSettings } from "@/components/appearance-settings";
+import { ChangePasswordForm } from "@/components/change-password-form";
 import { PasskeySettings } from "@/components/passkey-settings";
 import { PrivacySettings } from "@/components/privacy-settings";
 import { TwoFactorSettings } from "@/components/two-factor-settings";
@@ -61,6 +62,11 @@ export default async function AccountPage() {
               .filter(Boolean)
               .join(", ") || "—"}
           </p>
+        </div>
+
+        <div className="space-y-2">
+          <h2 className="font-semibold">Password</h2>
+          <ChangePasswordForm hasPassword={Boolean(user.passwordHash)} />
         </div>
 
         <div className="space-y-2">

@@ -24,7 +24,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | AUTH-01 | Email and password registration | P0 | PASSED | 1 | 1 | 0 | A blank name is rejected. A new account lands on Create your team. Demo and private hosts send /register back to login and create nothing. |
 | AUTH-02 | Password login and session | P0 | PASSED | 1 | 1 | 0 | Uppercase email signs in and follows a same-site callback. Wrong, empty, and disabled attempts stay on login with CredentialsSignin. An external callback is ignored. A stale session cookie no longer crashes the error overlay. |
 | GAP-01 | Password reset | P0 | PASSED | 1 | 1 | 0 | A forgotten password can be replaced from a one-time link. The link expires and cannot be reused. Without Resend the page says email could not be sent and does not show the token. |
-| GAP-02 | Change password | P1 | NOT STARTED |  |  |  | BUILD. Nothing writes a new password hash. |
+| GAP-02 | Change password | P1 | PASSED | 1 | 1 | 0 | The account page replaces the current password. A wrong current password changes nothing. An account with no password shows that there is nothing to change. |
 | GAP-03 | Email verification | P1 | NOT STARTED |  |  |  | BUILD. Password signup never sets emailVerified. |
 | AUTH-03 | Logout | P0 | PASSED | 0 | 0 | 0 | Sidebar and account sign-out both land on /. The next team URL redirects to login. The marketing page has no sign-out control. |
 | AUTH-04 | Signed-out and non-member protection | P0 | NOT STARTED |  |  |  | Team, workspace, account, and onboarding require a session. Unknown teams 404. |
@@ -894,7 +894,7 @@ A person who forgets the password cannot recover it. VerificationToken exists on
 - **ID:** GAP-02
 - **Name:** Change password
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -907,11 +907,11 @@ The account page lists password as a sign-in method when passwordHash is set. Pr
 
 ### Acceptance criteria
 
-- [ ] The signed-in user enters the current password and a new one.
-- [ ] Wrong current password changes nothing.
-- [ ] The new password is 8–128 characters and is stored as a bcrypt hash.
-- [ ] OAuth-only accounts without a hash get a clear message instead of a broken form.
-- [ ] Other sessions stop working after the change.
+- [x] The signed-in user enters the current password and a new one.
+- [x] Wrong current password changes nothing.
+- [x] The new password is 8–128 characters and is stored as a bcrypt hash.
+- [x] OAuth-only accounts without a hash get a clear message instead of a broken form.
+- [x] Other sessions stop working after the change.
 
 ### Test cases
 
@@ -955,11 +955,11 @@ The account page lists password as a sign-in method when passwordHash is set. Pr
 
 ### Results
 
-- Bugs Found:
-- Bugs Fixed:
-- UI Issues Fixed:
-- Files Changed:
-- Notes:
+- Bugs Found: 1
+- Bugs Fixed: 1
+- UI Issues Fixed: 0
+- Files Changed: `app/account/page.tsx`, `components/change-password-form.tsx`, `lib/actions/password.ts`
+- Notes: The account page had no way to write a new hash. It now has current and new password fields. A wrong current password returned "Current password is wrong" and left the old hash working. A 7-character password was rejected. "rotated11" replaced it: the old password then returned CredentialsSignin, the new one reached /onboarding, and the previous session was sent back to /login. With the hash removed, the section said there is no password and to use the provider. Logged-out /account redirects to /login. The test user was deleted. tsc and 656 tests passed.
 
 ## GAP-03 Email verification
 
