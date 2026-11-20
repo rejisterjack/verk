@@ -86,7 +86,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | PLAN-02 | Cycle analytics and capacity | P1 | PASSED | 0 | 0 | 0 | Cycle 1 shows 3/11 done, a burndown section, assignee split, and per-person capacity. Points are 0 because the seeded issues have no estimates. |
 | PLAN-03 | Projects and milestones | P1 | PASSED | 0 | 0 | 0 | Launch Verk shows 29 percent, 7 issues, the Public demo milestone, and a lead. |
 | PLAN-04 | Project updates and contributing teams | P2 | PASSED | 0 | 0 | 0 | Posting an update put Ship check update on the project timeline. The row was removed afterward. |
-| PLAN-05 | Project dependencies | P1 | NOT STARTED |  |  |  | Depends-on and blocks. Loops refused. Roadmap warns. |
+| PLAN-05 | Project dependencies | P1 | PASSED | 0 | 0 | 0 | Ship check dep depended on Launch Verk, and Launch Verk listed it under Blocks. A reverse link was refused and the list stayed empty. The extra project was deleted, and Launch Verk is unchanged. Depends-on and blocks. Loops refused. Roadmap warns. |
 | PLAN-06 | Initiatives and key results | PASSED | 0 | 0 | 0 | Created Ship check initiative with health, a key-result form, and a document form. Delete returned the empty state. | Initiatives, health, parent, key results |
 | PLAN-07 | Roadmap | P1 | PASSED | 0 | 0 | 0 | Roadmap shows Launch Verk at 2 of 7, 29 percent, On track, with week nudge buttons. |
 | PLAN-08 | Timeline | P1 | PASSED | 0 | 0 | 0 | The timeline shows Cycle 1 and Cycle 2 across month, quarter, and year, and notes the project has no dates. |
@@ -5433,7 +5433,7 @@ A project can have written updates (ProjectUpdate) and contributing teams (Proje
 - **ID:** PLAN-05
 - **Name:** Project dependencies
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
