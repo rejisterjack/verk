@@ -79,3 +79,29 @@ export async function sendInviteEmail(opts: {
     };
   }
 }
+
+export async function sendPasswordResetEmail(opts: {
+  to: string;
+  resetUrl: string;
+}): Promise<{ sent: boolean }> {
+  const apiKey = process.env.RESEND_API_KEY;
+
+  if (!apiKey) return { sent: false };
+
+  const resend = new Resend(apiKey);
+  const from = process.env.EMAIL_FROM ?? "Verk <onboarding@resend.dev>";
+
+  try {
+    await resend.emails.send({
+      from,
+      to: opts.to,
+      subject: "Reset your Verk password",
+      text: `Set a new password: ${opts.resetUrl}\n\nThis link expires in 30 minutes and works once.`,
+      html: `<p><a href="${escapeHtml(opts.resetUrl)}">Set a new password</a></p><p>This link expires in 30 minutes and works once.</p>`,
+    });
+
+    return { sent: true };
+  } catch {
+    return { sent: false };
+  }
+}

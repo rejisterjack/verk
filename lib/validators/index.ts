@@ -27,6 +27,14 @@ export const loginSchema = z.object({
   password: z.string().min(1),
 });
 
+export const passwordResetRequestSchema = z.object({
+  email: z.string().trim().email(),
+});
+
+export const passwordResetSchema = z.object({
+  password: z.string().min(8).max(128),
+});
+
 export const createTeamSchema = z.object({
   name: z.string().min(1).max(80),
   slug: z

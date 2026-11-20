@@ -163,6 +163,14 @@ export function LoginForm({
                 <Input placeholder="••••••••" />
                 <FieldError />
               </TextField>
+              {privateHost || demoMode ? null : (
+                <NextLink
+                  className="text-sm text-accent underline"
+                  href="/forgot"
+                >
+                  Forgot password?
+                </NextLink>
+              )}
             </div>
             {needsCode ? (
               <TextField isRequired name="code">

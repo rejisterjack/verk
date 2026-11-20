@@ -10,6 +10,16 @@ export async function isUserActive(userId: string): Promise<boolean> {
   return Boolean(user) && !user!.disabled;
 }
 
+/** ISO time of the last password change, or "" when the password has never been rotated. */
+export async function getPasswordStamp(userId: string): Promise<string> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { passwordChangedAt: true },
+  });
+
+  return user?.passwordChangedAt ? user.passwordChangedAt.toISOString() : "";
+}
+
 /** True only when a user with this email exists and is disabled. Unknown emails are allowed (new sign-up). */
 export async function isEmailDisabled(
   email: string | null | undefined,

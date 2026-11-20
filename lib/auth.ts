@@ -18,7 +18,11 @@ import {
   isTwoFactorEnabled,
   verifySecondFactor,
 } from "@/lib/services/two-factor";
-import { isEmailDisabled, isUserActive } from "@/lib/user-status";
+import {
+  isEmailDisabled,
+  isUserActive,
+  getPasswordStamp,
+} from "@/lib/user-status";
 import { loginSchema } from "@/lib/validators";
 
 const providers: Provider[] = [
@@ -197,9 +201,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt(params) {
       const token = await authConfig.callbacks.jwt(params);
 
-      if (typeof token?.id === "string" && !(await isUserActive(token.id))) {
-        return null;
+      if (typeof token?.id !== "string") return token;
+      if (!(await isUserActive(token.id))) return null;
+
+      const stamp = await getPasswordStamp(token.id);
+
+      // A new sign-in records the current stamp. An older JWT ends once the password changes.
+      if (params.user) {
+        token.passwordChangedAt = stamp;
+
+        return token;
       }
+
+      const issued =
+        typeof token.passwordChangedAt === "string"
+          ? token.passwordChangedAt
+          : "";
+
+      if (issued !== stamp) return null;
 
       return token;
     },

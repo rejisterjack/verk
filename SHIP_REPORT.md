@@ -23,7 +23,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | SEC-01 | Security headers and content security policy | P0 | PASSED | 1 | 1 | 0 | Dev responses omit HSTS so localhost HTTP is not cached as HTTPS-only. Production still sends the one-year preload header. A foreign script host is blocked. |
 | AUTH-01 | Email and password registration | P0 | PASSED | 1 | 1 | 0 | A blank name is rejected. A new account lands on Create your team. Demo and private hosts send /register back to login and create nothing. |
 | AUTH-02 | Password login and session | P0 | PASSED | 1 | 1 | 0 | Uppercase email signs in and follows a same-site callback. Wrong, empty, and disabled attempts stay on login with CredentialsSignin. An external callback is ignored. A stale session cookie no longer crashes the error overlay. |
-| GAP-01 | Password reset | P0 | NOT STARTED |  |  |  | BUILD. No reset flow. A forgotten password cannot be recovered. |
+| GAP-01 | Password reset | P0 | PASSED | 1 | 1 | 0 | A forgotten password can be replaced from a one-time link. The link expires and cannot be reused. Without Resend the page says email could not be sent and does not show the token. |
 | GAP-02 | Change password | P1 | NOT STARTED |  |  |  | BUILD. Nothing writes a new password hash. |
 | GAP-03 | Email verification | P1 | NOT STARTED |  |  |  | BUILD. Password signup never sets emailVerified. |
 | AUTH-03 | Logout | P0 | PASSED | 0 | 0 | 0 | Sidebar and account sign-out both land on /. The next team URL redirects to login. The marketing page has no sign-out control. |
@@ -822,7 +822,7 @@ Login accepts email and password. The password is checked with bcrypt. A wrong p
 - **ID:** GAP-01
 - **Name:** Password reset
 - **Priority:** P0
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -835,11 +835,11 @@ A person who forgets the password cannot recover it. VerificationToken exists on
 
 ### Acceptance criteria
 
-- [ ] A signed-out person can request a reset for their email.
-- [ ] The response does not reveal whether the email is registered.
-- [ ] The link expires and cannot be reused.
-- [ ] The new password meets the same 8–128 rule as signup.
-- [ ] The old password stops working and existing JWTs are ended.
+- [x] A signed-out person can request a reset for their email.
+- [x] The response does not reveal whether the email is registered.
+- [x] The link expires and cannot be reused.
+- [x] The new password meets the same 8–128 rule as signup.
+- [x] The old password stops working and existing JWTs are ended.
 
 ### Test cases
 
@@ -883,11 +883,11 @@ A person who forgets the password cannot recover it. VerificationToken exists on
 
 ### Results
 
-- Bugs Found:
-- Bugs Fixed:
-- UI Issues Fixed:
-- Files Changed:
-- Notes:
+- Bugs Found: 1
+- Bugs Fixed: 1
+- UI Issues Fixed: 0
+- Files Changed: `prisma/schema.prisma`, `prisma/migrations/20261120190000_password_changed_at/migration.sql`, `lib/services/password-reset.ts`, `lib/actions/password-reset.ts`, `lib/email.ts`, `lib/auth.ts`, `lib/user-status.ts`, `lib/validators/index.ts`, `components/password-reset-form.tsx`, `components/auth-form.tsx`, `app/(auth)/forgot/page.tsx`, `app/(auth)/reset/[token]/page.tsx`, `tests/unit/password-reset.test.ts`
+- Notes: There was no reset flow. /forgot now asks for an email and stores a 30-minute VerificationToken. /reset/[token] sets a new bcrypt hash and passwordChangedAt. The next session read drops a JWT whose stamp does not match, which I saw when /account returned to /login after a reset. The old password then returned CredentialsSignin and the new one reached /account. A second submit of the same link, and a link whose expiry was moved to the past, both said the link is invalid or expired. A short password was rejected and left the token in place. An unknown address got the same message as a real one and created no token. RESEND_API_KEY is unset, so the page says email could not be sent and never prints the token. The test user was deleted. The card has no horizontal scroll at 360, 768, 1024, or 1440 in dark or light. tsc and 656 tests passed.
 
 ## GAP-02 Change password
 
