@@ -17,10 +17,10 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | DATA-01 | Database schema and migrations | P0 | PASSED | 0 | 0 | 0 | Fresh Docker Postgres took all 43 migrations. Second deploy and two parallel deploys were no-ops. Unreachable host failed. Read-only role cannot CREATE. Empty URL skips migrate. |
 | DATA-02 | Neon and Prisma runtime client | P0 | PASSED | 0 | 0 | 0 | prisma generate OK. Health SELECT 1 ~1.5s. Issues page live (27 rows). No client imports of lib/db. Missing DATABASE_URL throws. rateLimitShared fail-open unit tests pass. Parallel creates got distinct numbers 21/22. |
 | DEVOPS-01 | Environment configuration | P0 | PASSED | 1 | 1 | 0 | Health exposes 4 fields only. Slack/GitHub/cron/intake 404 when off. Added WEBHOOK_ALLOW_PRIVATE to .env.example. DEMO_MODE only when string true. README table matches example. |
-| DEVOPS-02 | Production build and Vercel deploy | P0 | NOT STARTED |  |  |  | vercel-build migrates, then next build. No Dockerfile |
+| DEVOPS-02 | Production build and Vercel deploy | P0 | PASSED | 0 | 0 | 0 | Empty DB URLs skip migrate; full next build --webpack OK; sw.js + manifest + icon present; no Dockerfile. |
 | DEVOPS-03 | GitHub Actions CI | P1 | NOT STARTED |  |  |  | Lint, types, unit tests, production build; Playwright only with a database secret |
-| API-01 | Health check | P0 | NOT STARTED |  |  |  | GET /api/health pings Postgres |
-| SEC-01 | Security headers and content security policy | P0 | NOT STARTED |  |  |  | Headers on every response from next.config.mjs |
+| API-01 | Health check | P0 | PASSED | 0 | 0 | 0 | Live 200 healthy + 503 unhealthy (bad DB on :3002). Body has no secrets. demo=false. |
+| SEC-01 | Security headers and content security policy | P0 | PASSED | 0 | 0 | 0 | Six headers on /login and /api/health; no X-Powered-By. CSP matches next.config.mjs. |
 | AUTH-01 | Email and password registration | P0 | NOT STARTED |  |  |  | Open signup unless demo mode or a private host |
 | AUTH-02 | Password login and session | P0 | NOT STARTED |  |  |  | Password form, then TOTP only after the password is right. JWT session. |
 | GAP-01 | Password reset | P0 | NOT STARTED |  |  |  | BUILD. No forgot-password flow exists |
@@ -385,7 +385,7 @@ Four variables are required for a private deploy: DATABASE_URL, DIRECT_URL, AUTH
 - **ID:** DEVOPS-02
 - **Name:** Production build and Vercel deploy
 - **Priority:** P0
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -400,10 +400,10 @@ npm run build and the Vercel build command run scripts/vercel-build.mjs. That sc
 
 ### Acceptance criteria
 
-- [ ] vercel-build with a reachable direct URL applies migrations before the Next build.
-- [ ] vercel-build with localhost URLs skips migrate and still builds.
-- [ ] The production build emits the service worker and the PWA manifest checks that CI already runs.
-- [ ] No Docker image is required to deploy.
+- [x] vercel-build with a reachable direct URL applies migrations before the Next build.
+- [x] vercel-build with localhost URLs skips migrate and still builds.
+- [x] The production build emits the service worker and the PWA manifest checks that CI already runs.
+- [x] No Docker image is required to deploy.
 
 ### Test cases
 
@@ -447,11 +447,11 @@ npm run build and the Vercel build command run scripts/vercel-build.mjs. That sc
 
 ### Results
 
-- Bugs Found:
-- Bugs Fixed:
-- UI Issues Fixed:
-- Files Changed:
-- Notes:
+- Bugs Found: 0
+- Bugs Fixed: 0
+- UI Issues Fixed: 0
+- Files Changed: none
+- Notes: `DIRECT_URL= DATABASE_URL= node scripts/vercel-build.mjs` logged skip warning and completed `next build --webpack` (~36s) with Serwist bundling `/sw.js`. Checked `public/sw.js`, `public/manifest.webmanifest`, `public/icons/icon-192.png`. No Dockerfile in repo. Migrate-with-real-URL path covered under DATA-01.
 
 ## DEVOPS-03 GitHub Actions CI
 
@@ -528,7 +528,7 @@ On push and pull request to main or master, CI checks out the repo, uses Node 22
 - **ID:** API-01
 - **Name:** Health check
 - **Priority:** P0
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -540,10 +540,10 @@ GET /api/health runs SELECT 1. On success it returns 200 JSON with ok true, stat
 
 ### Acceptance criteria
 
-- [ ] 200 and healthy when Postgres answers.
-- [ ] 503 and unhealthy when Postgres does not.
-- [ ] The body does not include the connection string or AUTH_SECRET.
-- [ ] demo reflects DEMO_MODE.
+- [x] 200 and healthy when Postgres answers.
+- [x] 503 and unhealthy when Postgres does not.
+- [x] The body does not include the connection string or AUTH_SECRET.
+- [x] demo reflects DEMO_MODE.
 
 ### Test cases
 
@@ -587,18 +587,18 @@ GET /api/health runs SELECT 1. On success it returns 200 JSON with ok true, stat
 
 ### Results
 
-- Bugs Found:
-- Bugs Fixed:
-- UI Issues Fixed:
-- Files Changed:
-- Notes:
+- Bugs Found: 0
+- Bugs Fixed: 0
+- UI Issues Fixed: 0
+- Files Changed: none
+- Notes: Dev GET /api/health → 200, ok true, status healthy, demo false, latencyMs present. Production `next start` on port 3002 with DATABASE_URL→127.0.0.1:1 → HTTP 503, ok false, status unhealthy (latencyMs only; no secrets). Parallel GETs during dev both 200.
 
 ## SEC-01 Security headers and content security policy
 
 - **ID:** SEC-01
 - **Name:** Security headers and content security policy
 - **Priority:** P0
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -610,10 +610,10 @@ Every path gets X-Frame-Options DENY, X-Content-Type-Options nosniff, Referrer-P
 
 ### Acceptance criteria
 
-- [ ] A document response includes the six security headers.
-- [ ] The X-Powered-By header is absent.
-- [ ] Pages still load their own scripts and styles under the policy.
-- [ ] Clarity's script host is allowed only as written; other script hosts are not.
+- [x] A document response includes the six security headers.
+- [x] The X-Powered-By header is absent.
+- [x] Pages still load their own scripts and styles under the policy.
+- [x] Clarity's script host is allowed only as written; other script hosts are not.
 
 ### Test cases
 
@@ -658,11 +658,11 @@ Every path gets X-Frame-Options DENY, X-Content-Type-Options nosniff, Referrer-P
 
 ### Results
 
-- Bugs Found:
-- Bugs Fixed:
-- UI Issues Fixed:
-- Files Changed:
-- Notes:
+- Bugs Found: 0 (HSTS-on-localhost and unsafe-inline recorded as known risks, not regressions)
+- Bugs Fixed: 0
+- UI Issues Fixed: 0
+- Files Changed: none
+- Notes: `curl -I` on /login and /api/health shows X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, HSTS, and CSP matching next.config.mjs. No X-Powered-By (poweredByHeader false). Dev login returns 200; React dev notes CSP eval in console (expected in dev only).
 
 ## AUTH-01 Email and password registration
 
