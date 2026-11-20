@@ -653,7 +653,7 @@ export function AppSidebar({
   ];
 
   return (
-    <aside className="flex h-full min-h-0 w-[var(--sidebar-w)] shrink-0 flex-col gap-1.5 overflow-y-auto border-r border-separator bg-surface px-2 py-2">
+    <aside className="flex h-full min-h-0 w-[var(--sidebar-w)] shrink-0 flex-col gap-1.5 overflow-hidden border-r border-separator bg-surface px-2 py-2">
       <div className="min-w-0 px-0.5">
         <TeamSwitcher teamSlug={teamSlug} teams={teams} />
       </div>
@@ -685,6 +685,7 @@ export function AppSidebar({
         ) : null}
       </div>
 
+      <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto">
       <nav className="flex flex-col gap-0.5">
         {topLinks.map((item) => (
           <NavLink key={item.label + item.href} item={item} />
@@ -739,7 +740,8 @@ export function AppSidebar({
       </Section>
 
       <InstallPrompt />
-      <div className="mt-auto flex flex-col gap-0.5 px-1 pb-1 text-[11px] text-muted">
+      </div>
+      <div className="flex flex-col gap-0.5 px-1 pb-1 text-[11px] text-muted">
         <span className="px-1">⌘K · C · ?</span>
         {workspaceSlug ? (
           <NextLink

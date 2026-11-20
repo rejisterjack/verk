@@ -129,12 +129,12 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | SET-01 | Workflow statuses | P1 | PASSED | 1 | 1 | 0 | Statuses showed 0 issues because seeded issues had no workflow status. Counts now read 6, 6, 4, 3, and 1. |
 | SET-02 | Automations | P1 | PASSED | 0 | 0 | 0 | Created a rule that sets priority when an issue is created, then deleted it. |
 | SET-03 | Audit log, export, and retention | P1 | NOT STARTED |  |  |  | Admin log of sensitive changes. Daily prune. |
-| SET-04 | Appearance | P1 | NOT STARTED |  |  |  | Theme, accent, density, and contrast. Stored in the browser. |
+| SET-04 | Appearance | P1 | PASSED | 0 | 0 | 0 | Dark theme turns the account page to ink on a dark surface and stays readable. Light restores it. Language, accent, and density controls are on the same page. |
 | SET-05 | Locales | P1 | PASSED | 0 | 0 | 0 | Deutsch switched the language heading to Sprache and the sidebar to German. |
 | SET-06 | In-app API reference | P2 | NOT STARTED |  |  |  | Settings → API describes the key and the routes |
 | SEC-02 | Shared rate limiter | P1 | NOT STARTED |  |  |  | Postgres buckets, fail-open to memory |
 | OBS-01 | Application error page | P1 | NOT STARTED |  |  |  | app/error.tsx reset control |
-| OBS-02 | Not-found page | P1 | NOT STARTED |  |  |  | app/not-found.tsx |
+| OBS-02 | Not-found page | P1 | PASSED | 0 | 0 | 0 | An unknown address shows This page isn't here, with links to teams and home. Title is Page Not Found - Verk. |
 | OBS-03 | Loading states | P2 | NOT STARTED |  |  |  | Team segment loading UI |
 | OBS-04 | Empty states | P1 | NOT STARTED |  |  |  | Shared empty state component |
 | A11Y-01 | Keyboard access and semantics | P1 | NOT STARTED |  |  |  | React Aria controls, labels, and focus |
@@ -8607,7 +8607,7 @@ Admins can read the audit log: role changes, removals, invites, API keys, webhoo
 - **ID:** SET-04
 - **Name:** Appearance
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -8967,7 +8967,7 @@ Uncaught render errors in a segment show Something went wrong, the digest when p
 - **ID:** OBS-02
 - **Name:** Not-found page
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
