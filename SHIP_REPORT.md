@@ -15,7 +15,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | ID | Feature | Priority | Status | Bugs Found | Bugs Fixed | UI Issues Fixed | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | DATA-01 | Database schema and migrations | P0 | PASSED | 0 | 0 | 0 | Fresh Docker Postgres took all 43 migrations. Second deploy and two parallel deploys were no-ops. Unreachable host failed. Read-only role cannot CREATE. Empty URL skips migrate. |
-| DATA-02 | Neon and Prisma runtime client | P0 | NOT STARTED |  |  |  | Serverless Postgres client used by every request |
+| DATA-02 | Neon and Prisma runtime client | P0 | PASSED | 0 | 0 | 0 | prisma generate OK. Health SELECT 1 ~1.5s. Issues page live (27 rows). No client imports of lib/db. Missing DATABASE_URL throws. rateLimitShared fail-open unit tests pass. Parallel creates got distinct numbers 21/22. |
 | DEVOPS-01 | Environment configuration | P0 | NOT STARTED |  |  |  | Every variable the code reads is listed in .env.example |
 | DEVOPS-02 | Production build and Vercel deploy | P0 | NOT STARTED |  |  |  | vercel-build migrates, then next build. No Dockerfile |
 | DEVOPS-03 | GitHub Actions CI | P1 | NOT STARTED |  |  |  | Lint, types, unit tests, production build; Playwright only with a database secret |
@@ -243,7 +243,7 @@ None
 - **ID:** DATA-02
 - **Name:** Neon and Prisma runtime client
 - **Priority:** P0
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -256,10 +256,10 @@ The running app talks to Neon through the Prisma client and the Neon serverless 
 
 ### Acceptance criteria
 
-- [ ] The generated client matches schema.prisma.
-- [ ] A successful SELECT 1 works through the same client the health route uses.
-- [ ] Missing DATABASE_URL fails at first query rather than silently using a file database.
-- [ ] The client is a server module and is not imported by client components.
+- [x] The generated client matches schema.prisma.
+- [x] A successful SELECT 1 works through the same client the health route uses.
+- [x] Missing DATABASE_URL fails at first query rather than silently using a file database.
+- [x] The client is a server module and is not imported by client components.
 
 ### Test cases
 
@@ -303,11 +303,11 @@ The running app talks to Neon through the Prisma client and the Neon serverless 
 
 ### Results
 
-- Bugs Found:
-- Bugs Fixed:
-- UI Issues Fixed:
-- Files Changed:
-- Notes:
+- Bugs Found: 0
+- Bugs Fixed: 0
+- UI Issues Fixed: 0
+- Files Changed: none
+- Notes: `npx prisma generate` produced Prisma Client 7.10.1 at lib/generated/prisma. GET /api/health returned ok with latencyMs from the health route client. Logged in as demo@verk.dev in Cursor browser; /t/acme-engineering/issues listed ACM-1 through ACM-27 from Neon. Scanned all `"use client"` files: none import @/lib/db. With DATABASE_URL unset, first `prisma.$queryRaw` throws "DATABASE_URL is not set". rate-limit-shared unit tests (6) pass including DB-error fail-open. Parallel `createIssue` via service returned distinct numbers 21 and 22 (counter 20→22). Direct neon SQL SELECT 1 OK. SQL-injection case deferred to ISSUE-26. Unset DATABASE_URL on running dev server not restarted (would drop the session); lazy proxy behavior verified in an isolated Node import. Vitest 646/646, eslint OK. No product UI for this feature.
 
 ## DEVOPS-01 Environment configuration
 
