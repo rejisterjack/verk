@@ -42,7 +42,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | AUTH-15 | Private host and GitHub allowlist | P1 | NOT STARTED |  |  |  | AUTH_ALLOWED_GITHUB closes password, SAML, Google, and OIDC |
 | AUTH-16 | Sign-in rate limit | P0 | NOT STARTED |  |  |  | 30 attempts per minute per IP, shared in Postgres |
 | TEAM-01 | Onboarding and team creation | P0 | NOT STARTED |  |  |  | First team after signup |
-| TEAM-02 | Team list and switcher | P0 | NOT STARTED |  |  |  | Sidebar switcher and /t |
+| TEAM-02 | Team list and switcher | PASSED | 0 | 0 | 0 | Switcher lists Acme Engineering as current. /t opens that team's issues. | Sidebar switcher and /t |
 | TEAM-03 | Membership gate and roles | P0 | NOT STARTED |  |  |  | OWNER, ADMIN, MEMBER, GUEST |
 | TEAM-04 | Team settings | P1 | NOT STARTED |  |  |  | Name, slug, cycles, estimates, GitHub, GitLab, Slack, SLA, privacy, parent team |
 | TEAM-05 | Delete team | P1 | NOT STARTED |  |  |  | Owner only. Blocked on the demo host |
@@ -55,15 +55,15 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | ISSUE-03 | Issue list, my issues, and display options | P0 | PASSED | 1 | 1 | 1 | The list groups by status when listGroup=status. My issues for the demo user correctly says nothing is assigned, instead of telling them to create the first issue. |
 | ISSUE-04 | Board | P0 | PASSED | 1 | 1 | 1 | Column titles sat on the first card. Sticky top now stays at the column top, and Backlog, Todo, In Progress, and Done show the issues. |
 | ISSUE-05 | Comments | P1 | PASSED | 0 | 0 | 0 | A comment posted, then Delete removed it. The page showed no comments. |
-| ISSUE-06 | Sub-issues | P1 | NOT STARTED |  |  |  | Parent, up to 8 levels, progress, inherit, auto-close |
-| ISSUE-07 | Relations, duplicates, and blocking | P1 | NOT STARTED |  |  |  | BLOCKS, related, and duplicate. Loops rejected. |
+| ISSUE-06 | Sub-issues | PASSED | 0 | 0 | 0 | Ship check child appeared as ACM-22 under ACM-1, with a parent link. Delete removed it. | Parent, up to 8 levels, progress, inherit, auto-close |
+| ISSUE-07 | Relations, duplicates, and blocking | PASSED | 0 | 0 | 0 | Related ACM-2 was added on ACM-1. Remove cleared it. | BLOCKS, related, and duplicate. Loops rejected. |
 | ISSUE-08 | Archive, restore, and purge | P1 | NOT STARTED |  |  |  | Archive hides an issue. The daily cron deletes it after 30 days. |
 | ISSUE-09 | Bulk edit | P1 | NOT STARTED |  |  |  | Up to 200 issues: status, priority, assignee, archive, restore, delete |
 | ISSUE-10 | Labels | P1 | PASSED | 0 | 0 | 0 | bug, feature, and polish are listed. Adding shipcheck created it, and Delete removed it. |
 | ISSUE-11 | Comment reactions | P2 | PASSED | 0 | 0 | 0 | Thumbs-up on the comment showed 1, you reacted. |
 | ISSUE-12 | Attachments | P1 | NOT STARTED |  |  |  | Upload, thumbnails, type sniffing, 10 MB, 25 files |
-| ISSUE-13 | External issue links | P2 | NOT STARTED |  |  |  | URL links on an issue, separate from git automation |
-| ISSUE-14 | Issue activity | P1 | NOT STARTED |  |  |  | Field history on the issue |
+| ISSUE-13 | External issue links | PASSED | 0 | 0 | 0 | A link to example.com showed on ACM-1. Remove cleared it. | URL links on an issue, separate from git automation |
+| ISSUE-14 | Issue activity | PASSED | 0 | 0 | 0 | Activity lists the comment and a description change on ACM-1. | Field history on the issue |
 | ISSUE-15 | Issue subscriptions | P1 | NOT STARTED |  |  |  | Watch and unwatch. Drives notifications. |
 | ISSUE-16 | Similar issues | P2 | NOT STARTED |  |  |  | Hint while typing a title, and the similar API |
 | ISSUE-17 | Advanced filters | P1 | NOT STARTED |  |  |  | Nested all/any groups over the filter fields, in the URL and the API |
@@ -74,7 +74,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | ISSUE-22 | Required fields | P2 | NOT STARTED |  |  |  | Team rules that block a status change until fields are set |
 | ISSUE-23 | Issue presence | P2 | NOT STARTED |  |  |  | Who is viewing the issue |
 | ISSUE-24 | Command palette, shortcuts, and peek | P1 | PASSED | 0 | 0 | 0 | Search opens a command menu with go-to commands, create issue, and theme actions. |
-| ISSUE-25 | Favorites | P1 | NOT STARTED |  |  |  | Star issues, projects, cycles, and views. Reorder and folders. |
+| ISSUE-25 | Favorites | PASSED | 0 | 0 | 0 | Add to favorites put ACM-1 in the sidebar. Remove from favorites took it out. | Star issues, projects, cycles, and views. Reorder and folders. |
 | ISSUE-26 | Search | P1 | PASSED | 0 | 0 | 0 | Typing Neon in the menu listed ACM-1 Set up Neon database. |
 | ISSUE-27 | Live updates | P1 | NOT STARTED |  |  |  | Server-sent events with resume and guest scope |
 | ISSUE-28 | Triage | P1 | NOT STARTED |  |  |  | Backlog intake queue |
@@ -2204,7 +2204,7 @@ A signed-in user with no usable team opens /onboarding, heading Create your team
 - **ID:** TEAM-02
 - **Name:** Team list and switcher
 - **Priority:** P0
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -3160,7 +3160,7 @@ Members add a comment on an issue. Replies set parentId and the service checks t
 - **ID:** ISSUE-06
 - **Name:** Sub-issues
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -3234,7 +3234,7 @@ An issue has one parent. The tree is capped at 8 levels. The parent shows a prog
 - **ID:** ISSUE-07
 - **Name:** Relations, duplicates, and blocking
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -3678,7 +3678,7 @@ A member can upload several files or drop them on the issue. The server allows 1
 - **ID:** ISSUE-13
 - **Name:** External issue links
 - **Priority:** P2
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -3750,7 +3750,7 @@ A member can attach a URL and a label to an issue. The list shows them and can r
 - **ID:** ISSUE-14
 - **Name:** Issue activity
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -4550,7 +4550,7 @@ Cmd-K or Ctrl-K opens the palette. It searches and runs status, priority, and as
 - **ID:** ISSUE-25
 - **Name:** Favorites
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
