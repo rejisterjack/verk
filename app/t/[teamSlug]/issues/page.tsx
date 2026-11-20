@@ -376,6 +376,11 @@ export default async function IssuesPage({
             description="Try adjusting search or filters, or clear them to see all issues."
             title={(await serverTranslator())("issues.empty")}
           />
+        ) : mine ? (
+          <EmptyState
+            description="Issues assigned to you show up here."
+            title="Nothing assigned to you"
+          />
         ) : (
           <EmptyState
             action={

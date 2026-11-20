@@ -52,7 +52,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | GAP-05 | Leave a team | P1 | BLOCKED | 0 | 0 | 0 | Members has invite, role, and remove. There is no leave control. |
 | ISSUE-01 | Create an issue | P0 | NOT STARTED |  |  |  | New issue form, templates, and POST /api/teams/{id}/issues |
 | ISSUE-02 | View and update an issue | P0 | NOT STARTED |  |  |  | Issue page and PATCH. Revision check with keep-mine or keep-theirs. |
-| ISSUE-03 | Issue list, my issues, and display options | P0 | NOT STARTED |  |  |  | List grouping, sort, and the My issues link |
+| ISSUE-03 | Issue list, my issues, and display options | P0 | PASSED | 1 | 1 | 1 | The list groups by status when listGroup=status. My issues for the demo user correctly says nothing is assigned, instead of telling them to create the first issue. |
 | ISSUE-04 | Board | P0 | PASSED | 1 | 1 | 1 | Column titles sat on the first card. Sticky top now stays at the column top, and Backlog, Todo, In Progress, and Done show the issues. |
 | ISSUE-05 | Comments | P1 | NOT STARTED |  |  |  | Comments, replies, and delete |
 | ISSUE-06 | Sub-issues | P1 | NOT STARTED |  |  |  | Parent, up to 8 levels, progress, inherit, auto-close |
@@ -2941,7 +2941,7 @@ The issue page loads one issue by team and number. Members can change title, des
 - **ID:** ISSUE-03
 - **Name:** Issue list, my issues, and display options
 - **Priority:** P0
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
