@@ -16,7 +16,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | DATA-01 | Database schema and migrations | P0 | PASSED | 0 | 0 | 0 | Fresh Docker Postgres took all 43 migrations. Status up to date. Second and parallel deploys no-op. Unreachable host exits 1. Read-only role fails on a fresh database (permission denied). Empty and localhost URLs skip migrate. |
 | DATA-02 | Neon and Prisma runtime client | P0 | PASSED | 1 | 1 | 0 | Localhost uses the TCP driver. Neon hosts stay on the Neon adapter. Health 200, down 503, issues list shows seeded rows. |
-| DEVOPS-01 | Environment configuration | P0 | NOT STARTED |  |  |  | .env.example lists every variable the code reads |
+| DEVOPS-01 | Environment configuration | P0 | PASSED | 0 | 0 | 0 | Every process.env name is in .env.example or is a platform variable. Slack is 404 while unset. Cron is 401 without the bearer and 200 with it. |
 | DEVOPS-02 | Production build and Vercel deploy | P0 | NOT STARTED |  |  |  | vercel-build migrates, then next build. No Docker. |
 | DEVOPS-03 | GitHub Actions CI | P1 | NOT STARTED |  |  |  | Lint, types, unit tests, and a production build. E2E needs a database secret. |
 | API-01 | Health check | P0 | NOT STARTED |  |  |  | GET /api/health returns 200 when the database answers, otherwise 503 |
@@ -317,7 +317,7 @@ The running app talks to Postgres through the Prisma client. A localhost or 127.
 - **ID:** DEVOPS-01
 - **Name:** Environment configuration
 - **Priority:** P0
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -330,10 +330,10 @@ Four variables are required for a private deploy: DATABASE_URL, DIRECT_URL, AUTH
 
 ### Acceptance criteria
 
-- [ ] A deploy with only the four required variables boots, serves login, and leaves GitHub, Slack, SCIM, Sentry, email intake, and AI off.
-- [ ] README's variable table matches .env.example names.
-- [ ] AUTH_SECRET is used for Auth.js and for encrypting TOTP secrets.
-- [ ] DEMO_MODE is false unless set to the string true.
+- [x] A deploy with only the four required variables boots, serves login, and leaves GitHub, Slack, SCIM, Sentry, email intake, and AI off.
+- [x] README's variable table matches .env.example names.
+- [x] AUTH_SECRET is used for Auth.js and for encrypting TOTP secrets.
+- [x] DEMO_MODE is false unless set to the string true.
 
 ### Test cases
 
@@ -377,11 +377,11 @@ Four variables are required for a private deploy: DATABASE_URL, DIRECT_URL, AUTH
 
 ### Results
 
-- Bugs Found:
-- Bugs Fixed:
-- UI Issues Fixed:
-- Files Changed:
-- Notes:
+- Bugs Found: 0
+- Bugs Fixed: 0
+- UI Issues Fixed: 0
+- Files Changed: none
+- Notes: Health with the four required values plus optional local tokens returned only ok, status, demo false, and latencyMs. Slack POST /api/slack/command is 404 while SLACK_SIGNING_SECRET is empty. Cron without a bearer is 401. Cron with the bearer is 200. SAML variables are read through trimmedEnv and are listed in .env.example. No env name used as process.env.NAME is missing from the example except platform variables.
 
 ## DEVOPS-02 Production build and Vercel deploy
 
