@@ -44,10 +44,10 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | TEAM-01 | Onboarding and team creation | P0 | NOT STARTED |  |  |  | First team after signup |
 | TEAM-02 | Team list and switcher | PASSED | 0 | 0 | 0 | Switcher lists Acme Engineering as current. /t opens that team's issues. | Sidebar switcher and /t |
 | TEAM-03 | Membership gate and roles | P0 | NOT STARTED |  |  |  | OWNER, ADMIN, MEMBER, GUEST |
-| TEAM-04 | Team settings | P1 | NOT STARTED |  |  |  | Name, slug, cycles, estimates, GitHub, GitLab, Slack, SLA, privacy, parent team |
+| TEAM-04 | Team settings | P1 | PASSED | 0 | 0 | 0 | General settings show name, slug, Fibonacci estimates, a 2 week cycle, GitHub, GitLab, Slack, triage owner, SLA, and a slug-confirmed delete. A HIGH target of 8 hours stayed after reload, then was cleared. Name, slug, cycles, estimates, GitHub, GitLab, Slack, SLA, privacy, parent team |
 | TEAM-05 | Delete team | P1 | NOT STARTED |  |  |  | Owner only. Blocked on the demo host |
 | TEAM-06 | Team invites | P0 | PASSED | 0 | 0 | 0 | Invite created, the link opened the accept page, and revoke removed the pending invite. |
-| TEAM-07 | Workspaces and workspace invites | P1 | NOT STARTED |  |  |  | A workspace groups teams. Invites are separate from team invites. |
+| TEAM-07 | Workspaces and workspace invites | P1 | PASSED | 0 | 0 | 0 | Workspace Acme Engineering lists the team, invites shipcheck@example.com with a copyable link because email is not configured, and Revoke removes the pending invite. A workspace groups teams. Invites are separate from team invites. |
 | TEAM-08 | Members, roles, and guest project scope | P0 | PASSED | 0 | 0 | 0 | Alex Rivera was changed to Admin and back to Member. Remove is on the row. The owner row stays Owner. |
 | GAP-05 | Leave a team | P1 | BLOCKED | 0 | 0 | 0 | Members has invite, role, and remove. There is no leave control. |
 | ISSUE-01 | Create an issue | P0 | PASSED | 0 | 0 | 0 | New issue created ACM-21 from the dialog and opened on its own page. |
@@ -69,7 +69,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | ISSUE-17 | Advanced filters | P1 | NOT STARTED |  |  |  | Nested all/any groups over the filter fields, in the URL and the API |
 | ISSUE-18 | Saved views | PASSED | 0 | 0 | 0 | Saved Ship check view from the issues list. It showed under Settings, Views, and Delete removed it. | Create, edit, delete, pin. Private or shared. |
 | ISSUE-19 | Drafts | P1 | PASSED | 0 | 0 | 0 | Saving Ship check draft listed it with Resume and Create issue. Delete returned the page to no drafts. |
-| ISSUE-20 | Issue templates | P1 | NOT STARTED |  |  |  | Settings templates prefill the new-issue form |
+| ISSUE-20 | Issue templates | P1 | PASSED | 0 | 0 | 0 | Ship check template saved with title Ship check template issue and showed after reload. Delete returned the empty templates page. Settings templates prefill the new-issue form |
 | ISSUE-21 | Issue visibility and extra readers | P1 | PASSED | 0 | 0 | 0 | ACM-1 stayed Restricted after reload, with Alex Rivera as an extra reader. It was set back to Team and the reader was cleared. TEAM or RESTRICTED, plus explicit readers |
 | ISSUE-22 | Required fields | P2 | NOT STARTED |  |  |  | Team rules that block a status change until fields are set |
 | ISSUE-23 | Issue presence | P2 | NOT STARTED |  |  |  | Who is viewing the issue |
@@ -79,7 +79,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | ISSUE-27 | Live updates | P1 | NOT STARTED |  |  |  | Server-sent events with resume and guest scope |
 | ISSUE-28 | Triage | PASSED | 0 | 0 | 0 | Triage lists unassigned backlog issues. Snoozing ACM-14 hid it for an hour, then it returned. | Backlog intake queue |
 | ISSUE-29 | Triage rules and suggestions | PASSED | 0 | 0 | 0 | A title rule for shipcheck was added and removed. Suggest on ACM-8 offered Medium. | Rules plus AI or keyword suggestions |
-| ISSUE-30 | SLA targets | P2 | NOT STARTED |  |  |  | Per-priority hour targets and business hours |
+| ISSUE-30 | SLA targets | P2 | PASSED | 0 | 0 | 0 | SLA uses UTC, weekdays 1-5, and hours 0-24. Setting HIGH to 8 hours stayed after reload, then the target was cleared. Per-priority hour targets and business hours |
 | ISSUE-31 | Git branch and pull request status | P2 | NOT STARTED |  |  |  | Branch name and open pull requests when GitHub is configured |
 | ISSUE-32 | Status-change rules | PASSED | 1 | 1 | 0 | A backlog status rule assigned Alex Rivera. The row had no remove control, so one was added and used. | On triage: when an issue enters a status, set assignee, label, and the other actions the service stores |
 | PLAN-01 | Cycles | P1 | PASSED | 0 | 0 | 0 | Cycle 1 is active with 11 issues and Cycle 2 is upcoming. The create form, schedule, and start-next controls are on the page. |
@@ -2350,7 +2350,7 @@ Every team action checks the caller's membership. Roles are OWNER, ADMIN, MEMBER
 - **ID:** TEAM-04
 - **Name:** Team settings
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -2570,7 +2570,7 @@ An admin or owner invites an email with a role. The stored row keeps a hash of t
 - **ID:** TEAM-07
 - **Name:** Workspaces and workspace invites
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -4188,7 +4188,7 @@ Save draft on the new-issue form stores the title and the other fields for the a
 - **ID:** ISSUE-20
 - **Name:** Issue templates
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -4916,7 +4916,7 @@ Settings or the triage page stores rules that set status, priority, or assignee 
 - **ID:** ISSUE-30
 - **Name:** SLA targets
 - **Priority:** P2
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
