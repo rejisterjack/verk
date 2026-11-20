@@ -39,7 +39,7 @@ export default async function AccountPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <MarketingNavbar />
+      <MarketingNavbar signedIn />
       <main className="container mx-auto max-w-xl flex-1 px-6 py-12 space-y-8">
         <div>
           <h1 className="text-2xl font-semibold">Account</h1>

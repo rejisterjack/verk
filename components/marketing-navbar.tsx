@@ -13,9 +13,11 @@ import { siteConfig } from "@/config/site";
 export function MarketingNavbar({
   demoMode = false,
   privateHost = false,
+  signedIn = false,
 }: {
   demoMode?: boolean;
   privateHost?: boolean;
+  signedIn?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
@@ -74,16 +76,24 @@ export function MarketingNavbar({
         </div>
         <div className="hidden sm:flex items-center gap-2">
           <ThemeSwitch />
-          <Button
-            size="sm"
-            variant="tertiary"
-            onPress={() => router.push("/login")}
-          >
-            Log in
-          </Button>
-          <Button size="sm" onPress={openCta}>
-            {ctaLabel}
-          </Button>
+          {signedIn ? (
+            <Button size="sm" onPress={() => router.push("/t")}>
+              Your teams
+            </Button>
+          ) : (
+            <>
+              <Button
+                size="sm"
+                variant="tertiary"
+                onPress={() => router.push("/login")}
+              >
+                Log in
+              </Button>
+              <Button size="sm" onPress={openCta}>
+                {ctaLabel}
+              </Button>
+            </>
+          )}
         </div>
         <div className="flex sm:hidden items-center gap-2">
           <ThemeSwitch />
