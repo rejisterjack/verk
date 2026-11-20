@@ -101,7 +101,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | PLAN-17 | Public Ask form | P1 | NOT STARTED |  |  |  | Token URL that files a triage issue. Honeypot and rate limits. |
 | PLAN-18 | Signed-in intake form | P2 | NOT STARTED |  |  |  | In-app intake plus POST /api/teams/{id}/intake |
 | INBOX-01 | Inbox | P1 | PASSED | 0 | 0 | 0 | Two notifications. Mark read dropped the badge from 2 to 1. |
-| INBOX-02 | Notification preferences | P1 | NOT STARTED |  |  |  | Per-user mute for each notification type |
+| INBOX-02 | Notification preferences | P1 | PASSED | 0 | 0 | 0 | Unchecking Assigned to you saved, and checking it again restored it. The other four types stayed on. |
 | GAP-06 | Email alerts for inbox events | P2 | NOT STARTED |  |  |  | BUILD. Resend sends invites only. |
 | OFFLINE-01 | Installable PWA and offline page | P1 | PASSED | 0 | 0 | 0 | The offline page says you are offline and offers teams and retry. The manifest names Verk and starts at /t. The worker is turned off while the dev server is running. |
 | OFFLINE-02 | Offline outbox and sync | P1 | NOT STARTED |  |  |  | Issue CRUD, comments, labels, and drafts while offline |
@@ -124,7 +124,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | API-03 | MCP server | P1 | NOT STARTED |  |  |  | 47 tools at POST /api/mcp |
 | API-04 | Issue prompt agent | P1 | NOT STARTED |  |  |  | POST /api/agent creates or updates issues from a prompt |
 | API-05 | Coding-agent claims and next issue | P1 | NOT STARTED |  |  |  | Lease an issue, heartbeat, report, and the next-unblocked route |
-| API-06 | Agent discovery document | P2 | NOT STARTED |  |  |  | GET /.well-known/verk-agent.json |
+| API-06 | Agent discovery document | P2 | PASSED | 0 | 0 | 0 | GET /.well-known/verk-agent.json describes bearer keys, OAuth, REST, GraphQL, and MCP. |
 | API-07 | VS Code extension | P2 | NOT STARTED |  |  |  | Sign in with a key and create an issue |
 | SET-01 | Workflow statuses | P1 | PASSED | 1 | 1 | 0 | Statuses showed 0 issues because seeded issues had no workflow status. Counts now read 6, 6, 4, 3, and 1. |
 | SET-02 | Automations | P1 | PASSED | 0 | 0 | 0 | Created a rule that sets priority when an issue is created, then deleted it. |
@@ -6535,7 +6535,7 @@ The inbox lists the user’s notifications for the team: assignment, mention, co
 - **ID:** INBOX-02
 - **Name:** Notification preferences
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -8234,7 +8234,7 @@ A member or agent takes a 30-minute lease, up to 4 hours, on an issue. The agent
 - **ID:** API-06
 - **Name:** Agent discovery document
 - **Priority:** P2
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
