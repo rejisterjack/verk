@@ -45,7 +45,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | TEAM-02 | Team list and switcher | PASSED | 0 | 0 | 0 | Switcher lists Acme Engineering as current. /t opens that team's issues. | Sidebar switcher and /t |
 | TEAM-03 | Membership gate and roles | P0 | NOT STARTED |  |  |  | OWNER, ADMIN, MEMBER, GUEST |
 | TEAM-04 | Team settings | P1 | PASSED | 0 | 0 | 0 | General settings show name, slug, Fibonacci estimates, a 2 week cycle, GitHub, GitLab, Slack, triage owner, SLA, and a slug-confirmed delete. A HIGH target of 8 hours stayed after reload, then was cleared. Name, slug, cycles, estimates, GitHub, GitLab, Slack, SLA, privacy, parent team |
-| TEAM-05 | Delete team | P1 | NOT STARTED |  |  |  | Owner only. Blocked on the demo host |
+| TEAM-05 | Delete team | P1 | PASSED | 0 | 0 | 0 | A new team Ship check team was created, a wrong slug left it in place, and typing ship-check-team deleted it and returned to Acme Engineering. Acme was not deleted. Owner only. Blocked on the demo host |
 | TEAM-06 | Team invites | P0 | PASSED | 0 | 0 | 0 | Invite created, the link opened the accept page, and revoke removed the pending invite. |
 | TEAM-07 | Workspaces and workspace invites | P1 | PASSED | 0 | 0 | 0 | Workspace Acme Engineering lists the team, invites shipcheck@example.com with a copyable link because email is not configured, and Revoke removes the pending invite. A workspace groups teams. Invites are separate from team invites. |
 | TEAM-08 | Members, roles, and guest project scope | P0 | PASSED | 0 | 0 | 0 | Alex Rivera was changed to Admin and back to Member. Remove is on the row. The owner row stays Owner. |
@@ -71,7 +71,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | ISSUE-19 | Drafts | P1 | PASSED | 0 | 0 | 0 | Saving Ship check draft listed it with Resume and Create issue. Delete returned the page to no drafts. |
 | ISSUE-20 | Issue templates | P1 | PASSED | 0 | 0 | 0 | Ship check template saved with title Ship check template issue and showed after reload. Delete returned the empty templates page. Settings templates prefill the new-issue form |
 | ISSUE-21 | Issue visibility and extra readers | P1 | PASSED | 0 | 0 | 0 | ACM-1 stayed Restricted after reload, with Alex Rivera as an extra reader. It was set back to Team and the reader was cleared. TEAM or RESTRICTED, plus explicit readers |
-| ISSUE-22 | Required fields | P2 | NOT STARTED |  |  |  | Team rules that block a status change until fields are set |
+| ISSUE-22 | Required fields | P2 | PASSED | 0 | 0 | 0 | Requiring an assignee on Done blocked ACM-20, which is unassigned, with Required before this status: assignee. The status stayed Todo and the requirement was cleared. Team rules that block a status change until fields are set |
 | ISSUE-23 | Issue presence | P2 | NOT STARTED |  |  |  | Who is viewing the issue |
 | ISSUE-24 | Command palette, shortcuts, and peek | P1 | PASSED | 0 | 0 | 0 | Search opens a command menu with go-to commands, create issue, and theme actions. |
 | ISSUE-25 | Favorites | PASSED | 0 | 0 | 0 | Add to favorites put ACM-1 in the sidebar. Remove from favorites took it out. | Star issues, projects, cycles, and views. Reorder and folders. |
@@ -2424,7 +2424,7 @@ Settings → General edits the team: name, slug, cycle length (1–8 weeks), Git
 - **ID:** TEAM-05
 - **Name:** Delete team
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -4332,7 +4332,7 @@ An issue is TEAM or RESTRICTED (IssueVisibility). RESTRICTED issues are visible 
 - **ID:** ISSUE-22
 - **Name:** Required fields
 - **Priority:** P2
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
