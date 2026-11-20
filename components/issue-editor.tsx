@@ -405,13 +405,17 @@ export function IssueEditor({
         onChange={(e) => {
           if (readOnly) return;
           const target = e.target as HTMLElement;
+          const form = e.currentTarget;
 
           if (
             target.tagName === "SELECT" ||
             target.getAttribute("role") === "combobox" ||
             target.getAttribute("type") === "checkbox"
           ) {
-            void onSave(new FormData(e.currentTarget));
+            // HeroUI Select updates companion hidden inputs after its onChange.
+            queueMicrotask(() => {
+              void onSave(new FormData(form));
+            });
           }
         }}
         onSubmit={async (e) => {

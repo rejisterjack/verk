@@ -3,6 +3,7 @@
 import type { Key } from "@heroui/react";
 
 import { Label, ListBox, Select } from "@heroui/react";
+import { useEffect, useRef, useState } from "react";
 
 export type SelectOption = { id: string; label: string };
 
@@ -44,17 +45,45 @@ export function SelectField({
 }: SelectFieldProps) {
   const controlled = value !== undefined;
   const compact = size === "sm";
+  const [uncontrolledKey, setUncontrolledKey] = useState<Key | null>(
+    defaultValue ?? null,
+  );
+
+  useEffect(() => {
+    if (!controlled) setUncontrolledKey(defaultValue ?? null);
+  }, [controlled, defaultValue]);
+
+  const submittedValue = controlled ? (value ?? null) : uncontrolledKey;
+  const hiddenRef = useRef<HTMLInputElement>(null);
+
+  function handleChange(key: Key | null) {
+    if (!controlled) setUncontrolledKey(key);
+  const next = key == null ? "" : String(key);
+
+    if (hiddenRef.current) hiddenRef.current.value = next;
+    onChange?.(key);
+  }
 
   return (
+    <>
+      {name ? (
+        <input
+          ref={hiddenRef}
+          defaultValue={
+            submittedValue == null ? "" : String(submittedValue)
+          }
+          name={name}
+          type="hidden"
+        />
+      ) : null}
     <Select
       {...(controlled
-        ? { value: value ?? null, onChange }
-        : { defaultValue: defaultValue ?? undefined, onChange })}
+        ? { value: value ?? null, onChange: handleChange }
+        : { defaultValue: defaultValue ?? undefined, onChange: handleChange })}
       aria-label={hideLabel ? undefined : ariaLabel}
       className={className}
       fullWidth={fullWidth}
       isRequired={isRequired}
-      name={name}
       placeholder={
         hideLabel ? (placeholder ?? label) : (placeholder ?? "Select…")
       }
@@ -89,5 +118,6 @@ export function SelectField({
         </ListBox>
       </Select.Popover>
     </Select>
+    </>
   );
 }
