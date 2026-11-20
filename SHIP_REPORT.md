@@ -33,11 +33,11 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | AUTH-07 | OIDC single sign-on | P2 | BLOCKED | 0 | 0 | 0 | The login page has no OIDC button. Needs AUTH_OIDC_ISSUER, AUTH_OIDC_CLIENT_ID, and AUTH_OIDC_CLIENT_SECRET. |
 | AUTH-08 | SAML single sign-on | P1 | BLOCKED | 0 | 0 | 0 | The login page has no SAML button. Needs SAML_IDP_SSO_URL and SAML_IDP_CERT. |
 | AUTH-09 | Two-factor authentication | P1 | BLOCKED | 0 | 0 | 0 | Setup shows a secret and an authenticator link. Confirming the code needs an authenticator app, so two-factor was not turned on. |
-| AUTH-10 | Passkeys | P1 | NOT STARTED |  |  |  | WebAuthn sign-in. Up to 10 passkeys. |
+| AUTH-10 | Passkeys | P1 | BLOCKED | 0 | 0 | 0 | Add a passkey starts the ceremony and stays on Waiting for your device. This browser has no authenticator to finish WebAuthn. Needs a device passkey prompt. WebAuthn sign-in. Up to 10 passkeys. |
 | AUTH-11 | Account page | P1 | PASSED | 1 | 1 | 1 | Account shows the profile, password, two-factor, passkeys, data download, appearance, language, and the Acme team. The header offered Log in while signed in. It now says Your teams. |
 | GAP-04 | Edit name and email | P1 | BLOCKED | 0 | 0 | 0 | Account shows name and email as text. There are no edit fields. |
-| AUTH-12 | Account data export | P1 | NOT STARTED |  |  |  | JSON download of what Verk stores about the signed-in user |
-| AUTH-13 | Account erasure | P1 | NOT STARTED |  |  |  | Password-confirmed erase. Demo mode refuses. Sole owners must hand off. |
+| AUTH-12 | Account data export | P1 | PASSED | 0 | 0 | 0 | Download my data returned a JSON file for demo@verk.dev with the profile and sign-in methods. JSON download of what Verk stores about the signed-in user |
+| AUTH-13 | Account erasure | P1 | PASSED | 0 | 0 | 0 | Erase opens a password confirmation and keeps Erase permanently off until a password is entered. A wrong password is refused and the demo account stays. Password-confirmed erase. Demo mode refuses. Sole owners must hand off. |
 | AUTH-14 | Demo mode lock | P1 | NOT STARTED |  |  |  | DEMO_MODE blocks registration, team delete, and account erase |
 | AUTH-15 | Private host and GitHub allowlist | P1 | NOT STARTED |  |  |  | AUTH_ALLOWED_GITHUB closes password, SAML, Google, and OIDC |
 | AUTH-16 | Sign-in rate limit | P0 | NOT STARTED |  |  |  | 30 attempts per minute per IP, shared in Postgres |
@@ -1548,7 +1548,7 @@ Account → Two-factor sign-in enrolls a TOTP secret. The person confirms with a
 - **ID:** AUTH-10
 - **Name:** Passkeys
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** BLOCKED
 
 ### Files
 
@@ -1764,7 +1764,7 @@ Nothing in the account UI or actions updates User.name or User.email. OAuth may 
 - **ID:** AUTH-12
 - **Name:** Account data export
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -1836,7 +1836,7 @@ Account → Your data downloads a JSON file of the signed-in user’s data. The 
 - **ID:** AUTH-13
 - **Name:** Account erasure
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
