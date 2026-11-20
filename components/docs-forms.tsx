@@ -3,6 +3,10 @@
 import { Form, Input, Label, TextArea, TextField } from "@heroui/react";
 
 import { SubmitButton as Button } from "@/components/submit-button";
+import {
+  createDocumentAction,
+  updateDocumentAction,
+} from "@/lib/actions/documents";
 
 type LinkOption = { id: string; name: string };
 
@@ -63,25 +67,36 @@ function LinkFields({
 }
 
 export function CreateDocumentForm({
-  action,
+  teamSlug,
   projects,
   initiatives,
   hiddenProjectId,
   hiddenInitiativeId,
+  redirectTo,
 }: {
-  action: (formData: FormData) => void | Promise<void>;
+  teamSlug: string;
   projects?: LinkOption[];
   initiatives?: LinkOption[];
   hiddenProjectId?: string;
   hiddenInitiativeId?: string;
+  redirectTo?: string;
 }) {
   return (
-    <Form action={action} className="space-y-2">
+    <Form
+      action={async (formData) => {
+        formData.set("teamSlug", teamSlug);
+        await createDocumentAction(formData);
+      }}
+      className="space-y-2"
+    >
       {hiddenProjectId ? (
         <input name="projectId" type="hidden" value={hiddenProjectId} />
       ) : null}
       {hiddenInitiativeId ? (
         <input name="initiativeId" type="hidden" value={hiddenInitiativeId} />
+      ) : null}
+      {redirectTo ? (
+        <input name="redirectTo" type="hidden" value={redirectTo} />
       ) : null}
       <TextField isRequired name="title">
         <Label>Title</Label>
@@ -98,26 +113,50 @@ export function CreateDocumentForm({
 }
 
 export function UpdateDocumentForm({
-  action,
+  teamSlug,
+  documentId,
   title,
   body,
   projects,
   initiatives,
   projectId,
   initiativeId,
+  redirectTo,
+  lockProjectId,
+  lockInitiativeId,
 }: {
-  action: (formData: FormData) => void | Promise<void>;
+  teamSlug: string;
+  documentId: string;
   title: string;
   body: string;
   projects?: LinkOption[];
   initiatives?: LinkOption[];
   projectId?: string | null;
   initiativeId?: string | null;
+  redirectTo?: string;
+  lockProjectId?: string;
+  lockInitiativeId?: string;
 }) {
   return (
-    <Form action={action} className="mt-3 space-y-2">
+    <Form
+      action={async (formData) => {
+        formData.set("teamSlug", teamSlug);
+        formData.set("documentId", documentId);
+        await updateDocumentAction(formData);
+      }}
+      className="mt-3 space-y-2"
+    >
       {/* The text this edit started from, so the server can merge with a save made meanwhile. */}
       <input name="baseBody" type="hidden" value={body} />
+      {redirectTo ? (
+        <input name="redirectTo" type="hidden" value={redirectTo} />
+      ) : null}
+      {lockProjectId ? (
+        <input name="projectId" type="hidden" value={lockProjectId} />
+      ) : null}
+      {lockInitiativeId ? (
+        <input name="initiativeId" type="hidden" value={lockInitiativeId} />
+      ) : null}
       <TextField isRequired defaultValue={title} name="title">
         <Label>Title</Label>
         <Input />
@@ -126,12 +165,14 @@ export function UpdateDocumentForm({
         <Label>Body</Label>
         <TextArea />
       </TextField>
-      <LinkFields
-        initiativeId={initiativeId}
-        initiatives={initiatives}
-        projectId={projectId}
-        projects={projects}
-      />
+      {lockProjectId || lockInitiativeId ? null : (
+        <LinkFields
+          initiativeId={initiativeId}
+          initiatives={initiatives}
+          projectId={projectId}
+          projects={projects}
+        />
+      )}
       <Button size="sm" type="submit">
         Update
       </Button>

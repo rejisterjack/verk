@@ -12,7 +12,7 @@ import { createKeyResultAction } from "@/lib/actions/planning";
 import { keyResultProgress } from "@/lib/key-results";
 import { requireTeamBySlug } from "@/lib/rbac";
 import * as projectsService from "@/lib/services/projects";
-import { listDocuments, saveDocument } from "@/lib/services/surface";
+import { listDocuments } from "@/lib/services/surface";
 
 const HEALTH_CONFIG = {
   ON_TRACK: {
@@ -206,18 +206,9 @@ export default async function InitiativesPage({
                     </ul>
                     {!isGuest ? (
                       <CreateDocumentForm
-                        action={async (formData) => {
-                          "use server";
-                          await saveDocument(teamId, teamCtx.user.id, {
-                            title: String(formData.get("title") ?? ""),
-                            body: String(formData.get("body") ?? ""),
-                            initiativeId: String(
-                              formData.get("initiativeId") ?? "",
-                            ),
-                          });
-                          redirect(`/t/${teamSlug}/initiatives`);
-                        }}
                         hiddenInitiativeId={initiative.id}
+                        redirectTo={`/t/${teamSlug}/initiatives`}
+                        teamSlug={teamSlug}
                       />
                     ) : null}
                   </div>

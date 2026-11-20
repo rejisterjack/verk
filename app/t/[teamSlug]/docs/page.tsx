@@ -1,5 +1,5 @@
 import NextLink from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
 import {
   CreateDocumentForm,
@@ -9,14 +9,13 @@ import { MarkdownBody } from "@/components/markdown-body";
 import { EmptyState } from "@/components/empty-state";
 import { ViewToolbar } from "@/components/page-header";
 import { SubmitButton as Button } from "@/components/submit-button";
+import {
+  addDocumentCommentAction,
+  deleteDocumentAction,
+} from "@/lib/actions/documents";
 import { requireTeamBySlug } from "@/lib/rbac";
 import * as projectsService from "@/lib/services/projects";
-import {
-  addDocumentComment,
-  deleteDocument,
-  listDocuments,
-  saveDocument,
-} from "@/lib/services/surface";
+import { listDocuments } from "@/lib/services/surface";
 
 export default async function TeamDocsPage({
   params,
@@ -36,8 +35,6 @@ export default async function TeamDocsPage({
     projectsService.listProjects(teamCtx.team.id),
     projectsService.listInitiatives(teamCtx.team.id),
   ]);
-  const userId = teamCtx.user.id;
-  const teamId = teamCtx.team.id;
   const projectName = new Map(
     projects.map((project) => [project.id, project.name]),
   );
@@ -45,25 +42,10 @@ export default async function TeamDocsPage({
     initiatives.map((initiative) => [initiative.id, initiative.name]),
   );
 
-  function linkIds(formData: FormData) {
-    const projectId = String(formData.get("projectId") ?? "").trim();
-    const initiativeId = String(formData.get("initiativeId") ?? "").trim();
-
-    return {
-      projectId: projectId || null,
-      initiativeId: initiativeId || null,
-    };
-  }
-
-  async function create(formData: FormData) {
-    "use server";
-    await saveDocument(teamId, userId, {
-      title: String(formData.get("title") ?? ""),
-      body: String(formData.get("body") ?? ""),
-      ...linkIds(formData),
-    });
-    redirect(`/t/${teamSlug}/docs`);
-  }
+  const linkOptions = {
+    projects: projects.map((item) => ({ id: item.id, name: item.name })),
+    initiatives: initiatives.map((item) => ({ id: item.id, name: item.name })),
+  };
 
   return (
     <div className="flex min-h-full flex-col">
@@ -71,15 +53,9 @@ export default async function TeamDocsPage({
       {teamCtx.membership.role !== "GUEST" ? (
         <div className="border-b border-separator px-4 py-3">
           <CreateDocumentForm
-            action={create}
-            initiatives={initiatives.map((item) => ({
-              id: item.id,
-              name: item.name,
-            }))}
-            projects={projects.map((item) => ({
-              id: item.id,
-              name: item.name,
-            }))}
+            initiatives={linkOptions.initiatives}
+            projects={linkOptions.projects}
+            teamSlug={teamSlug}
           />
         </div>
       ) : null}
@@ -123,19 +99,9 @@ export default async function TeamDocsPage({
                 ))}
               </ul>
               {teamCtx.membership.role !== "GUEST" ? (
-                <form
-                  action={async (formData) => {
-                    "use server";
-                    await addDocumentComment(
-                      teamId,
-                      doc.id,
-                      userId,
-                      String(formData.get("body") ?? ""),
-                    );
-                    redirect(`/t/${teamSlug}/docs`);
-                  }}
-                  className="mt-2 flex items-end gap-2"
-                >
+                <form action={addDocumentCommentAction} className="mt-2 flex items-end gap-2">
+                  <input name="teamSlug" type="hidden" value={teamSlug} />
+                  <input name="documentId" type="hidden" value={doc.id} />
                   <label className="min-w-0 flex-1 text-[12px] text-muted">
                     Comment
                     <input
@@ -158,43 +124,18 @@ export default async function TeamDocsPage({
               {teamCtx.membership.role !== "GUEST" ? (
                 <div className="mt-3 space-y-2">
                   <UpdateDocumentForm
-                    action={async (formData) => {
-                      "use server";
-                      await saveDocument(
-                        teamId,
-                        userId,
-                        {
-                          title: String(formData.get("title") ?? ""),
-                          body: String(formData.get("body") ?? ""),
-                          ...(formData.has("baseBody")
-                            ? { baseBody: String(formData.get("baseBody")) }
-                            : {}),
-                          ...linkIds(formData),
-                        },
-                        doc.id,
-                      );
-                      redirect(`/t/${teamSlug}/docs`);
-                    }}
                     body={doc.body}
+                    documentId={doc.id}
                     initiativeId={doc.initiativeId}
-                    initiatives={initiatives.map((item) => ({
-                      id: item.id,
-                      name: item.name,
-                    }))}
+                    initiatives={linkOptions.initiatives}
                     projectId={doc.projectId}
-                    projects={projects.map((item) => ({
-                      id: item.id,
-                      name: item.name,
-                    }))}
+                    projects={linkOptions.projects}
+                    teamSlug={teamSlug}
                     title={doc.title}
                   />
-                  <form
-                    action={async () => {
-                      "use server";
-                      await deleteDocument(teamId, doc.id);
-                      redirect(`/t/${teamSlug}/docs`);
-                    }}
-                  >
+                  <form action={deleteDocumentAction}>
+                    <input name="documentId" type="hidden" value={doc.id} />
+                    <input name="teamSlug" type="hidden" value={teamSlug} />
                     <Button size="sm" type="submit" variant="danger">
                       Delete
                     </Button>

@@ -16,6 +16,7 @@ import {
 } from "@/components/project-detail-forms";
 import { StatusChip } from "@/components/status-chip";
 import { SubmitButton as Button } from "@/components/submit-button";
+import { deleteDocumentAction } from "@/lib/actions/documents";
 import { linkProjectTeamAction } from "@/lib/actions/planning";
 import { requireTeamBySlug } from "@/lib/rbac";
 import { siblingTeams } from "@/lib/services/planning";
@@ -25,10 +26,8 @@ import * as projectsService from "@/lib/services/projects";
 import * as dependencyService from "@/lib/services/project-dependencies";
 import {
   addProjectUpdate,
-  deleteDocument,
   listDocuments,
   listProjectUpdates,
-  saveDocument,
 } from "@/lib/services/surface";
 import { issueKey } from "@/lib/utils";
 
@@ -206,34 +205,21 @@ export default async function ProjectDetailPage({
                     <MarkdownBody text={doc.body} />
                   </div>
                   <UpdateDocumentForm
-                    action={async (formData) => {
-                      "use server";
-                      await saveDocument(
-                        teamId,
-                        teamCtx.user.id,
-                        {
-                          title: String(formData.get("title") ?? ""),
-                          body: String(formData.get("body") ?? ""),
-                          ...(formData.has("baseBody")
-                            ? { baseBody: String(formData.get("baseBody")) }
-                            : {}),
-                          projectId,
-                        },
-                        doc.id,
-                      );
-                      redirect(`/t/${teamSlug}/projects/${projectId}`);
-                    }}
                     body={doc.body}
+                    documentId={doc.id}
+                    lockProjectId={projectId}
+                    redirectTo={`/t/${teamSlug}/projects/${projectId}`}
+                    teamSlug={teamSlug}
                     title={doc.title}
                   />
-                  <form
-                    action={async () => {
-                      "use server";
-                      await deleteDocument(teamId, doc.id);
-                      redirect(`/t/${teamSlug}/projects/${projectId}`);
-                    }}
-                    className="mt-2"
-                  >
+                  <form action={deleteDocumentAction} className="mt-2">
+                    <input name="documentId" type="hidden" value={doc.id} />
+                    <input
+                      name="redirectTo"
+                      type="hidden"
+                      value={`/t/${teamSlug}/projects/${projectId}`}
+                    />
+                    <input name="teamSlug" type="hidden" value={teamSlug} />
                     <Button size="sm" type="submit" variant="danger">
                       Delete
                     </Button>
@@ -245,16 +231,9 @@ export default async function ProjectDetailPage({
               ) : null}
             </ul>
             <CreateDocumentForm
-              action={async (formData) => {
-                "use server";
-                await saveDocument(teamId, teamCtx.user.id, {
-                  title: String(formData.get("title") ?? ""),
-                  body: String(formData.get("body") ?? ""),
-                  projectId,
-                });
-                redirect(`/t/${teamSlug}/projects/${projectId}`);
-              }}
               hiddenProjectId={projectId}
+              redirectTo={`/t/${teamSlug}/projects/${projectId}`}
+              teamSlug={teamSlug}
             />
             <h2 className="mb-2 text-[12px] font-medium uppercase tracking-wide text-muted">
               Timeline
