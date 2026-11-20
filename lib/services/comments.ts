@@ -162,6 +162,16 @@ async function notifyMentions(
       body: body.slice(0, 200),
     })),
   });
+
+  const { emailInboxNotices } = await import("@/lib/services/notifications");
+
+  await emailInboxNotices({
+    userIds: recipients.map((member) => member.userId),
+    type: "MENTIONED",
+    title: `Mentioned: ${title}`,
+    body: body.slice(0, 200),
+    issueId,
+  });
 }
 
 export async function deleteComment(

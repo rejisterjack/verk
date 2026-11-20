@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import NextLink from "next/link";
 
 import { AppearanceSettings } from "@/components/appearance-settings";
+import { ProfileForm } from "@/components/profile-form";
 import { ChangePasswordForm } from "@/components/change-password-form";
 import { PasskeySettings } from "@/components/passkey-settings";
 import { PrivacySettings } from "@/components/privacy-settings";
@@ -46,13 +47,12 @@ export default async function AccountPage() {
           <p className="text-muted text-sm mt-1">Your Verk profile</p>
         </div>
 
+        <div className="space-y-2">
+          <h2 className="font-semibold">Profile</h2>
+          <ProfileForm email={user.email} name={user.name ?? ""} />
+        </div>
+
         <div className="rounded-xl border border-separator p-4 space-y-2 text-sm">
-          <p>
-            <span className="text-muted">Name:</span> {user.name ?? "—"}
-          </p>
-          <p>
-            <span className="text-muted">Email:</span> {user.email}
-          </p>
           <p>
             <span className="text-muted">Sign-in:</span>{" "}
             {[

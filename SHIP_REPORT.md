@@ -25,7 +25,7 @@ Every feature is PASSED or BLOCKED. This table matches the Ship Readiness Report
 | AUTH-02 | Password login and session | P0 | PASSED | 1 | 1 | 0 | Uppercase email signs in and follows a same-site callback. Wrong, empty, and disabled attempts stay on login with CredentialsSignin. An external callback is ignored. A stale session cookie no longer crashes the error overlay. |
 | GAP-01 | Password reset | P0 | PASSED | 1 | 1 | 0 | A forgotten password can be replaced from a one-time link. The link expires and cannot be reused. Without Resend the page says email could not be sent and does not show the token. |
 | GAP-02 | Change password | P1 | PASSED | 1 | 1 | 0 | The account page replaces the current password. A wrong current password changes nothing. An account with no password shows that there is nothing to change. |
-| GAP-03 | Email verification | P1 | BLOCKED | 0 | 0 | 0 | No verify control on the account page. Password signup does not set emailVerified. Needs a verification flow and RESEND_API_KEY. |
+| GAP-03 | Email verification | P1 | PASSED | 0 | 0 | 0 | A new account cannot sign in until the confirmation link is opened. The page says email is not configured when Resend is unset. Opening the link confirms the address, and a second open says the link was already used. |
 | AUTH-03 | Logout | P0 | PASSED | 0 | 0 | 0 | Sidebar and account sign-out both land on /. The next team URL redirects to login. The marketing page has no sign-out control. |
 | AUTH-04 | Signed-out and non-member protection | P0 | PASSED | 0 | 0 | 0 | Signed out, a team URL and the account page go to login and return to that path. A missing team is a 404 that does not name the team. |
 | AUTH-05 | GitHub OAuth | P1 | BLOCKED | 0 | 0 | 0 | The login page has no GitHub button. Needs AUTH_GITHUB_ID and AUTH_GITHUB_SECRET. |
@@ -35,7 +35,7 @@ Every feature is PASSED or BLOCKED. This table matches the Ship Readiness Report
 | AUTH-09 | Two-factor authentication | P1 | BLOCKED | 0 | 0 | 0 | Setup shows a secret and an authenticator link. Confirming the code needs an authenticator app, so two-factor was not turned on. |
 | AUTH-10 | Passkeys | P1 | BLOCKED | 0 | 0 | 0 | Add a passkey starts the ceremony and stays on Waiting for your device. This browser has no authenticator to finish WebAuthn. Needs a device passkey prompt. WebAuthn sign-in. Up to 10 passkeys. |
 | AUTH-11 | Account page | P1 | PASSED | 1 | 1 | 1 | Account shows the profile, password, two-factor, passkeys, data download, appearance, language, and the Acme team. The header offered Log in while signed in. It now says Your teams. |
-| GAP-04 | Edit name and email | P1 | BLOCKED | 0 | 0 | 0 | Account shows name and email as text. There are no edit fields. |
+| GAP-04 | Edit name and email | P1 | PASSED | 0 | 0 | 0 | A blank name is refused. A Japanese name with an emoji saved, then the demo name was restored. An email already in use is refused, and the demo address stayed demo@verk.dev. |
 | AUTH-12 | Account data export | P1 | PASSED | 0 | 0 | 0 | Download my data returned a JSON file for demo@verk.dev with the profile and sign-in methods. JSON download of what Verk stores about the signed-in user |
 | AUTH-13 | Account erasure | P1 | PASSED | 0 | 0 | 0 | Erase opens a password confirmation and keeps Erase permanently off until a password is entered. A wrong password is refused and the demo account stays. Password-confirmed erase. Demo mode refuses. Sole owners must hand off. |
 | AUTH-14 | Demo mode lock | P1 | BLOCKED | 0 | 0 | 0 | DEMO_MODE is false. A throwaway team deleted successfully, so the demo lock is off. Needs DEMO_MODE=true. DEMO_MODE blocks registration, team delete, and account erase |
@@ -49,7 +49,7 @@ Every feature is PASSED or BLOCKED. This table matches the Ship Readiness Report
 | TEAM-06 | Team invites | P0 | PASSED | 0 | 0 | 0 | Invite created, the link opened the accept page, and revoke removed the pending invite. |
 | TEAM-07 | Workspaces and workspace invites | P1 | PASSED | 0 | 0 | 0 | Workspace Acme Engineering lists the team, invites shipcheck@example.com with a copyable link because email is not configured, and Revoke removes the pending invite. A workspace groups teams. Invites are separate from team invites. |
 | TEAM-08 | Members, roles, and guest project scope | P0 | PASSED | 0 | 0 | 0 | Alex Rivera was changed to Admin and back to Member. Remove is on the row. The owner row stays Owner. |
-| GAP-05 | Leave a team | P1 | BLOCKED | 0 | 0 | 0 | Members has invite, role, and remove. There is no leave control. |
+| GAP-05 | Leave a team | P1 | PASSED | 0 | 0 | 0 | The last owner cannot leave. A member who typed the slug left, their key was revoked, the team URL became not found, and the other members stayed. |
 | ISSUE-01 | Create an issue | P0 | PASSED | 0 | 0 | 0 | New issue created ACM-21 from the dialog and opened on its own page. |
 | ISSUE-02 | View and update an issue | P0 | PASSED | 0 | 0 | 0 | The title and priority saved. Reload of the row showed Ship check issue updated and High. Delete removed it. |
 | ISSUE-03 | Issue list, my issues, and display options | P0 | PASSED | 1 | 1 | 1 | The list groups by status when listGroup=status. My issues for the demo user correctly says nothing is assigned, instead of telling them to create the first issue. |
@@ -102,7 +102,7 @@ Every feature is PASSED or BLOCKED. This table matches the Ship Readiness Report
 | PLAN-18 | Signed-in intake form | P2 | PASSED | 0 | 0 | 0 | Intake created ACM-23 titled Ship check intake and opened that issue. Delete removed it. In-app intake plus POST /api/teams/{id}/intake |
 | INBOX-01 | Inbox | P1 | PASSED | 0 | 0 | 0 | Two notifications. Mark read dropped the badge from 2 to 1. |
 | INBOX-02 | Notification preferences | P1 | PASSED | 0 | 0 | 0 | Unchecking Assigned to you saved, and checking it again restored it. The other four types stayed on. |
-| GAP-06 | Email alerts for inbox events | P2 | BLOCKED | 0 | 0 | 0 | Inbox preferences are on the notifications page. Email is not configured, and RESEND_API_KEY is unset. BUILD. Resend sends invites only. |
+| GAP-06 | Email alerts for inbox events | P2 | BLOCKED | 0 | 0 | 0 | Comment and assignment notices now send mail when Resend is set, and skip it when the key is unset. A comment still created the inbox row. Delivery needs RESEND_API_KEY. |
 | OFFLINE-01 | Installable PWA and offline page | P1 | PASSED | 0 | 0 | 0 | The offline page says you are offline and offers teams and retry. The manifest names Verk and starts at /t. The worker is turned off while the dev server is running. |
 | OFFLINE-02 | Offline outbox and sync | P1 | BLOCKED | 0 | 0 | 0 | This dev server does not install a service worker, so the page has no offline controller. Needs a production build to edit while offline. Issue CRUD, comments, labels, and drafts while offline |
 | OFFLINE-03 | Edit conflicts | P1 | BLOCKED | 0 | 0 | 0 | The keep-mine dialog never appeared. The dev service worker is off, so two offline edits cannot meet. Needs a production build. Revision conflicts and the keep-mine dialog |
@@ -154,10 +154,10 @@ BUILD items are also rows in the feature table. DEFER items are not, because the
 | --- | --- | --- |
 | Password reset | BUILD | GAP-01. VerificationToken exists and nothing sends a reset link. A person who forgets the password cannot get back in. |
 | Change password | BUILD | GAP-02. The account page shows that a password is set and erasure checks it, but nothing writes a new hash. SCIM advertises changePassword unsupported. |
-| Email verification | BUILD | GAP-03. Password signup never sets emailVerified. SAML does. Anyone can register an address they do not own before the real owner does. |
-| Edit name and email | BUILD | GAP-04. The account page is display-only. |
-| Leave a team | BUILD | GAP-05. Only an admin can remove a member. There is no leave action. |
-| Email alerts for inbox events | BUILD | GAP-06. Resend sends invite mail only. Assignment and mentions stay in the inbox. |
+| Email verification | BUILD | GAP-03. Passed. A password account confirms the address from a one-time link before it can sign in. |
+| Edit name and email | BUILD | GAP-04. Passed. The account page edits the name, and an email change requires the current password. |
+| Leave a team | BUILD | GAP-05. Passed. A member can leave. The last owner cannot. |
+| Email alerts for inbox events | BUILD | GAP-06. Notices mail through Resend when the key is set. This machine has no key, so delivery is still blocked. |
 | Payments and billing | DEFER | The privacy page says Verk has no billing. Customer revenue is a number the team types. |
 | Docker | DEFER | The README and the repo ship a Vercel build. No Dockerfile is present. |
 | Native desktop and mobile shells | DEFER | The product is a PWA on purpose. |
@@ -966,7 +966,7 @@ The account page lists password as a sign-in method when passwordHash is set. Pr
 - **ID:** GAP-03
 - **Name:** Email verification
 - **Priority:** P1
-- **Status:** BLOCKED
+- **Status:** PASSED
 
 ### Files
 
@@ -1694,7 +1694,7 @@ Signed-in /account shows the name, email, and sign-in methods (password and each
 - **ID:** GAP-04
 - **Name:** Edit name and email
 - **Priority:** P1
-- **Status:** BLOCKED
+- **Status:** PASSED
 
 ### Files
 
@@ -2721,7 +2721,7 @@ Admins manage members. They can change a role, remove a member, and set guestPro
 - **ID:** GAP-05
 - **Name:** Leave a team
 - **Priority:** P1
-- **Status:** BLOCKED
+- **Status:** PASSED
 
 ### Files
 
@@ -9756,7 +9756,7 @@ The demo cron is scheduled at 12:00 UTC. It uses CRON_SECRET the same way as the
 
 ## Assumptions
 
-- The feature table is the live result. 97 features passed and 34 are blocked. None are left untested.
+- The feature table is the live result. 100 features passed and 31 are blocked. None are left untested.
 - Optional integrations are features. They exist in the code and stay off until the matching environment variable is set. Off is a supported state, not a missing page.
 - A guest with an empty guestProjectIds list can see the whole team. That matches the membership comment in the schema. A non-empty list is the restriction.
 - Sessions are JWTs (`lib/auth.config.ts`). The Prisma Session model is present for the adapter. Credentials login does not depend on a Session row.
@@ -9788,8 +9788,8 @@ The demo cron is scheduled at 12:00 UTC. It uses CRON_SECRET the same way as the
 | Result | Count |
 | --- | --- |
 | Features | 131 |
-| Passed | 97 |
-| Blocked | 34 |
+| Passed | 100 |
+| Blocked | 31 |
 | Not started | 0 |
 | Bugs found | 17 |
 | Bugs fixed | 17 |

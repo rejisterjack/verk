@@ -8,6 +8,10 @@ import { isPrivateHost } from "@/lib/auth-allowlist";
 import { signIn, signOut } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { rateLimitShared } from "@/lib/rate-limit";
+import {
+  hasPendingEmailVerification,
+  issueEmailVerification,
+} from "@/lib/services/email-verification";
 import { isTwoFactorEnabled } from "@/lib/services/two-factor";
 import { isDemoMode } from "@/lib/utils";
 import { registerSchema } from "@/lib/validators";
@@ -65,18 +69,17 @@ export async function registerAction(formData: FormData) {
     },
   });
 
-  try {
-    await signIn("credentials", {
-      email,
-      password: parsed.data.password,
-      redirectTo: "/onboarding",
-    });
-  } catch (error) {
-    if (error instanceof AuthError) {
-      return { error: "Account created but sign-in failed. Try logging in." };
-    }
-    throw error;
-  }
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  const proto = h.get("x-forwarded-proto") ?? "http";
+  const origin = process.env.AUTH_URL ?? `${proto}://${host}`;
+  const mailed = await issueEmailVerification(email, origin);
+
+  return {
+    message: mailed.mailed
+      ? "Check your email and open the confirmation link before signing in."
+      : "Account created. Email is not configured, so the confirmation link could not be sent.",
+  };
 }
 
 export async function loginAction(formData: FormData) {
@@ -99,10 +102,16 @@ export async function loginAction(formData: FormData) {
     if (
       user?.passwordHash &&
       !user.disabled &&
-      (await bcrypt.compare(password, user.passwordHash)) &&
-      (await isTwoFactorEnabled(user.id))
+      (await bcrypt.compare(password, user.passwordHash))
     ) {
-      return { needsCode: true as const };
+      if (await hasPendingEmailVerification(email)) {
+        return {
+          error: "Confirm your email before signing in.",
+        };
+      }
+      if (await isTwoFactorEnabled(user.id)) {
+        return { needsCode: true as const };
+      }
     }
   }
 

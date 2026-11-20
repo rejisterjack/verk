@@ -510,9 +510,29 @@ export async function createIssue(
             title: `Triage: ${issue.title}`,
           },
         });
+        const { emailInboxNotices } = await import(
+          "@/lib/services/notifications"
+        );
+
+        await emailInboxNotices({
+          userIds: [owner],
+          type: "ASSIGNED",
+          title: `Triage: ${issue.title}`,
+          issueId: issue.id,
+        });
       }
     }
     await notifyTeamSlack(team, `Created: ${issue.title}`);
+    if (issue.assigneeId && issue.assigneeId !== userId) {
+      const { emailInboxNotices } = await import("@/lib/services/notifications");
+
+      await emailInboxNotices({
+        userIds: [issue.assigneeId],
+        type: "ASSIGNED",
+        title: `Assigned: ${issue.title}`,
+        issueId: issue.id,
+      });
+    }
     const { recordActivity } = await import("@/lib/services/surface");
 
     await recordActivity(issue.id, userId, "created", "", issue.title);

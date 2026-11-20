@@ -289,6 +289,7 @@ function GitHubMark() {
 
 export function RegisterForm({ githubEnabled }: { githubEnabled: boolean }) {
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
   return (
@@ -314,10 +315,14 @@ export function RegisterForm({ githubEnabled }: { githubEnabled: boolean }) {
             e.preventDefault();
             setPending(true);
             setError(null);
+            setMessage(null);
             const formData = new FormData(e.currentTarget);
             const result = await registerAction(formData);
 
             if (result?.error) setError(result.error);
+            if (result && "message" in result && result.message) {
+              setMessage(result.message);
+            }
             setPending(false);
           }}
         >
@@ -337,6 +342,7 @@ export function RegisterForm({ githubEnabled }: { githubEnabled: boolean }) {
             <FieldError />
           </TextField>
           {error ? <p className="text-danger text-sm">{error}</p> : null}
+          {message ? <p className="text-sm text-foreground">{message}</p> : null}
           <Button className="h-11 w-full" isDisabled={pending} type="submit">
             {pending ? "Creating…" : "Create account"}
           </Button>

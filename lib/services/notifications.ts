@@ -1,6 +1,7 @@
 import type { NotificationType } from "@/lib/generated/prisma/client";
 
 import { prisma } from "@/lib/db";
+import { sendInboxEmail } from "@/lib/email";
 import { normalizeMuted, unmutedRecipients } from "@/lib/notification-prefs";
 
 export async function getMutedTypes(userId: string) {
@@ -82,6 +83,54 @@ export async function notifyIssueSubscribers(opts: {
       body: opts.body ?? "",
     })),
   });
+
+  await emailInboxNotices({
+    userIds: recipients,
+    type: opts.type,
+    title: opts.title,
+    body: opts.body,
+    issueId: opts.issueId,
+  });
+}
+
+export async function emailInboxNotices(opts: {
+  userIds: string[];
+  type: NotificationType;
+  title: string;
+  body?: string;
+  issueId: string;
+}) {
+  if (!process.env.RESEND_API_KEY || !opts.userIds.length) return;
+
+  const recipients = await filterUnmuted(opts.userIds, opts.type);
+
+  if (!recipients.length) return;
+
+  const [users, issue] = await Promise.all([
+    prisma.user.findMany({
+      where: { id: { in: recipients } },
+      select: { email: true },
+    }),
+    prisma.issue.findUnique({
+      where: { id: opts.issueId },
+      select: { number: true, team: { select: { slug: true } } },
+    }),
+  ]);
+  const origin = process.env.AUTH_URL ?? "http://localhost:3000";
+  const url = issue
+    ? `${origin}/t/${issue.team.slug}/issues/${issue.number}`
+    : origin;
+
+  await Promise.all(
+    users.map((user) =>
+      sendInboxEmail({
+        to: user.email,
+        title: opts.title,
+        body: opts.body ?? "",
+        url,
+      }),
+    ),
+  );
 }
 
 export async function listInbox(userId: string, teamId?: string) {

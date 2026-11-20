@@ -13,6 +13,7 @@ import { authConfig } from "@/lib/auth.config";
 import { prisma } from "@/lib/db";
 import { rateLimitShared } from "@/lib/rate-limit";
 import { isSamlEnabled, SAML_PROVIDER_ID, verifySamlTicket } from "@/lib/saml";
+import { hasPendingEmailVerification } from "@/lib/services/email-verification";
 import { finishAuthentication } from "@/lib/services/passkeys";
 import {
   isTwoFactorEnabled,
@@ -52,6 +53,7 @@ const providers: Provider[] = [
       );
 
       if (!valid) return null;
+      if (await hasPendingEmailVerification(user.email)) return null;
 
       // Second factor: a correct password alone is never enough once 2FA is on. Guessing is
       // throttled per account so a six-digit code can't be brute-forced.

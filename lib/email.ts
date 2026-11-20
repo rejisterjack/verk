@@ -80,6 +80,61 @@ export async function sendInviteEmail(opts: {
   }
 }
 
+export async function sendVerificationEmail(opts: {
+  to: string;
+  verifyUrl: string;
+}): Promise<{ sent: boolean }> {
+  const apiKey = process.env.RESEND_API_KEY;
+
+  if (!apiKey) return { sent: false };
+
+  const resend = new Resend(apiKey);
+  const from = process.env.EMAIL_FROM ?? "Verk <onboarding@resend.dev>";
+
+  try {
+    await resend.emails.send({
+      from,
+      to: opts.to,
+      subject: "Confirm your Verk email",
+      text: `Confirm this address: ${opts.verifyUrl}\n\nThis link expires in 24 hours.`,
+      html: `<p><a href="${escapeHtml(opts.verifyUrl)}">Confirm this address</a></p><p>This link expires in 24 hours.</p>`,
+    });
+
+    return { sent: true };
+  } catch {
+    return { sent: false };
+  }
+}
+
+export async function sendInboxEmail(opts: {
+  to: string;
+  title: string;
+  body: string;
+  url: string;
+}): Promise<{ sent: boolean }> {
+  const apiKey = process.env.RESEND_API_KEY;
+
+  if (!apiKey) return { sent: false };
+
+  const resend = new Resend(apiKey);
+  const from = process.env.EMAIL_FROM ?? "Verk <onboarding@resend.dev>";
+  const subject = opts.title.slice(0, 180);
+
+  try {
+    await resend.emails.send({
+      from,
+      to: opts.to,
+      subject,
+      text: [opts.title, opts.body, opts.url].filter(Boolean).join("\n\n"),
+      html: `<p>${escapeHtml(opts.title)}</p>${opts.body ? `<p>${escapeHtml(opts.body)}</p>` : ""}<p><a href="${escapeHtml(opts.url)}">Open in Verk</a></p>`,
+    });
+
+    return { sent: true };
+  } catch {
+    return { sent: false };
+  }
+}
+
 export async function sendPasswordResetEmail(opts: {
   to: string;
   resetUrl: string;

@@ -6,6 +6,7 @@ import { useState } from "react";
 import { SelectField } from "@/components/ui/select-field";
 import {
   inviteMemberAction,
+  leaveTeamAction,
   removeMemberAction,
   resendInviteAction,
   revokeInviteAction,
@@ -44,6 +45,7 @@ export function MembersSettings({
 }) {
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [leaveError, setLeaveError] = useState<string | null>(null);
 
   return (
     <div className="space-y-8">
@@ -228,6 +230,47 @@ export function MembersSettings({
           </ul>
         </div>
       ) : null}
+
+      <form
+        className="space-y-3 rounded-xl border border-separator p-4"
+        onSubmit={async (event) => {
+          event.preventDefault();
+          setLeaveError(null);
+          const result = await leaveTeamAction(
+            teamSlug,
+            new FormData(event.currentTarget),
+          );
+
+          if (result.error) {
+            setLeaveError(result.error);
+
+            return;
+          }
+          window.location.href = "/account";
+        }}
+      >
+        <h3 className="font-semibold">Leave team</h3>
+        <p className="text-sm text-muted">
+          Type {teamSlug} to leave. Your keys for this team stop working. Other
+          members stay.
+        </p>
+        <label className="block text-sm">
+          <span className="text-muted">Team slug</span>
+          <input
+            required
+            className="mt-1 h-10 w-full max-w-sm rounded-md border border-separator bg-background px-3 text-sm"
+            name="confirm"
+            placeholder={teamSlug}
+          />
+        </label>
+        {leaveError ? <p className="text-danger text-sm">{leaveError}</p> : null}
+        <button
+          className="h-10 rounded-md border border-separator px-4 text-sm"
+          type="submit"
+        >
+          Leave team
+        </button>
+      </form>
     </div>
   );
 }

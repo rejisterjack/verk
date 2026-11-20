@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 export const AUDIT_ACTIONS = {
   "member.role_changed": "Changed a member's role",
   "member.removed": "Removed a member",
+  "member.left": "Left the team",
   "invite.created": "Invited someone",
   "invite.revoked": "Revoked an invite",
   "api_key.created": "Created an API key",

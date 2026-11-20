@@ -98,6 +98,10 @@ export async function removeMember(
   });
 
   await prisma.membership.delete({ where: { id: membershipId } });
+  await prisma.apiKey.updateMany({
+    where: { teamId, createdById: membership.userId, revokedAt: null },
+    data: { revokedAt: new Date() },
+  });
   await recordAudit({
     teamId,
     actor,
@@ -105,6 +109,49 @@ export async function removeMember(
     targetType: "user",
     targetId: membership.userId,
     summary: `Removed ${removed?.name ?? removed?.email ?? "a member"} (${membership.role})`,
+    metadata: { role: membership.role },
+  });
+}
+
+export async function leaveTeam(
+  teamId: string,
+  userId: string,
+  actor?: AuditEvent["actor"],
+) {
+  const membership = await prisma.membership.findFirst({
+    where: { teamId, userId },
+  });
+
+  if (!membership) {
+    throw new AuthError("Member not found", "NOT_FOUND", 404);
+  }
+
+  if (membership.role === "OWNER") {
+    const owners = await prisma.membership.count({
+      where: { teamId, role: "OWNER" },
+    });
+
+    if (owners <= 1) {
+      throw new AuthError(
+        "You are the last owner, so you cannot leave.",
+        "LAST_OWNER",
+        400,
+      );
+    }
+  }
+
+  await prisma.membership.delete({ where: { id: membership.id } });
+  await prisma.apiKey.updateMany({
+    where: { teamId, createdById: userId, revokedAt: null },
+    data: { revokedAt: new Date() },
+  });
+  await recordAudit({
+    teamId,
+    actor,
+    action: "member.left",
+    targetType: "user",
+    targetId: userId,
+    summary: "Left the team",
     metadata: { role: membership.role },
   });
 }

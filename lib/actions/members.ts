@@ -114,6 +114,30 @@ export async function updateMemberRoleAction(
   }
 }
 
+export async function leaveTeamAction(teamSlug: string, formData: FormData) {
+  const { team, user } = await requireTeamBySlug(teamSlug);
+  const confirm = String(formData.get("confirm") ?? "").trim();
+
+  if (confirm !== team.slug) {
+    return { error: "Type the team slug to leave." };
+  }
+
+  try {
+    await membersService.leaveTeam(team.id, user.id!, {
+      id: user.id!,
+      name: user.name,
+      email: user.email,
+    });
+    revalidatePath(`/t/${teamSlug}/settings/members`);
+
+    return { ok: true as const };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Could not leave the team",
+    };
+  }
+}
+
 export async function removeMemberAction(
   teamSlug: string,
   membershipId: string,
