@@ -65,7 +65,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | ISSUE-13 | External issue links | PASSED | 0 | 0 | 0 | A link to example.com showed on ACM-1. Remove cleared it. | URL links on an issue, separate from git automation |
 | ISSUE-14 | Issue activity | PASSED | 0 | 0 | 0 | Activity lists the comment and a description change on ACM-1. | Field history on the issue |
 | ISSUE-15 | Issue subscriptions | P1 | PASSED | 0 | 0 | 0 | The subscribe switch on ACM-1 turned off and stayed off after reload, then turned back on and stayed Subscribed. Watch and unwatch. Drives notifications. |
-| ISSUE-16 | Similar issues | P2 | NOT STARTED |  |  |  | Hint while typing a title, and the similar API |
+| ISSUE-16 | Similar issues | P2 | PASSED | 0 | 0 | 0 | Typing Set up Neon database in New issue listed Similar issues with a link to ACM-1. The dialog was closed without creating an issue. Hint while typing a title, and the similar API |
 | ISSUE-17 | Advanced filters | P1 | PASSED | 1 | 1 | 0 | Choosing Done in the status filter left every issue on screen because the offline cache replaced the server list. The list now keeps the server result, so Done shows ACM-1, ACM-2, and ACM-13. A status AND priority query in the URL shows the same three. Nested all/any groups over the filter fields, in the URL and the API |
 | ISSUE-18 | Saved views | PASSED | 0 | 0 | 0 | Saved Ship check view from the issues list. It showed under Settings, Views, and Delete removed it. | Create, edit, delete, pin. Private or shared. |
 | ISSUE-19 | Drafts | P1 | PASSED | 0 | 0 | 0 | Saving Ship check draft listed it with Resume and Create issue. Delete returned the page to no drafts. |
@@ -3893,7 +3893,7 @@ A member can subscribe and unsubscribe. Assignees and mentioned people are subsc
 - **ID:** ISSUE-16
 - **Name:** Similar issues
 - **Priority:** P2
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
