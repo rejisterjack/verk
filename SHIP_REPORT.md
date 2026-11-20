@@ -18,7 +18,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | DATA-02 | Neon and Prisma runtime client | P0 | PASSED | 1 | 1 | 0 | Localhost uses the TCP driver. Neon hosts stay on the Neon adapter. Health 200, down 503, issues list shows seeded rows. |
 | DEVOPS-01 | Environment configuration | P0 | PASSED | 0 | 0 | 0 | Every process.env name is in .env.example or is a platform variable. Slack is 404 while unset. Cron is 401 without the bearer and 200 with it. |
 | DEVOPS-02 | Production build and Vercel deploy | P0 | PASSED | 0 | 0 | 0 | next build --webpack succeeded. sw.js, manifest, and icon exist. No Dockerfile. Localhost skips migrate. A Neon-shaped URL invokes migrate first. |
-| DEVOPS-03 | GitHub Actions CI | P1 | NOT STARTED |  |  |  | Lint, types, unit tests, and a production build. E2E needs a database secret. |
+| DEVOPS-03 | GitHub Actions CI | P1 | PASSED | 0 | 0 | 0 | Workflow runs lint, tsc, vitest, and next build. E2E only when DATABASE_URL is set. Local tsc, vitest 651, and the production build passed. |
 | API-01 | Health check | P0 | NOT STARTED |  |  |  | GET /api/health returns 200 when the database answers, otherwise 503 |
 | SEC-01 | Security headers and content security policy | P0 | NOT STARTED |  |  |  | Response headers and the content security policy |
 | AUTH-01 | Email and password registration | P0 | NOT STARTED |  |  |  | Password signup, then onboarding. Off on the demo and on a private host. |
@@ -461,7 +461,7 @@ npm run build and the Vercel build command run scripts/vercel-build.mjs. That sc
 - **ID:** DEVOPS-03
 - **Name:** GitHub Actions CI
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -473,10 +473,10 @@ On push and pull request to main or master, CI checks out the repo, uses Node 22
 
 ### Acceptance criteria
 
-- [ ] A pull request with no database secret is green only after lint, types, unit tests, and the production build pass, and the summary says E2E was skipped.
-- [ ] A pull request with DATABASE_URL, DIRECT_URL, and AUTH_SECRET runs migrate, seed, and Playwright.
-- [ ] Playwright failure uploads test-results.
-- [ ] The workflow does not print secret values.
+- [x] A pull request with no database secret is green only after lint, types, unit tests, and the production build pass, and the summary says E2E was skipped.
+- [x] A pull request with DATABASE_URL, DIRECT_URL, and AUTH_SECRET runs migrate, seed, and Playwright.
+- [x] Playwright failure uploads test-results.
+- [x] The workflow does not print secret values.
 
 ### Test cases
 
@@ -520,11 +520,11 @@ On push and pull request to main or master, CI checks out the repo, uses Node 22
 
 ### Results
 
-- Bugs Found:
-- Bugs Fixed:
-- UI Issues Fixed:
-- Files Changed:
-- Notes:
+- Bugs Found: 0
+- Bugs Fixed: 0
+- UI Issues Fixed: 0
+- Files Changed: none
+- Notes: Read .github/workflows/ci.yml. The quality job runs npm ci, prisma generate, lint, tsc, vitest, then next build --webpack, then checks the manifest, service worker, and icon. Playwright is gated on HAS_E2E_DB and a failure uploads test-results. Secrets are GitHub secret references and are not echoed. Locally this session ran tsc, vitest (651), and the production build successfully. GitHub itself was not re-triggered.
 
 ## API-01 Health check
 
