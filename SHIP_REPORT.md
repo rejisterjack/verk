@@ -95,7 +95,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | PLAN-11 | Documents | P1 | NOT STARTED |  |  |  | Team docs, comments, revisions, and line merge |
 | PLAN-12 | Customers | PASSED | 0 | 0 | 0 | Added Ship Check Co with a request form and 0 requests. Delete customer removed it. | Customers, tier, revenue, and requests |
 | PLAN-13 | Customer demand | P1 | NOT STARTED |  |  |  | Rank open issues by customers or by revenue |
-| PLAN-14 | Dashboards | P1 | NOT STARTED |  |  |  | Personal dashboards and widgets |
+| PLAN-14 | Dashboards | PASSED | 1 | 1 | 0 | Creating Ship check board saved it but the list stayed blank until reload. Create now refreshes, and Delete removes the board. | Personal dashboards and widgets |
 | PLAN-15 | Insights | P1 | PASSED | 1 | 1 | 0 | Created 20 and completed 3 match the team. The flow chart ended the day before issues existed, so every row was zero. It now includes today and shows 6, 6, 4, 3, 1. |
 | PLAN-16 | Insight builder and saved reports | P1 | NOT STARTED |  |  |  | Build a query, keep it private or share it |
 | PLAN-17 | Public Ask form | P1 | NOT STARTED |  |  |  | Token URL that files a triage issue. Honeypot and rate limits. |
@@ -6093,7 +6093,7 @@ Customers → See demand ranks open issues by how many different customers asked
 - **ID:** PLAN-14
 - **Name:** Dashboards
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 

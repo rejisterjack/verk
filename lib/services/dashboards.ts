@@ -61,3 +61,19 @@ export async function addWidget(
     },
   });
 }
+
+export async function deleteDashboard(
+  teamId: string,
+  dashboardId: string,
+  role: Role,
+) {
+  assertRole(role, "MEMBER");
+  const dashboard = await prisma.dashboard.findFirst({
+    where: { id: dashboardId, teamId },
+    select: { id: true },
+  });
+
+  if (!dashboard) throw new AuthError("Dashboard not found", "NOT_FOUND", 404);
+
+  await prisma.dashboard.delete({ where: { id: dashboardId } });
+}

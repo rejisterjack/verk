@@ -1,9 +1,15 @@
+import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
 
 import { ViewToolbar } from "@/components/page-header";
 import { SubmitButton as Button } from "@/components/submit-button";
 import { requireTeamBySlug } from "@/lib/rbac";
-import { addWidget, createDashboard, listDashboards } from "@/lib/services/dashboards";
+import {
+  addWidget,
+  createDashboard,
+  deleteDashboard,
+  listDashboards,
+} from "@/lib/services/dashboards";
 
 export default async function DashboardsPage({
   params,
@@ -33,6 +39,19 @@ export default async function DashboardsPage({
       formData.get("shared") === "on",
       ctx.membership.role,
     );
+    revalidatePath(`/t/${teamSlug}/dashboards`);
+  }
+
+  async function remove(formData: FormData) {
+    "use server";
+    const ctx = await requireTeamBySlug(teamSlug, "MEMBER");
+
+    await deleteDashboard(
+      ctx.team.id,
+      String(formData.get("dashboardId") ?? ""),
+      ctx.membership.role,
+    );
+    revalidatePath(`/t/${teamSlug}/dashboards`);
   }
 
   async function widget(formData: FormData) {
@@ -49,6 +68,7 @@ export default async function DashboardsPage({
       },
       ctx.membership.role,
     );
+    revalidatePath(`/t/${teamSlug}/dashboards`);
   }
 
   return (
@@ -69,10 +89,20 @@ export default async function DashboardsPage({
       <div className="space-y-6 px-4 py-3">
         {dashboards.map((dashboard) => (
           <section key={dashboard.id} className="rounded-lg border border-separator p-3">
-            <h2 className="font-medium">
-              {dashboard.name}{" "}
-              <span className="text-[12px] text-muted">{dashboard.shared ? "Shared" : "Private"}</span>
-            </h2>
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="font-medium">
+                {dashboard.name}{" "}
+                <span className="text-[12px] text-muted">{dashboard.shared ? "Shared" : "Private"}</span>
+              </h2>
+              {canEdit ? (
+                <form action={remove}>
+                  <input name="dashboardId" type="hidden" value={dashboard.id} />
+                  <Button size="sm" type="submit" variant="ghost">
+                    Delete
+                  </Button>
+                </form>
+              ) : null}
+            </div>
             <ul className="mt-2 space-y-2 text-sm">
               {dashboard.widgets.map((widgetRow) => (
                 <li key={widgetRow.id}>
