@@ -57,8 +57,8 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | ISSUE-05 | Comments | P1 | PASSED | 0 | 0 | 0 | A comment posted, then Delete removed it. The page showed no comments. |
 | ISSUE-06 | Sub-issues | PASSED | 0 | 0 | 0 | Ship check child appeared as ACM-22 under ACM-1, with a parent link. Delete removed it. | Parent, up to 8 levels, progress, inherit, auto-close |
 | ISSUE-07 | Relations, duplicates, and blocking | PASSED | 0 | 0 | 0 | Related ACM-2 was added on ACM-1. Remove cleared it. | BLOCKS, related, and duplicate. Loops rejected. |
-| ISSUE-08 | Archive, restore, and purge | P1 | NOT STARTED |  |  |  | Archive hides an issue. The daily cron deletes it after 30 days. |
-| ISSUE-09 | Bulk edit | P1 | NOT STARTED |  |  |  | Up to 200 issues: status, priority, assignee, archive, restore, delete |
+| ISSUE-08 | Archive, restore, and purge | P1 | PASSED | 0 | 0 | 0 | Archiving ACM-16 hid it from the list and showed it on Archive. Restore put it back, and it is no longer archived. Archive hides an issue. The daily cron deletes it after 30 days. |
+| ISSUE-09 | Bulk edit | P1 | PASSED | 0 | 0 | 0 | Selecting ACM-16 opened a bar for status, priority, assignee, archive, and delete. Setting priority to Low updated that one issue, then it was set back to No priority. Up to 200 issues: status, priority, assignee, archive, restore, delete |
 | ISSUE-10 | Labels | P1 | PASSED | 0 | 0 | 0 | bug, feature, and polish are listed. Adding shipcheck created it, and Delete removed it. |
 | ISSUE-11 | Comment reactions | P2 | PASSED | 0 | 0 | 0 | Thumbs-up on the comment showed 1, you reacted. |
 | ISSUE-12 | Attachments | P1 | NOT STARTED |  |  |  | Upload, thumbnails, type sniffing, 10 MB, 25 files |
@@ -3309,7 +3309,7 @@ A member can link another issue as blocking, blocked-by, related, or duplicate. 
 - **ID:** ISSUE-08
 - **Name:** Archive, restore, and purge
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -3382,7 +3382,7 @@ Archive sets archivedAt and removes the issue from the live list and the board. 
 - **ID:** ISSUE-09
 - **Name:** Bulk edit
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
