@@ -20,7 +20,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | DEVOPS-02 | Production build and Vercel deploy | P0 | PASSED | 0 | 0 | 0 | next build --webpack succeeded. sw.js, manifest, and icon exist. No Dockerfile. Localhost skips migrate. A Neon-shaped URL invokes migrate first. |
 | DEVOPS-03 | GitHub Actions CI | P1 | PASSED | 0 | 0 | 0 | Workflow runs lint, tsc, vitest, and next build. E2E only when DATABASE_URL is set. Local tsc, vitest 651, and the production build passed. |
 | API-01 | Health check | P0 | PASSED | 0 | 0 | 0 | 200 when Postgres is up, 503 when it is stopped, then 200 again. Body is ok, status, demo, latencyMs. Query string is ignored. |
-| SEC-01 | Security headers and content security policy | P0 | NOT STARTED |  |  |  | Response headers and the content security policy |
+| SEC-01 | Security headers and content security policy | P0 | PASSED | 1 | 1 | 0 | Dev responses omit HSTS so localhost HTTP is not cached as HTTPS-only. Production still sends the one-year preload header. A foreign script host is blocked. |
 | AUTH-01 | Email and password registration | P0 | NOT STARTED |  |  |  | Password signup, then onboarding. Off on the demo and on a private host. |
 | AUTH-02 | Password login and session | P0 | NOT STARTED |  |  |  | Credentials login and a JWT session. The second factor is asked only after the password is right. |
 | GAP-01 | Password reset | P0 | NOT STARTED |  |  |  | BUILD. No reset flow. A forgotten password cannot be recovered. |
@@ -601,7 +601,7 @@ GET /api/health runs SELECT 1. On success it returns 200 JSON with ok true, stat
 - **ID:** SEC-01
 - **Name:** Security headers and content security policy
 - **Priority:** P0
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -613,10 +613,10 @@ Every path gets X-Frame-Options DENY, X-Content-Type-Options nosniff, Referrer-P
 
 ### Acceptance criteria
 
-- [ ] A document response includes the six security headers.
-- [ ] The X-Powered-By header is absent.
-- [ ] Pages still load their own scripts and styles under the policy.
-- [ ] Clarity's script host is allowed only as written; other script hosts are not.
+- [x] A document response includes the six security headers.
+- [x] The X-Powered-By header is absent.
+- [x] Pages still load their own scripts and styles under the policy.
+- [x] Clarity's script host is allowed only as written; other script hosts are not.
 
 ### Test cases
 
@@ -661,11 +661,11 @@ Every path gets X-Frame-Options DENY, X-Content-Type-Options nosniff, Referrer-P
 
 ### Results
 
-- Bugs Found:
-- Bugs Fixed:
-- UI Issues Fixed:
-- Files Changed:
-- Notes:
+- Bugs Found: 1
+- Bugs Fixed: 1
+- UI Issues Fixed: 0
+- Files Changed: `next.config.mjs`, `lib/security-headers.mjs`, `tests/unit/security-headers.test.ts`
+- Notes: Live GET /login and GET /api/health return X-Frame-Options DENY, nosniff, strict-origin referrer, the camera/microphone/geolocation Permissions-Policy, and the CSP. X-Powered-By is absent. Development omits Strict-Transport-Security and allows unsafe-eval for the dev overlay. Production still sends max-age=31536000; includeSubDomains; preload and drops unsafe-eval. A script from https://evil.example/attack.js was blocked by the policy. /login still rendered its own scripts and styles. The unsafe-inline script allowance remains; it is required by the current inline scripts.
 
 ## AUTH-01 Email and password registration
 
