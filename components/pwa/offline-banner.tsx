@@ -64,8 +64,8 @@ export function OfflineBanner() {
     return (
       <div className="flex items-center gap-2 border-b border-danger/30 bg-danger/10 px-4 py-2 text-xs">
         <ExclamationTriangleIcon className="size-4 shrink-0" />
-        Sync failed for {failed} change{failed === 1 ? "" : "s"}. Retry from the
-        conflict panel or reload.
+        Sync failed for {failed} change{failed === 1 ? "" : "s"}. Open the
+        issue to resolve it, or reload.
       </div>
     );
   }

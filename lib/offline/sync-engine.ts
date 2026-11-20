@@ -195,6 +195,11 @@ async function processQueue() {
 
   for (const op of ordered) {
     if (blockedIssues.has(op.issueId)) continue;
+    if (op.op === "delete" && op.lastError === "HTTP 404" && op.id != null) {
+      await db.outbox.delete(op.id);
+      await db.issues.delete(op.issueId);
+      continue;
+    }
     if (op.status === "failed" && op.attempts >= MAX_ATTEMPTS) {
       blockedIssues.add(op.issueId);
       continue;
@@ -242,6 +247,13 @@ async function flushOne(op: OutboxOp): Promise<FlushResult> {
       console.info("sync_conflict", { op: op.op, issueId: op.issueId });
 
       return "block";
+    }
+
+    if (op.op === "delete" && res.status === 404) {
+      await db.issues.delete(op.issueId);
+      await db.outbox.delete(op.id);
+
+      return "ok";
     }
 
     if (!res.ok) {
