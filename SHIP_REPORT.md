@@ -16,7 +16,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | DATA-01 | Database schema and migrations | P0 | PASSED | 0 | 0 | 0 | Fresh Docker Postgres took all 43 migrations. Second deploy and two parallel deploys were no-ops. Unreachable host failed. Read-only role cannot CREATE. Empty URL skips migrate. |
 | DATA-02 | Neon and Prisma runtime client | P0 | PASSED | 0 | 0 | 0 | prisma generate OK. Health SELECT 1 ~1.5s. Issues page live (27 rows). No client imports of lib/db. Missing DATABASE_URL throws. rateLimitShared fail-open unit tests pass. Parallel creates got distinct numbers 21/22. |
-| DEVOPS-01 | Environment configuration | P0 | NOT STARTED |  |  |  | Every variable the code reads is listed in .env.example |
+| DEVOPS-01 | Environment configuration | P0 | PASSED | 1 | 1 | 0 | Health exposes 4 fields only. Slack/GitHub/cron/intake 404 when off. Added WEBHOOK_ALLOW_PRIVATE to .env.example. DEMO_MODE only when string true. README table matches example. |
 | DEVOPS-02 | Production build and Vercel deploy | P0 | NOT STARTED |  |  |  | vercel-build migrates, then next build. No Dockerfile |
 | DEVOPS-03 | GitHub Actions CI | P1 | NOT STARTED |  |  |  | Lint, types, unit tests, production build; Playwright only with a database secret |
 | API-01 | Health check | P0 | NOT STARTED |  |  |  | GET /api/health pings Postgres |
@@ -314,7 +314,7 @@ The running app talks to Neon through the Prisma client and the Neon serverless 
 - **ID:** DEVOPS-01
 - **Name:** Environment configuration
 - **Priority:** P0
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -327,10 +327,10 @@ Four variables are required for a private deploy: DATABASE_URL, DIRECT_URL, AUTH
 
 ### Acceptance criteria
 
-- [ ] A deploy with only the four required variables boots, serves login, and leaves GitHub, Slack, SCIM, Sentry, email intake, and AI off.
-- [ ] README's variable table matches .env.example names.
-- [ ] AUTH_SECRET is used for Auth.js and for encrypting TOTP secrets.
-- [ ] DEMO_MODE is false unless set to the string true.
+- [x] A deploy with only the four required variables boots, serves login, and leaves GitHub, Slack, SCIM, Sentry, email intake, and AI off.
+- [x] README's variable table matches .env.example names.
+- [x] AUTH_SECRET is used for Auth.js and for encrypting TOTP secrets.
+- [x] DEMO_MODE is false unless set to the string true.
 
 ### Test cases
 
@@ -374,11 +374,11 @@ Four variables are required for a private deploy: DATABASE_URL, DIRECT_URL, AUTH
 
 ### Results
 
-- Bugs Found:
-- Bugs Fixed:
-- UI Issues Fixed:
-- Files Changed:
-- Notes:
+- Bugs Found: 1 (WEBHOOK_ALLOW_PRIVATE used in lib/webhook-delivery.ts but missing from .env.example)
+- Bugs Fixed: 1 (documented WEBHOOK_ALLOW_PRIVATE in .env.example)
+- UI Issues Fixed: 0
+- Files Changed: .env.example
+- Notes: Running dev already has the four required vars plus optional integrations. GET /api/health JSON keys: ok, status, demo, latencyMs only. POST /api/slack/command, /api/github/webhook, /api/cron/cycles, POST intake without bearer → 404. SCIM without bearer → 401 (SCIM_TOKEN may be set locally; guard still fails closed). isDemoMode(): only `DEMO_MODE==="true"` is true; `"false"` stays off. AUTH_SECRET used in lib/totp.ts and lib/saml.ts (code review). README env table names all match .env.example entries. Did not restart server with a stripped env (would drop session); instrumentation.ts enforces required vars in production NODE_ENV.
 
 ## DEVOPS-02 Production build and Vercel deploy
 
