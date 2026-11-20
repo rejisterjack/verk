@@ -25,7 +25,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | AUTH-02 | Password login and session | P0 | PASSED | 0 | 0 | 0 | demo@verk.dev → issues; CredentialsSignin no password in URL; evil callback → /onboarding; disabled user rejected. 2FA URL email query noted. |
 | GAP-01 | Password reset | P0 | BUILD | 0 | 0 | 0 | Verified absent: /forgot-password 404; no reset routes; SCIM changePassword false. |
 | GAP-02 | Change password | P1 | BUILD | 0 | 0 | 0 | Account lists password method only; no change-password action or route; SCIM changePassword false. |
-| GAP-03 | Email verification | P1 | NOT STARTED |  |  |  | BUILD. emailVerified is never set for password signup |
+| GAP-03 | Email verification | P1 | BUILD | 0 | 0 | 0 | No verify routes/UI; registerAction omits emailVerified; SAML sets it. demo and ship-auth01 null in DB. |
 | AUTH-03 | Logout | P0 | NOT STARTED |  |  |  | Sign out ends the JWT and returns home |
 | AUTH-04 | Signed-out and non-member protection | P0 | NOT STARTED |  |  |  | Team, workspace, account, and onboarding require a session. Unknown teams 404. |
 | AUTH-05 | GitHub OAuth | P1 | NOT STARTED |  |  |  | Shown only when AUTH_GITHUB_ID and AUTH_GITHUB_SECRET are set |
@@ -963,7 +963,7 @@ The account page lists password as a sign-in method when passwordHash is set. Pr
 - **ID:** GAP-03
 - **Name:** Email verification
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** BUILD
 
 ### Files
 
@@ -1024,11 +1024,11 @@ User.emailVerified exists. SAML signup sets it (lib/services/saml-login.ts). Pas
 
 ### Results
 
-- Bugs Found:
-- Bugs Fixed:
-- UI Issues Fixed:
-- Files Changed:
-- Notes:
+- Bugs Found: 0
+- Bugs Fixed: 0
+- UI Issues Fixed: 0
+- Files Changed: none
+- Notes: BUILD gap (feature not shipped). `GET /verify-email`, `/verify`, `/email-verify` → app not-found; no verify action in `lib/actions`. `registerAction` creates `name`, `email`, `passwordHash` only (`lib/actions/auth.ts:60-65`). SAML sets `emailVerified` at `lib/services/saml-login.ts:51`. DB: `demo@verk.dev` and `ship-auth01-1795194013@test.verk.dev` both `emailVerified: null`. Acceptance criteria unmet until built.
 
 ## AUTH-03 Logout
 
