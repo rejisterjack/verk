@@ -39,6 +39,18 @@ export default function MarketingLayout({
             <a className="hover:text-foreground transition-colors" href="/docs">
               Docs
             </a>
+            <a
+              className="hover:text-foreground transition-colors"
+              href="/privacy"
+            >
+              Privacy
+            </a>
+            <a
+              className="hover:text-foreground transition-colors"
+              href="/terms"
+            >
+              Terms
+            </a>
           </div>
         </div>
       </footer>
