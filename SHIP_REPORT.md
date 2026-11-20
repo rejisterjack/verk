@@ -23,7 +23,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | SEC-01 | Security headers and content security policy | P0 | PASSED | 0 | 0 | 0 | Six headers on /login and /api/health; no X-Powered-By. CSP matches next.config.mjs. |
 | AUTH-01 | Email and password registration | P0 | PASSED | 0 | 0 | 0 | Live register → /onboarding; bcrypt hash; duplicate + invalid errors. DEMO_MODE and AUTH_ALLOWED_GITHUB redirect /register → /login. emailVerified unset (GAP-03). |
 | AUTH-02 | Password login and session | P0 | PASSED | 0 | 0 | 0 | demo@verk.dev → issues; CredentialsSignin no password in URL; evil callback → /onboarding; disabled user rejected. 2FA URL email query noted. |
-| GAP-01 | Password reset | P0 | NOT STARTED |  |  |  | BUILD. No forgot-password flow exists |
+| GAP-01 | Password reset | P0 | BUILD | 0 | 0 | 0 | Verified absent: /forgot-password 404; no reset routes; SCIM changePassword false. |
 | GAP-02 | Change password | P1 | NOT STARTED |  |  |  | BUILD. Account page shows the method but cannot change it |
 | GAP-03 | Email verification | P1 | NOT STARTED |  |  |  | BUILD. emailVerified is never set for password signup |
 | AUTH-03 | Logout | P0 | NOT STARTED |  |  |  | Sign out ends the JWT and returns home |
@@ -819,7 +819,7 @@ Login accepts email and password. The password is checked with bcrypt. A wrong p
 - **ID:** GAP-01
 - **Name:** Password reset
 - **Priority:** P0
-- **Status:** NOT STARTED
+- **Status:** BUILD
 
 ### Files
 
@@ -880,11 +880,11 @@ A person who forgets the password cannot recover it. VerificationToken exists on
 
 ### Results
 
-- Bugs Found:
-- Bugs Fixed:
-- UI Issues Fixed:
-- Files Changed:
-- Notes:
+- Bugs Found: 0
+- Bugs Fixed: 0
+- UI Issues Fixed: 0
+- Files Changed: none
+- Notes: Gap confirmed. No `forgot`/`reset` routes under `app/`; `GET /forgot-password` shows app not-found. Repo grep finds no forgot-password UI or action. `app/api/scim/ServiceProviderConfig/route.ts` sets `changePassword.supported: false`. Acceptance criteria remain unmet until feature is built.
 
 ## GAP-02 Change password
 
