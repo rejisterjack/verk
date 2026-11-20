@@ -84,8 +84,8 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | ISSUE-32 | Status-change rules | P1 | NOT STARTED |  |  |  | On triage: when an issue enters a status, set assignee, label, and the other actions the service stores |
 | PLAN-01 | Cycles | P1 | PASSED | 0 | 0 | 0 | Cycle 1 is active with 11 issues and Cycle 2 is upcoming. The create form, schedule, and start-next controls are on the page. |
 | PLAN-02 | Cycle analytics and capacity | P1 | PASSED | 0 | 0 | 0 | Cycle 1 shows 3/11 done, a burndown section, assignee split, and per-person capacity. Points are 0 because the seeded issues have no estimates. |
-| PLAN-03 | Projects and milestones | P1 | NOT STARTED |  |  |  | Project list, dates, lead, milestones |
-| PLAN-04 | Project updates and contributing teams | P2 | NOT STARTED |  |  |  | Status posts on a project, plus ProjectTeam |
+| PLAN-03 | Projects and milestones | P1 | PASSED | 0 | 0 | 0 | Launch Verk shows 29 percent, 7 issues, the Public demo milestone, and a lead. |
+| PLAN-04 | Project updates and contributing teams | P2 | PASSED | 0 | 0 | 0 | Posting an update put Ship check update on the project timeline. The row was removed afterward. |
 | PLAN-05 | Project dependencies | P1 | NOT STARTED |  |  |  | Depends-on and blocks. Loops refused. Roadmap warns. |
 | PLAN-06 | Initiatives and key results | P1 | NOT STARTED |  |  |  | Initiatives, health, parent, key results |
 | PLAN-07 | Roadmap | P1 | NOT STARTED |  |  |  | Rolled-up progress, health, and week nudges |
@@ -5286,7 +5286,7 @@ A cycle page shows a burndown with an ideal line, scope-creep numbers, and a per
 - **ID:** PLAN-03
 - **Name:** Projects and milestones
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -5362,7 +5362,7 @@ Projects have a name, optional start and target dates, a lead, and milestones. A
 - **ID:** PLAN-04
 - **Name:** Project updates and contributing teams
 - **Priority:** P2
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
