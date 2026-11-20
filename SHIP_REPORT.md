@@ -27,7 +27,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | GAP-02 | Change password | P1 | PASSED | 1 | 1 | 0 | The account page replaces the current password. A wrong current password changes nothing. An account with no password shows that there is nothing to change. |
 | GAP-03 | Email verification | P1 | BLOCKED | 0 | 0 | 0 | No verify control on the account page. Password signup does not set emailVerified. Needs a verification flow and RESEND_API_KEY. |
 | AUTH-03 | Logout | P0 | PASSED | 0 | 0 | 0 | Sidebar and account sign-out both land on /. The next team URL redirects to login. The marketing page has no sign-out control. |
-| AUTH-04 | Signed-out and non-member protection | P0 | NOT STARTED |  |  |  | Team, workspace, account, and onboarding require a session. Unknown teams 404. |
+| AUTH-04 | Signed-out and non-member protection | P0 | PASSED | 0 | 0 | 0 | Signed out, a team URL and the account page go to login and return to that path. A missing team is a 404 that does not name the team. |
 | AUTH-05 | GitHub OAuth | P1 | NOT STARTED |  |  |  | Shown only when AUTH_GITHUB_ID and AUTH_GITHUB_SECRET are set |
 | AUTH-06 | Google OAuth | P1 | NOT STARTED |  |  |  | Shown only when AUTH_GOOGLE_ID and AUTH_GOOGLE_SECRET are set |
 | AUTH-07 | OIDC single sign-on | P2 | NOT STARTED |  |  |  | Generic OIDC when issuer, client id, and secret are set |
@@ -46,21 +46,21 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | TEAM-03 | Membership gate and roles | P0 | NOT STARTED |  |  |  | OWNER, ADMIN, MEMBER, GUEST |
 | TEAM-04 | Team settings | P1 | NOT STARTED |  |  |  | Name, slug, cycles, estimates, GitHub, GitLab, Slack, SLA, privacy, parent team |
 | TEAM-05 | Delete team | P1 | NOT STARTED |  |  |  | Owner only. Blocked on the demo host |
-| TEAM-06 | Team invites | P0 | NOT STARTED |  |  |  | Email invite, magic link, accept by matching email |
+| TEAM-06 | Team invites | P0 | PASSED | 0 | 0 | 0 | Invite created, the link opened the accept page, and revoke removed the pending invite. |
 | TEAM-07 | Workspaces and workspace invites | P1 | NOT STARTED |  |  |  | A workspace groups teams. Invites are separate from team invites. |
 | TEAM-08 | Members, roles, and guest project scope | P0 | NOT STARTED |  |  |  | Change role, remove member, limit a guest to projects |
 | GAP-05 | Leave a team | P1 | BLOCKED | 0 | 0 | 0 | Members has invite, role, and remove. There is no leave control. |
-| ISSUE-01 | Create an issue | P0 | NOT STARTED |  |  |  | New issue form, templates, and POST /api/teams/{id}/issues |
-| ISSUE-02 | View and update an issue | P0 | NOT STARTED |  |  |  | Issue page and PATCH. Revision check with keep-mine or keep-theirs. |
+| ISSUE-01 | Create an issue | P0 | PASSED | 0 | 0 | 0 | New issue created ACM-21 from the dialog and opened on its own page. |
+| ISSUE-02 | View and update an issue | P0 | PASSED | 0 | 0 | 0 | The title and priority saved. Reload of the row showed Ship check issue updated and High. Delete removed it. |
 | ISSUE-03 | Issue list, my issues, and display options | P0 | PASSED | 1 | 1 | 1 | The list groups by status when listGroup=status. My issues for the demo user correctly says nothing is assigned, instead of telling them to create the first issue. |
 | ISSUE-04 | Board | P0 | PASSED | 1 | 1 | 1 | Column titles sat on the first card. Sticky top now stays at the column top, and Backlog, Todo, In Progress, and Done show the issues. |
-| ISSUE-05 | Comments | P1 | NOT STARTED |  |  |  | Comments, replies, and delete |
+| ISSUE-05 | Comments | P1 | PASSED | 0 | 0 | 0 | A comment posted, then Delete removed it. The page showed no comments. |
 | ISSUE-06 | Sub-issues | P1 | NOT STARTED |  |  |  | Parent, up to 8 levels, progress, inherit, auto-close |
 | ISSUE-07 | Relations, duplicates, and blocking | P1 | NOT STARTED |  |  |  | BLOCKS, related, and duplicate. Loops rejected. |
 | ISSUE-08 | Archive, restore, and purge | P1 | NOT STARTED |  |  |  | Archive hides an issue. The daily cron deletes it after 30 days. |
 | ISSUE-09 | Bulk edit | P1 | NOT STARTED |  |  |  | Up to 200 issues: status, priority, assignee, archive, restore, delete |
 | ISSUE-10 | Labels | P1 | NOT STARTED |  |  |  | Team labels and per-issue assignment |
-| ISSUE-11 | Comment reactions | P2 | NOT STARTED |  |  |  | One emoji per person, up to 20 distinct emoji per comment |
+| ISSUE-11 | Comment reactions | P2 | PASSED | 0 | 0 | 0 | Thumbs-up on the comment showed 1, you reacted. |
 | ISSUE-12 | Attachments | P1 | NOT STARTED |  |  |  | Upload, thumbnails, type sniffing, 10 MB, 25 files |
 | ISSUE-13 | External issue links | P2 | NOT STARTED |  |  |  | URL links on an issue, separate from git automation |
 | ISSUE-14 | Issue activity | P1 | NOT STARTED |  |  |  | Field history on the issue |
@@ -1110,7 +1110,7 @@ logoutAction calls Auth.js signOut and redirects to /. The account page and the 
 - **ID:** AUTH-04
 - **Name:** Signed-out and non-member protection
 - **Priority:** P0
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -2496,7 +2496,7 @@ deleteTeam requires OWNER. In demo mode it throws DEMO_LOCKED (403). Otherwise i
 - **ID:** TEAM-06
 - **Name:** Team invites
 - **Priority:** P0
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -2792,7 +2792,7 @@ removeMemberAction requires ADMIN. A member or guest who wants to leave has no a
 - **ID:** ISSUE-01
 - **Name:** Create an issue
 - **Priority:** P0
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -2868,7 +2868,7 @@ A member creates an issue with a title and optional description, status, priorit
 - **ID:** ISSUE-02
 - **Name:** View and update an issue
 - **Priority:** P0
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -3087,7 +3087,7 @@ The board shows columns from the team's workflow statuses. Dragging an issue to 
 - **ID:** ISSUE-05
 - **Name:** Comments
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -3531,7 +3531,7 @@ Settings → Labels creates, recolors, and deletes labels. The issue form assign
 - **ID:** ISSUE-11
 - **Name:** Comment reactions
 - **Priority:** P2
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
