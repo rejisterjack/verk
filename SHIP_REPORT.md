@@ -88,7 +88,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | PLAN-04 | Project updates and contributing teams | P2 | PASSED | 0 | 0 | 0 | Posting an update put Ship check update on the project timeline. The row was removed afterward. |
 | PLAN-05 | Project dependencies | P1 | NOT STARTED |  |  |  | Depends-on and blocks. Loops refused. Roadmap warns. |
 | PLAN-06 | Initiatives and key results | P1 | NOT STARTED |  |  |  | Initiatives, health, parent, key results |
-| PLAN-07 | Roadmap | P1 | NOT STARTED |  |  |  | Rolled-up progress, health, and week nudges |
+| PLAN-07 | Roadmap | P1 | PASSED | 0 | 0 | 0 | Roadmap shows Launch Verk at 2 of 7, 29 percent, On track, with week nudge buttons. |
 | PLAN-08 | Timeline | P1 | NOT STARTED |  |  |  | Gantt of projects, cycles, releases, and initiatives |
 | PLAN-09 | Calendar | P1 | NOT STARTED |  |  |  | Issues and dates on a month grid |
 | PLAN-10 | Releases and pipelines | P1 | NOT STARTED |  |  |  | Pipelines, stages, and issue release assignment |
@@ -96,7 +96,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | PLAN-12 | Customers | P1 | NOT STARTED |  |  |  | Customers, tier, revenue, and requests |
 | PLAN-13 | Customer demand | P1 | NOT STARTED |  |  |  | Rank open issues by customers or by revenue |
 | PLAN-14 | Dashboards | P1 | NOT STARTED |  |  |  | Personal dashboards and widgets |
-| PLAN-15 | Insights | P1 | NOT STARTED |  |  |  | Counts by dimension and the flow report |
+| PLAN-15 | Insights | P1 | PASSED | 1 | 1 | 0 | Created 20 and completed 3 match the team. The flow chart ended the day before issues existed, so every row was zero. It now includes today and shows 6, 6, 4, 3, 1. |
 | PLAN-16 | Insight builder and saved reports | P1 | NOT STARTED |  |  |  | Build a query, keep it private or share it |
 | PLAN-17 | Public Ask form | P1 | NOT STARTED |  |  |  | Token URL that files a triage issue. Honeypot and rate limits. |
 | PLAN-18 | Signed-in intake form | P2 | NOT STARTED |  |  |  | In-app intake plus POST /api/teams/{id}/intake |
@@ -5580,7 +5580,7 @@ Initiatives have a name, an optional target date, health, and an optional parent
 - **ID:** PLAN-07
 - **Name:** Roadmap
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -6164,7 +6164,7 @@ A member can keep a dashboard of widgets (Dashboard and DashboardWidget). Widget
 - **ID:** PLAN-15
 - **Name:** Insights
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 

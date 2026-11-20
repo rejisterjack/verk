@@ -4,7 +4,6 @@ import { readableIssueScope } from "@/lib/services/guest-scope";
 
 export async function flowReport(teamId: string, userId?: string | null) {
   const scope = await readableIssueScope(teamId, userId);
-  const since = new Date(Date.now() - 28 * 86_400_000);
   const issues = await prisma.issue.findMany({
     where: {
       teamId,
@@ -24,7 +23,15 @@ export async function flowReport(teamId: string, userId?: string | null) {
     },
     take: 1000,
   });
-  const days = dayKeys(since, 28);
+  const todayUtc = new Date();
+  const windowStart = new Date(
+    Date.UTC(
+      todayUtc.getUTCFullYear(),
+      todayUtc.getUTCMonth(),
+      todayUtc.getUTCDate() - 13,
+    ),
+  );
+  const days = dayKeys(windowStart, 14);
   const flow = cumulativeFlow(
     issues.map((issue) => ({
       createdAt: issue.createdAt,
@@ -39,7 +46,7 @@ export async function flowReport(teamId: string, userId?: string | null) {
   );
 
   return {
-    flow: flow.slice(-14),
+    flow,
     cycleTimes: cycleTimeDays(issues),
   };
 }
