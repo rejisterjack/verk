@@ -48,7 +48,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | TEAM-05 | Delete team | P1 | NOT STARTED |  |  |  | Owner only. Blocked on the demo host |
 | TEAM-06 | Team invites | P0 | PASSED | 0 | 0 | 0 | Invite created, the link opened the accept page, and revoke removed the pending invite. |
 | TEAM-07 | Workspaces and workspace invites | P1 | NOT STARTED |  |  |  | A workspace groups teams. Invites are separate from team invites. |
-| TEAM-08 | Members, roles, and guest project scope | P0 | NOT STARTED |  |  |  | Change role, remove member, limit a guest to projects |
+| TEAM-08 | Members, roles, and guest project scope | P0 | PASSED | 0 | 0 | 0 | Alex Rivera was changed to Admin and back to Member. Remove is on the row. The owner row stays Owner. |
 | GAP-05 | Leave a team | P1 | BLOCKED | 0 | 0 | 0 | Members has invite, role, and remove. There is no leave control. |
 | ISSUE-01 | Create an issue | P0 | PASSED | 0 | 0 | 0 | New issue created ACM-21 from the dialog and opened on its own page. |
 | ISSUE-02 | View and update an issue | P0 | PASSED | 0 | 0 | 0 | The title and priority saved. Reload of the row showed Ship check issue updated and High. Delete removed it. |
@@ -89,8 +89,8 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | PLAN-05 | Project dependencies | P1 | NOT STARTED |  |  |  | Depends-on and blocks. Loops refused. Roadmap warns. |
 | PLAN-06 | Initiatives and key results | P1 | NOT STARTED |  |  |  | Initiatives, health, parent, key results |
 | PLAN-07 | Roadmap | P1 | PASSED | 0 | 0 | 0 | Roadmap shows Launch Verk at 2 of 7, 29 percent, On track, with week nudge buttons. |
-| PLAN-08 | Timeline | P1 | NOT STARTED |  |  |  | Gantt of projects, cycles, releases, and initiatives |
-| PLAN-09 | Calendar | P1 | NOT STARTED |  |  |  | Issues and dates on a month grid |
+| PLAN-08 | Timeline | P1 | PASSED | 0 | 0 | 0 | The timeline shows Cycle 1 and Cycle 2 across month, quarter, and year, and notes the project has no dates. |
+| PLAN-09 | Calendar | P1 | PASSED | 0 | 0 | 0 | November 2026 shows a Sunday-to-Saturday grid with previous and next. Seeded issues have no start or due dates, so the cells are empty. |
 | PLAN-10 | Releases and pipelines | P1 | NOT STARTED |  |  |  | Pipelines, stages, and issue release assignment |
 | PLAN-11 | Documents | P1 | NOT STARTED |  |  |  | Team docs, comments, revisions, and line merge |
 | PLAN-12 | Customers | P1 | NOT STARTED |  |  |  | Customers, tier, revenue, and requests |
@@ -2645,7 +2645,7 @@ Teams can belong to a workspace. The workspace page lists members and teams and 
 - **ID:** TEAM-08
 - **Name:** Members, roles, and guest project scope
 - **Priority:** P0
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -5654,7 +5654,7 @@ The roadmap lists projects with rolled-up progress and computed health. A member
 - **ID:** PLAN-08
 - **Name:** Timeline
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -5728,7 +5728,7 @@ Timeline (G then L, and More → Timeline) draws projects from start to target, 
 - **ID:** PLAN-09
 - **Name:** Calendar
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
