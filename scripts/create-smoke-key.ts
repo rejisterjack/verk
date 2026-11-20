@@ -1,13 +1,10 @@
 import "dotenv/config";
 import { createHash, randomBytes } from "node:crypto";
 
-import { PrismaNeon } from "@prisma/adapter-neon";
-
 import { PrismaClient } from "../lib/generated/prisma/client";
+import { createPrismaAdapter } from "../lib/prisma-adapter";
 
-const adapter = new PrismaNeon({
-  connectionString: process.env.DATABASE_URL!,
-});
+const adapter = createPrismaAdapter(process.env.DATABASE_URL!);
 const prisma = new PrismaClient({ adapter });
 
 

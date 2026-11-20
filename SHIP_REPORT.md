@@ -14,18 +14,18 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 
 | ID | Feature | Priority | Status | Bugs Found | Bugs Fixed | UI Issues Fixed | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| DATA-01 | Database schema and migrations | P0 | PASSED | 0 | 0 | 0 | Fresh Docker Postgres took all 43 migrations. Second deploy and two parallel deploys were no-ops. Unreachable host failed. Read-only role cannot CREATE. Empty URL skips migrate. |
-| DATA-02 | Neon and Prisma runtime client | P0 | PASSED | 0 | 0 | 0 | prisma generate OK. Health SELECT 1 ~1.5s. Issues page live (27 rows). No client imports of lib/db. Missing DATABASE_URL throws. rateLimitShared fail-open unit tests pass. Parallel creates got distinct numbers 21/22. |
-| DEVOPS-01 | Environment configuration | P0 | PASSED | 1 | 1 | 0 | Health exposes 4 fields only. Slack/GitHub/cron/intake 404 when off. Added WEBHOOK_ALLOW_PRIVATE to .env.example. DEMO_MODE only when string true. README table matches example. |
-| DEVOPS-02 | Production build and Vercel deploy | P0 | PASSED | 0 | 0 | 0 | Empty DB URLs skip migrate; full next build --webpack OK; sw.js + manifest + icon present; no Dockerfile. |
-| DEVOPS-03 | GitHub Actions CI | P1 | PASSED | 0 | 0 | 0 | ci.yml reviewed; local lint (0 errors), tsc, vitest 646, next build; E2E gated on secret. |
-| API-01 | Health check | P0 | PASSED | 0 | 0 | 0 | Live 200 healthy + 503 unhealthy (bad DB on :3002). Body has no secrets. demo=false. |
-| SEC-01 | Security headers and content security policy | P0 | PASSED | 0 | 0 | 0 | Six headers on /login and /api/health; no X-Powered-By. CSP matches next.config.mjs. |
-| AUTH-01 | Email and password registration | P0 | PASSED | 0 | 0 | 0 | Live register → /onboarding; bcrypt hash; duplicate + invalid errors. DEMO_MODE and AUTH_ALLOWED_GITHUB redirect /register → /login. emailVerified unset (GAP-03). |
-| AUTH-02 | Password login and session | P0 | PASSED | 0 | 0 | 0 | demo@verk.dev → issues; CredentialsSignin no password in URL; evil callback → /onboarding; disabled user rejected. 2FA URL email query noted. |
-| GAP-01 | Password reset | P0 | BUILD | 0 | 0 | 0 | Verified absent: /forgot-password 404; no reset routes; SCIM changePassword false. |
-| GAP-02 | Change password | P1 | BUILD | 0 | 0 | 0 | Account lists password method only; no change-password action or route; SCIM changePassword false. |
-| GAP-03 | Email verification | P1 | BUILD | 0 | 0 | 0 | No verify routes/UI; registerAction omits emailVerified; SAML sets it. demo and ship-auth01 null in DB. |
+| DATA-01 | Database schema and migrations | P0 | PASSED | 0 | 0 | 0 | Fresh Docker Postgres took all 43 migrations. Status up to date. Second and parallel deploys no-op. Unreachable host exits 1. Read-only role fails on a fresh database (permission denied). Empty and localhost URLs skip migrate. |
+| DATA-02 | Neon and Prisma runtime client | P0 | PASSED | 1 | 1 | 0 | Localhost uses the TCP driver. Neon hosts stay on the Neon adapter. Health 200, down 503, issues list shows seeded rows. |
+| DEVOPS-01 | Environment configuration | P0 | NOT STARTED |  |  |  | .env.example lists every variable the code reads |
+| DEVOPS-02 | Production build and Vercel deploy | P0 | NOT STARTED |  |  |  | vercel-build migrates, then next build. No Docker. |
+| DEVOPS-03 | GitHub Actions CI | P1 | NOT STARTED |  |  |  | Lint, types, unit tests, and a production build. E2E needs a database secret. |
+| API-01 | Health check | P0 | NOT STARTED |  |  |  | GET /api/health returns 200 when the database answers, otherwise 503 |
+| SEC-01 | Security headers and content security policy | P0 | NOT STARTED |  |  |  | Response headers and the content security policy |
+| AUTH-01 | Email and password registration | P0 | NOT STARTED |  |  |  | Password signup, then onboarding. Off on the demo and on a private host. |
+| AUTH-02 | Password login and session | P0 | NOT STARTED |  |  |  | Credentials login and a JWT session. The second factor is asked only after the password is right. |
+| GAP-01 | Password reset | P0 | NOT STARTED |  |  |  | BUILD. No reset flow. A forgotten password cannot be recovered. |
+| GAP-02 | Change password | P1 | NOT STARTED |  |  |  | BUILD. Nothing writes a new password hash. |
+| GAP-03 | Email verification | P1 | NOT STARTED |  |  |  | BUILD. Password signup never sets emailVerified. |
 | AUTH-03 | Logout | P0 | NOT STARTED |  |  |  | Sign out ends the JWT and returns home |
 | AUTH-04 | Signed-out and non-member protection | P0 | NOT STARTED |  |  |  | Team, workspace, account, and onboarding require a session. Unknown teams 404. |
 | AUTH-05 | GitHub OAuth | P1 | NOT STARTED |  |  |  | Shown only when AUTH_GITHUB_ID and AUTH_GITHUB_SECRET are set |
@@ -81,6 +81,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | ISSUE-29 | Triage rules and suggestions | P1 | NOT STARTED |  |  |  | Rules plus AI or keyword suggestions |
 | ISSUE-30 | SLA targets | P2 | NOT STARTED |  |  |  | Per-priority hour targets and business hours |
 | ISSUE-31 | Git branch and pull request status | P2 | NOT STARTED |  |  |  | Branch name and open pull requests when GitHub is configured |
+| ISSUE-32 | Status-change rules | P1 | NOT STARTED |  |  |  | On triage: when an issue enters a status, set assignee, label, and the other actions the service stores |
 | PLAN-01 | Cycles | P1 | NOT STARTED |  |  |  | Cycle list, current, upcoming, and create |
 | PLAN-02 | Cycle analytics and capacity | P1 | NOT STARTED |  |  |  | Burndown, velocity, per-assignee split, capacity |
 | PLAN-03 | Projects and milestones | P1 | NOT STARTED |  |  |  | Project list, dates, lead, milestones |
@@ -236,7 +237,7 @@ None
 - Bugs Fixed: 0
 - UI Issues Fixed: 0
 - Files Changed: none
-- Notes: Live on empty Postgres 16 (Docker, port 54329): prisma migrate deploy applied 43 migrations and created User, Team, Issue, Membership, and RateLimitBucket. migrate status reported up to date. A second deploy and two parallel deploys reported no pending migrations. DIRECT_URL to 127.0.0.1:1 failed with P1001 and did not report success. A read-only role could not CREATE TABLE (permission denied). migrate deploy itself no-ops when the schema is already current, so that command exits 0 even as the read-only role. Empty DIRECT_URL and DATABASE_URL made scripts/vercel-build.mjs print the skip warning and not call migrate. Seed is a separate npm script and was not part of migrate. Enums present: Role OWNER/ADMIN/MEMBER/GUEST, IssueStatus BACKLOG/TODO/IN_PROGRESS/DONE/CANCELLED, Priority, Estimate, IssueVisibility TEAM/RESTRICTED. No product screen, so UI checks are not applicable. Neon (the app database) was already up to date before this run.
+- Notes: Live on Docker Postgres 16. prisma migrate deploy applied 43 migrations and created User, Team, Issue, Membership, and RateLimitBucket. migrate status reported up to date. A second deploy and two parallel deploys reported no pending migrations. DIRECT_URL to 127.0.0.1:1 failed with P1001. A read-only role on a fresh database failed with permission denied for schema public. An already-current database exits 0 for that role because Prisma only reads the migrations table. Empty DIRECT_URL and a localhost URL made scripts/vercel-build.mjs print the skip warning and not call prisma. Seed is a separate npm script. Enums match Role, IssueStatus, Priority, Estimate, and IssueVisibility. No product screen.
 
 ## DATA-02 Neon and Prisma runtime client
 
@@ -248,11 +249,13 @@ None
 ### Files
 
 - `lib/db.ts`
+- `lib/prisma-adapter.ts`
+- `prisma/seed.ts`
 - `package.json`
 
 ### Expected behavior
 
-The running app talks to Neon through the Prisma client and the Neon serverless adapter. DATABASE_URL is the pooled runtime URL. DIRECT_URL is for migrations. postinstall and the CI job run prisma generate. Queries in services import prisma from lib/db.ts. If the database is down, routes that catch the error return their own failure (health returns 503). The rate limiter is the exception: it fails open to memory.
+The running app talks to Postgres through the Prisma client. A localhost or 127.0.0.1 URL uses the TCP driver, because the Neon serverless driver cannot speak to a normal Postgres port. Any other host, including Neon, keeps the Neon adapter. DATABASE_URL is the runtime URL. DIRECT_URL is for migrations. postinstall and the CI job run prisma generate. Queries in services import prisma from lib/db.ts. If the database is down, routes that catch the error return their own failure (health returns 503). The rate limiter is the exception: it fails open to memory. An empty DATABASE_URL throws before a query. No client component imports lib/db.
 
 ### Acceptance criteria
 
@@ -299,22 +302,22 @@ The running app talks to Neon through the Prisma client and the Neon serverless 
 
 ### Suspected bugs
 
-- None found in lib/db.ts. The issue-counter transaction allows 10 seconds to acquire the lock and 20 seconds to run (lib/services/issues.ts:440). That is a limit, not a logic error. Recorded under Risks.
+- The Neon serverless driver cannot open a normal Postgres socket. lib/db.ts used it for every URL, so a local Docker database failed at the first query with an empty ErrorEvent. Fixed by choosing the TCP driver for localhost.
 
 ### Results
 
-- Bugs Found: 0
-- Bugs Fixed: 0
+- Bugs Found: 1
+- Bugs Fixed: 1
 - UI Issues Fixed: 0
-- Files Changed: none
-- Notes: `npx prisma generate` produced Prisma Client 7.10.1 at lib/generated/prisma. GET /api/health returned ok with latencyMs from the health route client. Logged in as demo@verk.dev in Cursor browser; /t/acme-engineering/issues listed ACM-1 through ACM-27 from Neon. Scanned all `"use client"` files: none import @/lib/db. With DATABASE_URL unset, first `prisma.$queryRaw` throws "DATABASE_URL is not set". rate-limit-shared unit tests (6) pass including DB-error fail-open. Parallel `createIssue` via service returned distinct numbers 21 and 22 (counter 20→22). Direct neon SQL SELECT 1 OK. SQL-injection case deferred to ISSUE-26. Unset DATABASE_URL on running dev server not restarted (would drop the session); lazy proxy behavior verified in an isolated Node import. Vitest 646/646, eslint OK. No product UI for this feature.
+- Files Changed: lib/prisma-adapter.ts, lib/db.ts, prisma/seed.ts, scripts/create-smoke-key.ts, package.json, package-lock.json, tests/unit/prisma-adapter.test.ts
+- Notes: Signed in as demo@verk.dev and opened /t/acme-engineering/issues. ACM-1 through ACM-20 rendered from Postgres. GET /api/health was 200 (10ms) with the database up and 503 when Docker Postgres was stopped, then 200 again after it started. An empty DATABASE_URL is rejected before connect. No "use client" file imports lib/db. tsc passed. vitest 651 passed. The issue-counter wait limit was not changed.
 
 ## DEVOPS-01 Environment configuration
 
 - **ID:** DEVOPS-01
 - **Name:** Environment configuration
 - **Priority:** P0
-- **Status:** PASSED
+- **Status:** NOT STARTED
 
 ### Files
 
@@ -327,10 +330,10 @@ Four variables are required for a private deploy: DATABASE_URL, DIRECT_URL, AUTH
 
 ### Acceptance criteria
 
-- [x] A deploy with only the four required variables boots, serves login, and leaves GitHub, Slack, SCIM, Sentry, email intake, and AI off.
-- [x] README's variable table matches .env.example names.
-- [x] AUTH_SECRET is used for Auth.js and for encrypting TOTP secrets.
-- [x] DEMO_MODE is false unless set to the string true.
+- [ ] A deploy with only the four required variables boots, serves login, and leaves GitHub, Slack, SCIM, Sentry, email intake, and AI off.
+- [ ] README's variable table matches .env.example names.
+- [ ] AUTH_SECRET is used for Auth.js and for encrypting TOTP secrets.
+- [ ] DEMO_MODE is false unless set to the string true.
 
 ### Test cases
 
@@ -374,18 +377,18 @@ Four variables are required for a private deploy: DATABASE_URL, DIRECT_URL, AUTH
 
 ### Results
 
-- Bugs Found: 1 (WEBHOOK_ALLOW_PRIVATE used in lib/webhook-delivery.ts but missing from .env.example)
-- Bugs Fixed: 1 (documented WEBHOOK_ALLOW_PRIVATE in .env.example)
-- UI Issues Fixed: 0
-- Files Changed: .env.example
-- Notes: Running dev already has the four required vars plus optional integrations. GET /api/health JSON keys: ok, status, demo, latencyMs only. POST /api/slack/command, /api/github/webhook, /api/cron/cycles, POST intake without bearer → 404. SCIM without bearer → 401 (SCIM_TOKEN may be set locally; guard still fails closed). isDemoMode(): only `DEMO_MODE==="true"` is true; `"false"` stays off. AUTH_SECRET used in lib/totp.ts and lib/saml.ts (code review). README env table names all match .env.example entries. Did not restart server with a stripped env (would drop session); instrumentation.ts enforces required vars in production NODE_ENV.
+- Bugs Found:
+- Bugs Fixed:
+- UI Issues Fixed:
+- Files Changed:
+- Notes:
 
 ## DEVOPS-02 Production build and Vercel deploy
 
 - **ID:** DEVOPS-02
 - **Name:** Production build and Vercel deploy
 - **Priority:** P0
-- **Status:** PASSED
+- **Status:** NOT STARTED
 
 ### Files
 
@@ -400,10 +403,10 @@ npm run build and the Vercel build command run scripts/vercel-build.mjs. That sc
 
 ### Acceptance criteria
 
-- [x] vercel-build with a reachable direct URL applies migrations before the Next build.
-- [x] vercel-build with localhost URLs skips migrate and still builds.
-- [x] The production build emits the service worker and the PWA manifest checks that CI already runs.
-- [x] No Docker image is required to deploy.
+- [ ] vercel-build with a reachable direct URL applies migrations before the Next build.
+- [ ] vercel-build with localhost URLs skips migrate and still builds.
+- [ ] The production build emits the service worker and the PWA manifest checks that CI already runs.
+- [ ] No Docker image is required to deploy.
 
 ### Test cases
 
@@ -447,18 +450,18 @@ npm run build and the Vercel build command run scripts/vercel-build.mjs. That sc
 
 ### Results
 
-- Bugs Found: 0
-- Bugs Fixed: 0
-- UI Issues Fixed: 0
-- Files Changed: none
-- Notes: `DIRECT_URL= DATABASE_URL= node scripts/vercel-build.mjs` logged skip warning and completed `next build --webpack` (~36s) with Serwist bundling `/sw.js`. Checked `public/sw.js`, `public/manifest.webmanifest`, `public/icons/icon-192.png`. No Dockerfile in repo. Migrate-with-real-URL path covered under DATA-01.
+- Bugs Found:
+- Bugs Fixed:
+- UI Issues Fixed:
+- Files Changed:
+- Notes:
 
 ## DEVOPS-03 GitHub Actions CI
 
 - **ID:** DEVOPS-03
 - **Name:** GitHub Actions CI
 - **Priority:** P1
-- **Status:** PASSED
+- **Status:** NOT STARTED
 
 ### Files
 
@@ -517,18 +520,18 @@ On push and pull request to main or master, CI checks out the repo, uses Node 22
 
 ### Results
 
-- Bugs Found: 0
-- Bugs Fixed: 0
-- UI Issues Fixed: 0
-- Files Changed: none
-- Notes: Read `.github/workflows/ci.yml`: Node 22, npm ci, prisma generate, lint, tsc --noEmit, vitest, next build --webpack with localhost DB URLs, PWA artifact checks, conditional Playwright + migrate/seed when DATABASE_URL secret set, upload test-results on failure. Reproduced locally: `npx eslint .` (0 errors, warnings only), `npx tsc --noEmit`, `npm test -- --run` 646/646, production build already validated under DEVOPS-02.
+- Bugs Found:
+- Bugs Fixed:
+- UI Issues Fixed:
+- Files Changed:
+- Notes:
 
 ## API-01 Health check
 
 - **ID:** API-01
 - **Name:** Health check
 - **Priority:** P0
-- **Status:** PASSED
+- **Status:** NOT STARTED
 
 ### Files
 
@@ -540,10 +543,10 @@ GET /api/health runs SELECT 1. On success it returns 200 JSON with ok true, stat
 
 ### Acceptance criteria
 
-- [x] 200 and healthy when Postgres answers.
-- [x] 503 and unhealthy when Postgres does not.
-- [x] The body does not include the connection string or AUTH_SECRET.
-- [x] demo reflects DEMO_MODE.
+- [ ] 200 and healthy when Postgres answers.
+- [ ] 503 and unhealthy when Postgres does not.
+- [ ] The body does not include the connection string or AUTH_SECRET.
+- [ ] demo reflects DEMO_MODE.
 
 ### Test cases
 
@@ -587,18 +590,18 @@ GET /api/health runs SELECT 1. On success it returns 200 JSON with ok true, stat
 
 ### Results
 
-- Bugs Found: 0
-- Bugs Fixed: 0
-- UI Issues Fixed: 0
-- Files Changed: none
-- Notes: Dev GET /api/health → 200, ok true, status healthy, demo false, latencyMs present. Production `next start` on port 3002 with DATABASE_URL→127.0.0.1:1 → HTTP 503, ok false, status unhealthy (latencyMs only; no secrets). Parallel GETs during dev both 200.
+- Bugs Found:
+- Bugs Fixed:
+- UI Issues Fixed:
+- Files Changed:
+- Notes:
 
 ## SEC-01 Security headers and content security policy
 
 - **ID:** SEC-01
 - **Name:** Security headers and content security policy
 - **Priority:** P0
-- **Status:** PASSED
+- **Status:** NOT STARTED
 
 ### Files
 
@@ -610,10 +613,10 @@ Every path gets X-Frame-Options DENY, X-Content-Type-Options nosniff, Referrer-P
 
 ### Acceptance criteria
 
-- [x] A document response includes the six security headers.
-- [x] The X-Powered-By header is absent.
-- [x] Pages still load their own scripts and styles under the policy.
-- [x] Clarity's script host is allowed only as written; other script hosts are not.
+- [ ] A document response includes the six security headers.
+- [ ] The X-Powered-By header is absent.
+- [ ] Pages still load their own scripts and styles under the policy.
+- [ ] Clarity's script host is allowed only as written; other script hosts are not.
 
 ### Test cases
 
@@ -658,18 +661,18 @@ Every path gets X-Frame-Options DENY, X-Content-Type-Options nosniff, Referrer-P
 
 ### Results
 
-- Bugs Found: 0 (HSTS-on-localhost and unsafe-inline recorded as known risks, not regressions)
-- Bugs Fixed: 0
-- UI Issues Fixed: 0
-- Files Changed: none
-- Notes: `curl -I` on /login and /api/health shows X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, HSTS, and CSP matching next.config.mjs. No X-Powered-By (poweredByHeader false). Dev login returns 200; React dev notes CSP eval in console (expected in dev only).
+- Bugs Found:
+- Bugs Fixed:
+- UI Issues Fixed:
+- Files Changed:
+- Notes:
 
 ## AUTH-01 Email and password registration
 
 - **ID:** AUTH-01
 - **Name:** Email and password registration
 - **Priority:** P0
-- **Status:** PASSED
+- **Status:** NOT STARTED
 
 ### Files
 
@@ -684,11 +687,11 @@ The register page posts a name, email, and password. registerAction rejects sign
 
 ### Acceptance criteria
 
-- [x] A new email and an 8-character password creates a user and lands on Create your team.
-- [x] Demo mode returns the demo-login error and creates nothing.
-- [x] A private host returns the deploy-your-own error and creates nothing.
-- [x] A duplicate email returns An account with this email already exists and does not change the hash.
-- [x] A password shorter than 8 or a bad email returns Invalid registration details.
+- [ ] A new email and an 8-character password creates a user and lands on Create your team.
+- [ ] Demo mode returns the demo-login error and creates nothing.
+- [ ] A private host returns the deploy-your-own error and creates nothing.
+- [ ] A duplicate email returns An account with this email already exists and does not change the hash.
+- [ ] A password shorter than 8 or a bad email returns Invalid registration details.
 
 ### Test cases
 
@@ -732,18 +735,18 @@ The register page posts a name, email, and password. registerAction rejects sign
 
 ### Results
 
-- Bugs Found: 0
-- Bugs Fixed: 0
-- UI Issues Fixed: 0
-- Files Changed: none
-- Notes: Signed out via `/api/auth/signout` before tests. `browser_fill` on `/register` created `ship-auth01-1795194013@test.verk.dev` → `/onboarding` (“Create your team”); DB has bcrypt `$2b$10$…` hash and `emailVerified: null` (GAP-03). Duplicate email showed “An account with this email already exists”; one row unchanged. Short password showed “Invalid registration details”; no user created. `DEMO_MODE=true` dev: `/register` 307 → `/login`, health `demo:true`, registration copy on login. `AUTH_ALLOWED_GITHUB=ship-test` dev: `/register` 307 → `/login` (private host). Rate limit (31/min) not exercised. Unrelated WXT dev server on `localhost:3000` caused 404s until stopped (environment only).
+- Bugs Found:
+- Bugs Fixed:
+- UI Issues Fixed:
+- Files Changed:
+- Notes:
 
 ## AUTH-02 Password login and session
 
 - **ID:** AUTH-02
 - **Name:** Password login and session
 - **Priority:** P0
-- **Status:** PASSED
+- **Status:** NOT STARTED
 
 ### Files
 
@@ -760,11 +763,11 @@ Login accepts email and password. The password is checked with bcrypt. A wrong p
 
 ### Acceptance criteria
 
-- [x] Right password and no 2FA creates a session and follows a same-site callback path.
-- [x] Wrong, empty, or unknown email stays on login with CredentialsSignin and no password in the location.
-- [x] An external callbackUrl is ignored.
-- [x] A non-form body does not 500; it redirects as a failed login.
-- [x] A disabled user cannot sign in.
+- [ ] Right password and no 2FA creates a session and follows a same-site callback path.
+- [ ] Wrong, empty, or unknown email stays on login with CredentialsSignin and no password in the location.
+- [ ] An external callbackUrl is ignored.
+- [ ] A non-form body does not 500; it redirects as a failed login.
+- [ ] A disabled user cannot sign in.
 
 ### Test cases
 
@@ -808,18 +811,18 @@ Login accepts email and password. The password is checked with bcrypt. A wrong p
 
 ### Results
 
-- Bugs Found: 0
-- Bugs Fixed: 0
-- UI Issues Fixed: 0
-- Files Changed: none
-- Notes: Browser `loginAction` with `demo@verk.dev` / `demo1234` landed on `/t/acme-engineering/issues` (default and with `callbackUrl=/t/acme-engineering/issues`). Wrong password via POST `/api/auth/password` → `303` `/login?error=CredentialsSignin` (no password in query); login page shows “Invalid email or password”. External `callbackUrl=https://evil.com` on successful POST → `/onboarding`, not evil. JSON body POST → `303` CredentialsSignin (no 500). Disabled `ship-auth01-1795194013@test.verk.dev` → CredentialsSignin. 2FA redirect with email in query not re-tested live (demo has no 2FA); left as known observation in Suspected bugs. Rate limit (31/min) not exercised.
+- Bugs Found:
+- Bugs Fixed:
+- UI Issues Fixed:
+- Files Changed:
+- Notes:
 
 ## GAP-01 Password reset
 
 - **ID:** GAP-01
 - **Name:** Password reset
 - **Priority:** P0
-- **Status:** BUILD
+- **Status:** NOT STARTED
 
 ### Files
 
@@ -880,18 +883,18 @@ A person who forgets the password cannot recover it. VerificationToken exists on
 
 ### Results
 
-- Bugs Found: 0
-- Bugs Fixed: 0
-- UI Issues Fixed: 0
-- Files Changed: none
-- Notes: Gap confirmed. No `forgot`/`reset` routes under `app/`; `GET /forgot-password` shows app not-found. Repo grep finds no forgot-password UI or action. `app/api/scim/ServiceProviderConfig/route.ts` sets `changePassword.supported: false`. Acceptance criteria remain unmet until feature is built.
+- Bugs Found:
+- Bugs Fixed:
+- UI Issues Fixed:
+- Files Changed:
+- Notes:
 
 ## GAP-02 Change password
 
 - **ID:** GAP-02
 - **Name:** Change password
 - **Priority:** P1
-- **Status:** BUILD
+- **Status:** NOT STARTED
 
 ### Files
 
@@ -952,18 +955,18 @@ The account page lists password as a sign-in method when passwordHash is set. Pr
 
 ### Results
 
-- Bugs Found: 0
-- Bugs Fixed: 0
-- UI Issues Fixed: 0
-- Files Changed: none
-- Notes: BUILD gap (feature not shipped). `app/account/page.tsx` shows password as sign-in method via `hasPassword` only. Grep: no `changePassword` action/route. `app/api/scim/ServiceProviderConfig` sets `changePassword.supported: false`. Erasure checks current password in `lib/actions/privacy.ts` but no path updates `passwordHash`.
+- Bugs Found:
+- Bugs Fixed:
+- UI Issues Fixed:
+- Files Changed:
+- Notes:
 
 ## GAP-03 Email verification
 
 - **ID:** GAP-03
 - **Name:** Email verification
 - **Priority:** P1
-- **Status:** BUILD
+- **Status:** NOT STARTED
 
 ### Files
 
@@ -1024,11 +1027,11 @@ User.emailVerified exists. SAML signup sets it (lib/services/saml-login.ts). Pas
 
 ### Results
 
-- Bugs Found: 0
-- Bugs Fixed: 0
-- UI Issues Fixed: 0
-- Files Changed: none
-- Notes: BUILD gap (feature not shipped). `GET /verify-email`, `/verify`, `/email-verify` → app not-found; no verify action in `lib/actions`. `registerAction` creates `name`, `email`, `passwordHash` only (`lib/actions/auth.ts:60-65`). SAML sets `emailVerified` at `lib/services/saml-login.ts:51`. DB: `demo@verk.dev` and `ship-auth01-1795194013@test.verk.dev` both `emailVerified: null`. Acceptance criteria unmet until built.
+- Bugs Found:
+- Bugs Fixed:
+- UI Issues Fixed:
+- Files Changed:
+- Notes:
 
 ## AUTH-03 Logout
 
@@ -5052,6 +5055,82 @@ The issue page can show a branch name and, when GITHUB_TOKEN and the team's gith
 - Files Changed:
 - Notes:
 
+
+## ISSUE-32 Status-change rules
+
+- **ID:** ISSUE-32
+- **Name:** Status-change rules
+- **Priority:** P1
+- **Status:** NOT STARTED
+
+### Files
+
+- `app/t/[teamSlug]/triage/page.tsx`
+- `lib/services/status-rules.ts`
+- `lib/services/issues.ts`
+
+### Expected behavior
+
+The triage page has a "When status changes" list. A member of the team can add a rule: when an issue moves to a chosen status, set an assignee and add a label. The service also stores priority, cycle, and a comment, and updateIssue applies the first matching rule when the status actually changes, but only for fields the caller did not send. The triage form collects status, assignee, and label. It does not collect priority, cycle, or comment. A rule with no action is rejected. Deleting a rule is in the service. The form's error is swallowed and the page redirects back to triage.
+
+### Acceptance criteria
+
+- [ ] Moving an issue into the rule's status sets the assignee when the update did not send one.
+- [ ] The label is added once. A second move does not duplicate it.
+- [ ] A caller who sends their own assignee is not overwritten.
+- [ ] A rule with no action is refused.
+- [ ] A rule from another team is not applied.
+
+### Test cases
+
+#### Normal use
+- Create a rule from Todo to a member plus a label. Move an issue to Todo and confirm the assignee and the label.
+#### Empty, missing, whitespace-only, and very long input
+- Submit the form with both assignee and label left empty. Expect no new rule.
+#### Wrong types, special characters, emoji, and non-English text
+- The status select only offers the five statuses. A forged priority value is not on this form. A label name with emoji displays in the list.
+#### SQL injection, XSS, and path traversal
+- The status value is an enum. A script-tag status is rejected by the schema. The list prints the status and the person's name as text.
+#### Logged out, expired session, wrong role, and another user's data
+- Signed out, the triage page redirects to login. A rule id from another team does not match. A guest who cannot update the issue does not fire the rule.
+#### Double-submit and parallel requests
+- Submit the form twice. Two rules can exist for the same status. The matcher returns the first by position. Record which one ran.
+#### External service failing, timing out, and rate limiting
+- There is no external call. A database error is caught by the form and the page still redirects, so the failure is invisible.
+#### New user with no data, and a user with lots of data
+- A team with no rules changes status and nothing else changes. Many rules for one status: only the first match runs.
+#### Refresh mid-action, back button, and two tabs
+- Refresh after save shows the new rule. Back then submit again can create a duplicate. Two tabs can each add a rule.
+
+### UI checks
+
+- Alignment, spacing, and control size on the triage page, under When status changes.
+- Long text, emoji, and non-English strings do not overflow or overlap neighboring controls.
+- Light theme and dark theme. Where this screen uses the app theme, contrast mode still leaves text readable.
+- Widths 360, 768, 1024, and 1440. No clipped primary action. Horizontal scroll only inside a table, board, or timeline.
+- Loading, empty, error, success, disabled, hover, and focus are each visible and not stuck.
+- No modal. The rule form is inline.
+- Keyboard: The status and assignee selects and the submit control are reachable. The empty list has no delete control in the form.
+- The browser console has no errors on load, on success, and on the expected failure.
+
+### Dependencies
+
+`ISSUE-02`, `ISSUE-28`, `ISSUE-10`
+
+### Suspected bugs
+
+- `app/t/[teamSlug]/triage/page.tsx` around the status-rule form catches every error and still redirects, so a refused rule looks like success.
+- The same form never sends priority, cycle, or comment, while `lib/services/status-rules.ts` and `lib/services/issues.ts` (the status-change block) apply those fields when present.
+- The list under the heading shows assignee and label only, so a rule created another way would hide its other actions.
+
+### Results
+
+- Bugs Found:
+- Bugs Fixed:
+- UI Issues Fixed:
+- Files Changed:
+- Notes:
+
 ## PLAN-01 Cycles
 
 - **ID:** PLAN-01
@@ -6246,7 +6325,7 @@ The builder takes a filter and a grouping and shows the count. A member can save
 
 ### Expected behavior
 
-An admin creates an Ask link. The public page /ask/{token} lets anyone file an issue into triage. It has a honeypot, a limit on links, and per-visitor and per-team rate limits. A wrong token 404s. The form does not require a Verk session. The created issue is a backlog issue so it shows in triage.
+An admin creates an Ask link, and can also create a named Ask form with a chosen field list (title, details, name, email, priority, label, project) and an optional show-if rule. Both resolve on /ask/{token}. The public page lets anyone file an issue into triage. It has a honeypot, a limit on links, and per-visitor and per-team rate limits. A wrong or disabled token 404s. The form does not require a Verk session. The created issue is a backlog issue attributed to the team owner so it shows in triage. The token is shown once; only a prefix is stored.
 
 ### Acceptance criteria
 
@@ -6611,10 +6690,12 @@ lib/email.ts sends team invite mail and nothing else. Inbox events stay in the a
 - `components/pwa/install-prompt.tsx`
 - `components/pwa/pwa-provider.tsx`
 - `components/pwa/offline-banner.tsx`
+- `app/t/go/page.tsx`
+- `lib/app-links.ts`
 
 ### Expected behavior
 
-The root layout points at the web manifest and the apple touch icon. Production builds register a Serwist worker (public/sw.js). Development disables it. The worker precaches /~offline. The install prompt offers install. The offline banner shows when the browser is offline. There is no Electron or native shell. NEXT_PUBLIC_PWA_OFFLINE=false turns the outbox off; the manifest remains.
+The root layout points at the web manifest and the apple touch icon. Production builds register a Serwist worker (public/sw.js). Development disables it. The worker precaches /~offline. The install prompt offers install. The offline banner shows when the browser is offline. There is no Electron or native shell. NEXT_PUBLIC_PWA_OFFLINE=false turns the outbox off; the manifest remains. Installed-app shortcuts and Share to Verk land on /t/go. A signed-out visitor is sent to login with the query preserved. With no team they go to onboarding. Otherwise the first team receives them: new issue, my issues, inbox, or a prefilled draft from the shared title, text, and url.
 
 ### Acceptance criteria
 
@@ -8820,10 +8901,11 @@ rateLimitShared upserts a RateLimitBucket row so every serverless instance share
 ### Files
 
 - `app/error.tsx`
+- `app/global-error.tsx`
 
 ### Expected behavior
 
-Uncaught render errors show Something went wrong, the digest when present, Try again, and a link to /t. The handler logs the error to the console. Try again calls the segment reset.
+Uncaught render errors in a segment show Something went wrong, the digest when present, Try again, and a link to /t. The handler logs the error to the console. Try again calls the segment reset. A failure in the root layout uses app/global-error.tsx, which renders its own html and body, shows Application Error, and offers Reload application. That page does not link to /t.
 
 ### Acceptance criteria
 
@@ -9684,6 +9766,7 @@ The demo cron is scheduled at 12:00 UTC. It uses CRON_SECRET the same way as the
 - Appearance is stored in the browser, not on the user. Two people who share a browser profile share a theme.
 - Long-form screens staying in English is intentional. The locale catalog covers shared chrome.
 - No route was exercised. Suspected bugs are from reading the cited lines only.
+- Status-change rules on the triage page are ISSUE-32. They are not the triage intake rules in ISSUE-29. Named Ask forms share `/ask/{token}` with the single Ask link and stay inside PLAN-17.
 
 ## Risks
 

@@ -1,6 +1,7 @@
 import "dotenv/config";
-import { PrismaNeon } from "@prisma/adapter-neon";
 import bcrypt from "bcryptjs";
+
+import { createPrismaAdapter } from "../lib/prisma-adapter";
 
 import {
   IssueStatus,
@@ -8,9 +9,7 @@ import {
   PrismaClient,
 } from "../lib/generated/prisma/client";
 
-const adapter = new PrismaNeon({
-  connectionString: process.env.DATABASE_URL!,
-});
+const adapter = createPrismaAdapter(process.env.DATABASE_URL!);
 const prisma = new PrismaClient({ adapter });
 
 export async function seedDemo() {
