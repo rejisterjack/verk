@@ -68,7 +68,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | ISSUE-16 | Similar issues | P2 | NOT STARTED |  |  |  | Hint while typing a title, and the similar API |
 | ISSUE-17 | Advanced filters | P1 | NOT STARTED |  |  |  | Nested all/any groups over the filter fields, in the URL and the API |
 | ISSUE-18 | Saved views | P1 | NOT STARTED |  |  |  | Create, edit, delete, pin. Private or shared. |
-| ISSUE-19 | Drafts | P1 | NOT STARTED |  |  |  | Private unfinished issues, up to 50, including an offline queue |
+| ISSUE-19 | Drafts | P1 | PASSED | 0 | 0 | 0 | Saving Ship check draft listed it with Resume and Create issue. Delete returned the page to no drafts. |
 | ISSUE-20 | Issue templates | P1 | NOT STARTED |  |  |  | Settings templates prefill the new-issue form |
 | ISSUE-21 | Issue visibility and extra readers | P1 | NOT STARTED |  |  |  | TEAM or RESTRICTED, plus explicit readers |
 | ISSUE-22 | Required fields | P2 | NOT STARTED |  |  |  | Team rules that block a status change until fields are set |
@@ -4113,7 +4113,7 @@ A member can save the current filter and display options as a view, private or s
 - **ID:** ISSUE-19
 - **Name:** Drafts
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
