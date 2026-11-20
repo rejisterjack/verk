@@ -67,7 +67,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | ISSUE-15 | Issue subscriptions | P1 | NOT STARTED |  |  |  | Watch and unwatch. Drives notifications. |
 | ISSUE-16 | Similar issues | P2 | NOT STARTED |  |  |  | Hint while typing a title, and the similar API |
 | ISSUE-17 | Advanced filters | P1 | NOT STARTED |  |  |  | Nested all/any groups over the filter fields, in the URL and the API |
-| ISSUE-18 | Saved views | P1 | NOT STARTED |  |  |  | Create, edit, delete, pin. Private or shared. |
+| ISSUE-18 | Saved views | PASSED | 0 | 0 | 0 | Saved Ship check view from the issues list. It showed under Settings, Views, and Delete removed it. | Create, edit, delete, pin. Private or shared. |
 | ISSUE-19 | Drafts | P1 | PASSED | 0 | 0 | 0 | Saving Ship check draft listed it with Resume and Create issue. Delete returned the page to no drafts. |
 | ISSUE-20 | Issue templates | P1 | NOT STARTED |  |  |  | Settings templates prefill the new-issue form |
 | ISSUE-21 | Issue visibility and extra readers | P1 | NOT STARTED |  |  |  | TEAM or RESTRICTED, plus explicit readers |
@@ -93,7 +93,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | PLAN-09 | Calendar | P1 | PASSED | 0 | 0 | 0 | November 2026 shows a Sunday-to-Saturday grid with previous and next. Seeded issues have no start or due dates, so the cells are empty. |
 | PLAN-10 | Releases and pipelines | P1 | NOT STARTED |  |  |  | Pipelines, stages, and issue release assignment |
 | PLAN-11 | Documents | P1 | NOT STARTED |  |  |  | Team docs, comments, revisions, and line merge |
-| PLAN-12 | Customers | P1 | NOT STARTED |  |  |  | Customers, tier, revenue, and requests |
+| PLAN-12 | Customers | PASSED | 0 | 0 | 0 | Added Ship Check Co with a request form and 0 requests. Delete customer removed it. | Customers, tier, revenue, and requests |
 | PLAN-13 | Customer demand | P1 | NOT STARTED |  |  |  | Rank open issues by customers or by revenue |
 | PLAN-14 | Dashboards | P1 | NOT STARTED |  |  |  | Personal dashboards and widgets |
 | PLAN-15 | Insights | P1 | PASSED | 1 | 1 | 0 | Created 20 and completed 3 match the team. The flow chart ended the day before issues existed, so every row was zero. It now includes today and shows 6, 6, 4, 3, 1. |
@@ -4038,7 +4038,7 @@ Issues → Filters builds a tree of all/any groups. Fields include status, prior
 - **ID:** ISSUE-18
 - **Name:** Saved views
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -5949,7 +5949,7 @@ Docs are team documents with a title and a markdown body. Every save stores a re
 - **ID:** PLAN-12
 - **Name:** Customers
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
