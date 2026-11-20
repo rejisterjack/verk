@@ -38,12 +38,12 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | GAP-04 | Edit name and email | P1 | BLOCKED | 0 | 0 | 0 | Account shows name and email as text. There are no edit fields. |
 | AUTH-12 | Account data export | P1 | PASSED | 0 | 0 | 0 | Download my data returned a JSON file for demo@verk.dev with the profile and sign-in methods. JSON download of what Verk stores about the signed-in user |
 | AUTH-13 | Account erasure | P1 | PASSED | 0 | 0 | 0 | Erase opens a password confirmation and keeps Erase permanently off until a password is entered. A wrong password is refused and the demo account stays. Password-confirmed erase. Demo mode refuses. Sole owners must hand off. |
-| AUTH-14 | Demo mode lock | P1 | NOT STARTED |  |  |  | DEMO_MODE blocks registration, team delete, and account erase |
-| AUTH-15 | Private host and GitHub allowlist | P1 | NOT STARTED |  |  |  | AUTH_ALLOWED_GITHUB closes password, SAML, Google, and OIDC |
-| AUTH-16 | Sign-in rate limit | P0 | NOT STARTED |  |  |  | 30 attempts per minute per IP, shared in Postgres |
+| AUTH-14 | Demo mode lock | P1 | BLOCKED | 0 | 0 | 0 | DEMO_MODE is false. A throwaway team deleted successfully, so the demo lock is off. Needs DEMO_MODE=true. DEMO_MODE blocks registration, team delete, and account erase |
+| AUTH-15 | Private host and GitHub allowlist | P1 | BLOCKED | 0 | 0 | 0 | AUTH_ALLOWED_GITHUB is unset, so the GitHub allowlist is not closing password sign-in. AUTH_ALLOWED_GITHUB closes password, SAML, Google, and OIDC |
+| AUTH-16 | Sign-in rate limit | P0 | BLOCKED | 0 | 0 | 0 | Proving 30 sign-in attempts would lock the only demo session. Needs a disposable account. 30 attempts per minute per IP, shared in Postgres |
 | TEAM-01 | Onboarding and team creation | P0 | NOT STARTED |  |  |  | First team after signup |
 | TEAM-02 | Team list and switcher | PASSED | 0 | 0 | 0 | Switcher lists Acme Engineering as current. /t opens that team's issues. | Sidebar switcher and /t |
-| TEAM-03 | Membership gate and roles | P0 | NOT STARTED |  |  |  | OWNER, ADMIN, MEMBER, GUEST |
+| TEAM-03 | Membership gate and roles | P0 | BLOCKED | 0 | 0 | 0 | Members shows Owner and Member, with Owner, Admin, Member and Guest in the role list. Needs a non-member, a member session and a guest to prove the gates. OWNER, ADMIN, MEMBER, GUEST |
 | TEAM-04 | Team settings | P1 | PASSED | 0 | 0 | 0 | General settings show name, slug, Fibonacci estimates, a 2 week cycle, GitHub, GitLab, Slack, triage owner, SLA, and a slug-confirmed delete. A HIGH target of 8 hours stayed after reload, then was cleared. Name, slug, cycles, estimates, GitHub, GitLab, Slack, SLA, privacy, parent team |
 | TEAM-05 | Delete team | P1 | PASSED | 0 | 0 | 0 | A new team Ship check team was created, a wrong slug left it in place, and typing ship-check-team deleted it and returned to Acme Engineering. Acme was not deleted. Owner only. Blocked on the demo host |
 | TEAM-06 | Team invites | P0 | PASSED | 0 | 0 | 0 | Invite created, the link opened the accept page, and revoke removed the pending invite. |
@@ -61,7 +61,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | ISSUE-09 | Bulk edit | P1 | PASSED | 0 | 0 | 0 | Selecting ACM-16 opened a bar for status, priority, assignee, archive, and delete. Setting priority to Low updated that one issue, then it was set back to No priority. Up to 200 issues: status, priority, assignee, archive, restore, delete |
 | ISSUE-10 | Labels | P1 | PASSED | 0 | 0 | 0 | bug, feature, and polish are listed. Adding shipcheck created it, and Delete removed it. |
 | ISSUE-11 | Comment reactions | P2 | PASSED | 0 | 0 | 0 | Thumbs-up on the comment showed 1, you reacted. |
-| ISSUE-12 | Attachments | P1 | NOT STARTED |  |  |  | Upload, thumbnails, type sniffing, 10 MB, 25 files |
+| ISSUE-12 | Attachments | P1 | BLOCKED | 0 | 0 | 0 | ACM-1 shows Upload files, up to 10 MB. Uploads need BLOB_READ_WRITE_TOKEN, which is unset. Upload, thumbnails, type sniffing, 10 MB, 25 files |
 | ISSUE-13 | External issue links | PASSED | 0 | 0 | 0 | A link to example.com showed on ACM-1. Remove cleared it. | URL links on an issue, separate from git automation |
 | ISSUE-14 | Issue activity | PASSED | 0 | 0 | 0 | Activity lists the comment and a description change on ACM-1. | Field history on the issue |
 | ISSUE-15 | Issue subscriptions | P1 | PASSED | 0 | 0 | 0 | The subscribe switch on ACM-1 turned off and stayed off after reload, then turned back on and stayed Subscribed. Watch and unwatch. Drives notifications. |
@@ -72,15 +72,15 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | ISSUE-20 | Issue templates | P1 | PASSED | 0 | 0 | 0 | Ship check template saved with title Ship check template issue and showed after reload. Delete returned the empty templates page. Settings templates prefill the new-issue form |
 | ISSUE-21 | Issue visibility and extra readers | P1 | PASSED | 0 | 0 | 0 | ACM-1 stayed Restricted after reload, with Alex Rivera as an extra reader. It was set back to Team and the reader was cleared. TEAM or RESTRICTED, plus explicit readers |
 | ISSUE-22 | Required fields | P2 | PASSED | 0 | 0 | 0 | Requiring an assignee on Done blocked ACM-20, which is unassigned, with Required before this status: assignee. The status stayed Todo and the requirement was cleared. Team rules that block a status change until fields are set |
-| ISSUE-23 | Issue presence | P2 | NOT STARTED |  |  |  | Who is viewing the issue |
+| ISSUE-23 | Issue presence | P2 | BLOCKED | 0 | 0 | 0 | Also viewing hides the current user, so one signed-in browser shows nothing. Needs a second person on the same issue. Who is viewing the issue |
 | ISSUE-24 | Command palette, shortcuts, and peek | P1 | PASSED | 0 | 0 | 0 | Search opens a command menu with go-to commands, create issue, and theme actions. |
 | ISSUE-25 | Favorites | PASSED | 0 | 0 | 0 | Add to favorites put ACM-1 in the sidebar. Remove from favorites took it out. | Star issues, projects, cycles, and views. Reorder and folders. |
 | ISSUE-26 | Search | P1 | PASSED | 0 | 0 | 0 | Typing Neon in the menu listed ACM-1 Set up Neon database. |
-| ISSUE-27 | Live updates | P1 | NOT STARTED |  |  |  | Server-sent events with resume and guest scope |
+| ISSUE-27 | Live updates | P1 | BLOCKED | 0 | 0 | 0 | This browser tab stays hidden, so the live stream stays closed. A new comment appeared only after a reload. Needs a visible tab. Server-sent events with resume and guest scope |
 | ISSUE-28 | Triage | PASSED | 0 | 0 | 0 | Triage lists unassigned backlog issues. Snoozing ACM-14 hid it for an hour, then it returned. | Backlog intake queue |
 | ISSUE-29 | Triage rules and suggestions | PASSED | 0 | 0 | 0 | A title rule for shipcheck was added and removed. Suggest on ACM-8 offered Medium. | Rules plus AI or keyword suggestions |
 | ISSUE-30 | SLA targets | P2 | PASSED | 0 | 0 | 0 | SLA uses UTC, weekdays 1-5, and hours 0-24. Setting HIGH to 8 hours stayed after reload, then the target was cleared. Per-priority hour targets and business hours |
-| ISSUE-31 | Git branch and pull request status | P2 | NOT STARTED |  |  |  | Branch name and open pull requests when GitHub is configured |
+| ISSUE-31 | Git branch and pull request status | P2 | BLOCKED | 0 | 0 | 0 | The GitHub repository field is empty, so the branch line is not on the issue. Needs a repo and GITHUB_TOKEN. Branch name and open pull requests when GitHub is configured |
 | ISSUE-32 | Status-change rules | PASSED | 1 | 1 | 0 | A backlog status rule assigned Alex Rivera. The row had no remove control, so one was added and used. | On triage: when an issue enters a status, set assignee, label, and the other actions the service stores |
 | PLAN-01 | Cycles | P1 | PASSED | 0 | 0 | 0 | Cycle 1 is active with 11 issues and Cycle 2 is upcoming. The create form, schedule, and start-next controls are on the page. |
 | PLAN-02 | Cycle analytics and capacity | P1 | PASSED | 0 | 0 | 0 | Cycle 1 shows 3/11 done, a burndown section, assignee split, and per-person capacity. Points are 0 because the seeded issues have no estimates. |
@@ -102,23 +102,23 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | PLAN-18 | Signed-in intake form | P2 | PASSED | 0 | 0 | 0 | Intake created ACM-23 titled Ship check intake and opened that issue. Delete removed it. In-app intake plus POST /api/teams/{id}/intake |
 | INBOX-01 | Inbox | P1 | PASSED | 0 | 0 | 0 | Two notifications. Mark read dropped the badge from 2 to 1. |
 | INBOX-02 | Notification preferences | P1 | PASSED | 0 | 0 | 0 | Unchecking Assigned to you saved, and checking it again restored it. The other four types stayed on. |
-| GAP-06 | Email alerts for inbox events | P2 | NOT STARTED |  |  |  | BUILD. Resend sends invites only. |
+| GAP-06 | Email alerts for inbox events | P2 | BLOCKED | 0 | 0 | 0 | Inbox preferences are on the notifications page. Email is not configured, and RESEND_API_KEY is unset. BUILD. Resend sends invites only. |
 | OFFLINE-01 | Installable PWA and offline page | P1 | PASSED | 0 | 0 | 0 | The offline page says you are offline and offers teams and retry. The manifest names Verk and starts at /t. The worker is turned off while the dev server is running. |
 | OFFLINE-02 | Offline outbox and sync | P1 | NOT STARTED |  |  |  | Issue CRUD, comments, labels, and drafts while offline |
 | OFFLINE-03 | Edit conflicts | P1 | NOT STARTED |  |  |  | Revision conflicts and the keep-mine dialog |
-| INT-01 | GitHub webhook and pull-request automation | P1 | NOT STARTED |  |  |  | HMAC webhook. Mention, open, and merge. |
-| INT-02 | GitLab webhook | P1 | NOT STARTED |  |  |  | Merge request events. Same mention rules as GitHub. |
-| INT-03 | Slack commands, mentions, and shortcuts | P1 | NOT STARTED |  |  |  | Slash command, app mention, and the create-issue shortcut |
-| INT-04 | Slack unfurls and channel notifications | P1 | NOT STARTED |  |  |  | Link previews and one outbound post |
+| INT-01 | GitHub webhook and pull-request automation | P1 | BLOCKED | 0 | 0 | 0 | Team settings show the GitHub webhook URL and say to set GITHUB_WEBHOOK_SECRET and GITHUB_TOKEN. HMAC webhook. Mention, open, and merge. |
+| INT-02 | GitLab webhook | P1 | BLOCKED | 0 | 0 | 0 | Team settings show the GitLab webhook URL and say to set GITLAB_WEBHOOK_SECRET. Merge request events. Same mention rules as GitHub. |
+| INT-03 | Slack commands, mentions, and shortcuts | P1 | BLOCKED | 0 | 0 | 0 | Slack workspace and channel are empty. Commands need SLACK_SIGNING_SECRET, which is unset. Slash command, app mention, and the create-issue shortcut |
+| INT-04 | Slack unfurls and channel notifications | P1 | BLOCKED | 0 | 0 | 0 | The Slack incoming webhook field is empty, so link previews and channel posts cannot be sent. Link previews and one outbound post |
 | INT-05 | Email intake | P2 | NOT STARTED |  |  |  | Inbound mail becomes a triage issue |
 | INT-06 | Sentry intake | P2 | NOT STARTED |  |  |  | A Sentry issue becomes one triage issue |
-| INT-07 | Linear import | P1 | NOT STARTED |  |  |  | CSV or API, capped at 2,000 issues |
-| INT-08 | Generic CSV import | P1 | NOT STARTED |  |  |  | Map columns, preview, then import |
+| INT-07 | Linear import | P1 | BLOCKED | 0 | 0 | 0 | Import from Linear shows the CSV upload and the API key field. Needs a Linear personal API key, and this browser cannot attach a CSV. CSV or API, capped at 2,000 issues |
+| INT-08 | Generic CSV import | P1 | BLOCKED | 0 | 0 | 0 | Import from CSV shows the file field and says mapping comes after the file. This browser cannot attach a CSV. Map columns, preview, then import |
 | INT-09 | Issue export | P1 | PASSED | 0 | 0 | 0 | CSV export returned 200 with a header row. |
 | INT-10 | Outbound webhooks and delivery log | P1 | PASSED | 1 | 1 | 0 | A localhost URL crashed the page. It now shows that webhook URLs must be public https addresses. |
-| INT-11 | REST hooks | P2 | NOT STARTED |  |  |  | Zapier-style subscribe and unsubscribe |
+| INT-11 | REST hooks | P2 | PASSED | 0 | 0 | 0 | Subscribing a hook returned 201 and unsubscribing it returned 204. The hook is gone. Zapier-style subscribe and unsubscribe |
 | INT-12 | SCIM | P1 | NOT STARTED |  |  |  | Users and groups. Owners are never removed. |
-| INT-13 | OAuth apps | P1 | NOT STARTED |  |  |  | Authorization code and PKCE. Tokens are API keys. |
+| INT-13 | OAuth apps | P1 | PASSED | 0 | 0 | 0 | Registering an app showed a client id. Allow on the consent screen returned a code, and the token endpoint answered 200 Bearer. The app was then deleted. Authorization code and PKCE. Tokens are API keys. |
 | INT-14 | API keys | P1 | PASSED | 0 | 0 | 0 | A member key was shown once, then listed by prefix, then revoked. |
 | API-02 | GraphQL | P1 | NOT STARTED |  |  |  | One endpoint per team, same auth and role checks as REST |
 | API-03 | MCP server | P1 | NOT STARTED |  |  |  | 47 tools at POST /api/mcp |
@@ -1909,7 +1909,7 @@ Erase asks for the password when the user has one. It refuses in demo mode. A so
 - **ID:** AUTH-14
 - **Name:** Demo mode lock
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** BLOCKED
 
 ### Files
 
@@ -1984,7 +1984,7 @@ When DEMO_MODE is the string true, registration returns an error telling the per
 - **ID:** AUTH-15
 - **Name:** Private host and GitHub allowlist
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** BLOCKED
 
 ### Files
 
@@ -2057,7 +2057,7 @@ When AUTH_ALLOWED_GITHUB is non-empty, the host is private. Password registratio
 - **ID:** AUTH-16
 - **Name:** Sign-in rate limit
 - **Priority:** P0
-- **Status:** NOT STARTED
+- **Status:** BLOCKED
 
 ### Files
 
@@ -2277,7 +2277,7 @@ The sidebar lists the signed-in user's teams and navigates to /t/{slug}/issues. 
 - **ID:** TEAM-03
 - **Name:** Membership gate and roles
 - **Priority:** P0
-- **Status:** NOT STARTED
+- **Status:** BLOCKED
 
 ### Files
 
@@ -3604,7 +3604,7 @@ A member can add any single emoji to a comment, from the picker or by pasting. T
 - **ID:** ISSUE-12
 - **Name:** Attachments
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** BLOCKED
 
 ### Files
 
@@ -4403,7 +4403,7 @@ A team can require fields before an issue enters a status. The check runs on upd
 - **ID:** ISSUE-23
 - **Name:** Issue presence
 - **Priority:** P2
-- **Status:** NOT STARTED
+- **Status:** BLOCKED
 
 ### Files
 
@@ -4698,7 +4698,7 @@ Search matches issues (title, description, comments), projects, initiatives, doc
 - **ID:** ISSUE-27
 - **Name:** Live updates
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** BLOCKED
 
 ### Files
 
@@ -4988,7 +4988,7 @@ Team settings store slaHours, a timezone, slaStartHour, slaEndHour, and slaWeekd
 - **ID:** ISSUE-31
 - **Name:** Git branch and pull request status
 - **Priority:** P2
-- **Status:** NOT STARTED
+- **Status:** BLOCKED
 
 ### Files
 
@@ -6608,7 +6608,7 @@ Settings → Notifications turns off assigned, mentions, comments, status change
 - **ID:** GAP-06
 - **Name:** Email alerts for inbox events
 - **Priority:** P2
-- **Status:** NOT STARTED
+- **Status:** BLOCKED
 
 ### Files
 
@@ -6905,7 +6905,7 @@ If the server revision moved while the client was offline, sync opens a conflict
 - **ID:** INT-01
 - **Name:** GitHub webhook and pull-request automation
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** BLOCKED
 
 ### Files
 
@@ -6978,7 +6978,7 @@ POST /api/github/webhook checks the HMAC in GITHUB_WEBHOOK_SECRET. A pull reques
 - **ID:** INT-02
 - **Name:** GitLab webhook
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** BLOCKED
 
 ### Files
 
@@ -7050,7 +7050,7 @@ POST /api/gitlab/webhook checks the token against GITLAB_WEBHOOK_SECRET. The tea
 - **ID:** INT-03
 - **Name:** Slack commands, mentions, and shortcuts
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** BLOCKED
 
 ### Files
 
@@ -7125,7 +7125,7 @@ Slack requests are signed and rejected when older than five minutes. The team is
 - **ID:** INT-04
 - **Name:** Slack unfurls and channel notifications
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** BLOCKED
 
 ### Files
 
@@ -7342,7 +7342,7 @@ POST /api/teams/{id}/sentry checks Sentry-Hook-Signature as HMAC-SHA256 of the r
 - **ID:** INT-07
 - **Name:** Linear import
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** BLOCKED
 
 ### Files
 
@@ -7417,7 +7417,7 @@ Settings → Import loads a Linear CSV or calls the Linear API. Import maps stat
 - **ID:** INT-08
 - **Name:** Generic CSV import
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** BLOCKED
 
 ### Files
 
@@ -7641,7 +7641,7 @@ Admins create a webhook. The secret is shown once. Each delivery is logged with 
 - **ID:** INT-11
 - **Name:** REST hooks
 - **Priority:** P2
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -7791,7 +7791,7 @@ All /api/scim routes require Authorization Bearer SCIM_TOKEN and return SCIM JSO
 - **ID:** INT-13
 - **Name:** OAuth apps
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
