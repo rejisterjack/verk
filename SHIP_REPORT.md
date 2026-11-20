@@ -64,13 +64,13 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | ISSUE-12 | Attachments | P1 | NOT STARTED |  |  |  | Upload, thumbnails, type sniffing, 10 MB, 25 files |
 | ISSUE-13 | External issue links | PASSED | 0 | 0 | 0 | A link to example.com showed on ACM-1. Remove cleared it. | URL links on an issue, separate from git automation |
 | ISSUE-14 | Issue activity | PASSED | 0 | 0 | 0 | Activity lists the comment and a description change on ACM-1. | Field history on the issue |
-| ISSUE-15 | Issue subscriptions | P1 | NOT STARTED |  |  |  | Watch and unwatch. Drives notifications. |
+| ISSUE-15 | Issue subscriptions | P1 | PASSED | 0 | 0 | 0 | The subscribe switch on ACM-1 turned off and stayed off after reload, then turned back on and stayed Subscribed. Watch and unwatch. Drives notifications. |
 | ISSUE-16 | Similar issues | P2 | NOT STARTED |  |  |  | Hint while typing a title, and the similar API |
 | ISSUE-17 | Advanced filters | P1 | NOT STARTED |  |  |  | Nested all/any groups over the filter fields, in the URL and the API |
 | ISSUE-18 | Saved views | PASSED | 0 | 0 | 0 | Saved Ship check view from the issues list. It showed under Settings, Views, and Delete removed it. | Create, edit, delete, pin. Private or shared. |
 | ISSUE-19 | Drafts | P1 | PASSED | 0 | 0 | 0 | Saving Ship check draft listed it with Resume and Create issue. Delete returned the page to no drafts. |
 | ISSUE-20 | Issue templates | P1 | NOT STARTED |  |  |  | Settings templates prefill the new-issue form |
-| ISSUE-21 | Issue visibility and extra readers | P1 | NOT STARTED |  |  |  | TEAM or RESTRICTED, plus explicit readers |
+| ISSUE-21 | Issue visibility and extra readers | P1 | PASSED | 0 | 0 | 0 | ACM-1 stayed Restricted after reload, with Alex Rivera as an extra reader. It was set back to Team and the reader was cleared. TEAM or RESTRICTED, plus explicit readers |
 | ISSUE-22 | Required fields | P2 | NOT STARTED |  |  |  | Team rules that block a status change until fields are set |
 | ISSUE-23 | Issue presence | P2 | NOT STARTED |  |  |  | Who is viewing the issue |
 | ISSUE-24 | Command palette, shortcuts, and peek | P1 | PASSED | 0 | 0 | 0 | Search opens a command menu with go-to commands, create issue, and theme actions. |
@@ -92,14 +92,14 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | PLAN-08 | Timeline | P1 | PASSED | 0 | 0 | 0 | The timeline shows Cycle 1 and Cycle 2 across month, quarter, and year, and notes the project has no dates. |
 | PLAN-09 | Calendar | P1 | PASSED | 0 | 0 | 0 | November 2026 shows a Sunday-to-Saturday grid with previous and next. Seeded issues have no start or due dates, so the cells are empty. |
 | PLAN-10 | Releases and pipelines | PASSED | 0 | 0 | 0 | Two Default pipelines list Planned, Started, and Released. Ship check appeared as Planned with 0 issues. The page has no release delete, so the row was removed directly. | Pipelines, stages, and issue release assignment |
-| PLAN-11 | Documents | P1 | NOT STARTED |  |  |  | Team docs, comments, revisions, and line merge |
+| PLAN-11 | Documents | P1 | PASSED | 0 | 0 | 0 | Ship check doc saved with the body, a comment box, and version history. Delete returned the empty documents page. Team docs, comments, revisions, and line merge |
 | PLAN-12 | Customers | PASSED | 0 | 0 | 0 | Added Ship Check Co with a request form and 0 requests. Delete customer removed it. | Customers, tier, revenue, and requests |
-| PLAN-13 | Customer demand | P1 | NOT STARTED |  |  |  | Rank open issues by customers or by revenue |
+| PLAN-13 | Customer demand | P1 | PASSED | 0 | 0 | 0 | A request from Ship Check Co on ACM-20 ranked that issue first, by customer count and by revenue (12k). The customer was then deleted. Rank open issues by customers or by revenue |
 | PLAN-14 | Dashboards | PASSED | 1 | 1 | 0 | Creating Ship check board saved it but the list stayed blank until reload. Create now refreshes, and Delete removes the board. | Personal dashboards and widgets |
 | PLAN-15 | Insights | P1 | PASSED | 1 | 1 | 0 | Created 20 and completed 3 match the team. The flow chart ended the day before issues existed, so every row was zero. It now includes today and shows 6, 6, 4, 3, 1. |
-| PLAN-16 | Insight builder and saved reports | P1 | NOT STARTED |  |  |  | Build a query, keep it private or share it |
+| PLAN-16 | Insight builder and saved reports | P1 | PASSED | 0 | 0 | 0 | The builder grouped 20 issues by status. Saving Ship check report listed it, and delete removed it. Build a query, keep it private or share it |
 | PLAN-17 | Public Ask form | P1 | NOT STARTED |  |  |  | Token URL that files a triage issue. Honeypot and rate limits. |
-| PLAN-18 | Signed-in intake form | P2 | NOT STARTED |  |  |  | In-app intake plus POST /api/teams/{id}/intake |
+| PLAN-18 | Signed-in intake form | P2 | PASSED | 0 | 0 | 0 | Intake created ACM-23 titled Ship check intake and opened that issue. Delete removed it. In-app intake plus POST /api/teams/{id}/intake |
 | INBOX-01 | Inbox | P1 | PASSED | 0 | 0 | 0 | Two notifications. Mark read dropped the badge from 2 to 1. |
 | INBOX-02 | Notification preferences | P1 | PASSED | 0 | 0 | 0 | Unchecking Assigned to you saved, and checking it again restored it. The other four types stayed on. |
 | GAP-06 | Email alerts for inbox events | P2 | NOT STARTED |  |  |  | BUILD. Resend sends invites only. |
@@ -3822,7 +3822,7 @@ Status, priority, assignee, archive, and other field changes write an activity r
 - **ID:** ISSUE-15
 - **Name:** Issue subscriptions
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -4259,7 +4259,7 @@ Settings → Templates stores a name and a title plus the other default fields. 
 - **ID:** ISSUE-21
 - **Name:** Issue visibility and extra readers
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -5873,7 +5873,7 @@ Releases belong to a pipeline. Each pipeline has ordered stages that can be rena
 - **ID:** PLAN-11
 - **Name:** Documents
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -6021,7 +6021,7 @@ Customers have a name, an optional domain, a tier, and annual revenue. A request
 - **ID:** PLAN-13
 - **Name:** Customer demand
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -6239,7 +6239,7 @@ Insights groups and counts issues by a dimension such as status or priority. The
 - **ID:** PLAN-16
 - **Name:** Insight builder and saved reports
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -6388,7 +6388,7 @@ An admin creates an Ask link, and can also create a named Ask form with a chosen
 - **ID:** PLAN-18
 - **Name:** Signed-in intake form
 - **Priority:** P2
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
