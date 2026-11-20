@@ -21,7 +21,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | DEVOPS-03 | GitHub Actions CI | P1 | NOT STARTED |  |  |  | Lint, types, unit tests, production build; Playwright only with a database secret |
 | API-01 | Health check | P0 | PASSED | 0 | 0 | 0 | Live 200 healthy + 503 unhealthy (bad DB on :3002). Body has no secrets. demo=false. |
 | SEC-01 | Security headers and content security policy | P0 | PASSED | 0 | 0 | 0 | Six headers on /login and /api/health; no X-Powered-By. CSP matches next.config.mjs. |
-| AUTH-01 | Email and password registration | P0 | NOT STARTED |  |  |  | Open signup unless demo mode or a private host |
+| AUTH-01 | Email and password registration | P0 | PASSED | 0 | 0 | 0 | Live register → /onboarding; bcrypt hash; duplicate + invalid errors. DEMO_MODE and AUTH_ALLOWED_GITHUB redirect /register → /login. emailVerified unset (GAP-03). |
 | AUTH-02 | Password login and session | P0 | NOT STARTED |  |  |  | Password form, then TOTP only after the password is right. JWT session. |
 | GAP-01 | Password reset | P0 | NOT STARTED |  |  |  | BUILD. No forgot-password flow exists |
 | GAP-02 | Change password | P1 | NOT STARTED |  |  |  | BUILD. Account page shows the method but cannot change it |
@@ -669,7 +669,7 @@ Every path gets X-Frame-Options DENY, X-Content-Type-Options nosniff, Referrer-P
 - **ID:** AUTH-01
 - **Name:** Email and password registration
 - **Priority:** P0
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -684,11 +684,11 @@ The register page posts a name, email, and password. registerAction rejects sign
 
 ### Acceptance criteria
 
-- [ ] A new email and an 8-character password creates a user and lands on Create your team.
-- [ ] Demo mode returns the demo-login error and creates nothing.
-- [ ] A private host returns the deploy-your-own error and creates nothing.
-- [ ] A duplicate email returns An account with this email already exists and does not change the hash.
-- [ ] A password shorter than 8 or a bad email returns Invalid registration details.
+- [x] A new email and an 8-character password creates a user and lands on Create your team.
+- [x] Demo mode returns the demo-login error and creates nothing.
+- [x] A private host returns the deploy-your-own error and creates nothing.
+- [x] A duplicate email returns An account with this email already exists and does not change the hash.
+- [x] A password shorter than 8 or a bad email returns Invalid registration details.
 
 ### Test cases
 
@@ -732,11 +732,11 @@ The register page posts a name, email, and password. registerAction rejects sign
 
 ### Results
 
-- Bugs Found:
-- Bugs Fixed:
-- UI Issues Fixed:
-- Files Changed:
-- Notes:
+- Bugs Found: 0
+- Bugs Fixed: 0
+- UI Issues Fixed: 0
+- Files Changed: none
+- Notes: Signed out via `/api/auth/signout` before tests. `browser_fill` on `/register` created `ship-auth01-1795194013@test.verk.dev` → `/onboarding` (“Create your team”); DB has bcrypt `$2b$10$…` hash and `emailVerified: null` (GAP-03). Duplicate email showed “An account with this email already exists”; one row unchanged. Short password showed “Invalid registration details”; no user created. `DEMO_MODE=true` dev: `/register` 307 → `/login`, health `demo:true`, registration copy on login. `AUTH_ALLOWED_GITHUB=ship-test` dev: `/register` 307 → `/login` (private host). Rate limit (31/min) not exercised. Unrelated WXT dev server on `localhost:3000` caused 404s until stopped (environment only).
 
 ## AUTH-02 Password login and session
 
