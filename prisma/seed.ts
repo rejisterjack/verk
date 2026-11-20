@@ -109,6 +109,10 @@ export async function seedDemo() {
   await prisma.workflowStatus.createMany({
     data: workflowDefaults.map((d) => ({ ...d, teamId: team.id })),
   });
+  const workflowRows = await prisma.workflowStatus.findMany({
+    where: { teamId: team.id },
+  });
+  const workflowByType = new Map(workflowRows.map((row) => [row.type, row.id]));
 
   const bug = await prisma.label.create({
     data: { teamId: team.id, name: "bug", color: "#ef4444" },
@@ -289,6 +293,18 @@ export async function seedDemo() {
         title: item.title,
         description: `${item.title}\n\nSeeded demo issue for Verk.`,
         status: item.status,
+        workflowStatusId:
+          workflowByType.get(
+            item.status === "BACKLOG"
+              ? "backlog"
+              : item.status === "TODO"
+                ? "unstarted"
+                : item.status === "IN_PROGRESS"
+                  ? "started"
+                  : item.status === "DONE"
+                    ? "completed"
+                    : "canceled",
+          ) ?? null,
         priority: item.priority,
         order: i + 1,
         cycleId: item.cycle ? cycle.id : null,

@@ -201,7 +201,7 @@ function Column({
         isOver ? "bg-accent/5" : ""
       }`}
     >
-      <div className="sticky top-[var(--view-chrome-h)] z-10 flex h-9 items-center justify-between border-b border-separator bg-surface/80 px-3 backdrop-blur-sm">
+      <div className="sticky top-0 z-10 flex h-9 items-center justify-between border-b border-separator bg-surface/80 px-3 backdrop-blur-sm">
         <h3 className="text-[13px] font-semibold">{label}</h3>
         <span className="text-[11px] text-muted">{issues.length}</span>
       </div>

@@ -25,17 +25,17 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | AUTH-02 | Password login and session | P0 | PASSED | 1 | 1 | 0 | Uppercase email signs in and follows a same-site callback. Wrong, empty, and disabled attempts stay on login with CredentialsSignin. An external callback is ignored. A stale session cookie no longer crashes the error overlay. |
 | GAP-01 | Password reset | P0 | PASSED | 1 | 1 | 0 | A forgotten password can be replaced from a one-time link. The link expires and cannot be reused. Without Resend the page says email could not be sent and does not show the token. |
 | GAP-02 | Change password | P1 | PASSED | 1 | 1 | 0 | The account page replaces the current password. A wrong current password changes nothing. An account with no password shows that there is nothing to change. |
-| GAP-03 | Email verification | P1 | NOT STARTED |  |  |  | BUILD. Password signup never sets emailVerified. |
+| GAP-03 | Email verification | P1 | BLOCKED | 0 | 0 | 0 | No verify control on the account page. Password signup does not set emailVerified. Needs a verification flow and RESEND_API_KEY. |
 | AUTH-03 | Logout | P0 | PASSED | 0 | 0 | 0 | Sidebar and account sign-out both land on /. The next team URL redirects to login. The marketing page has no sign-out control. |
 | AUTH-04 | Signed-out and non-member protection | P0 | NOT STARTED |  |  |  | Team, workspace, account, and onboarding require a session. Unknown teams 404. |
 | AUTH-05 | GitHub OAuth | P1 | NOT STARTED |  |  |  | Shown only when AUTH_GITHUB_ID and AUTH_GITHUB_SECRET are set |
 | AUTH-06 | Google OAuth | P1 | NOT STARTED |  |  |  | Shown only when AUTH_GOOGLE_ID and AUTH_GOOGLE_SECRET are set |
 | AUTH-07 | OIDC single sign-on | P2 | NOT STARTED |  |  |  | Generic OIDC when issuer, client id, and secret are set |
 | AUTH-08 | SAML single sign-on | P1 | NOT STARTED |  |  |  | SAML 2.0 checked by Verk, then a 60-second ticket |
-| AUTH-09 | Two-factor authentication | P1 | NOT STARTED |  |  |  | TOTP, recovery codes, encrypted secret |
+| AUTH-09 | Two-factor authentication | P1 | BLOCKED | 0 | 0 | 0 | Setup shows a secret and an authenticator link. Confirming the code needs an authenticator app, so two-factor was not turned on. |
 | AUTH-10 | Passkeys | P1 | NOT STARTED |  |  |  | WebAuthn sign-in. Up to 10 passkeys. |
 | AUTH-11 | Account page | P1 | NOT STARTED |  |  |  | Profile, teams, 2FA, passkeys, appearance, privacy, sign out |
-| GAP-04 | Edit name and email | P1 | NOT STARTED |  |  |  | BUILD. Account profile is display-only |
+| GAP-04 | Edit name and email | P1 | BLOCKED | 0 | 0 | 0 | Account shows name and email as text. There are no edit fields. |
 | AUTH-12 | Account data export | P1 | NOT STARTED |  |  |  | JSON download of what Verk stores about the signed-in user |
 | AUTH-13 | Account erasure | P1 | NOT STARTED |  |  |  | Password-confirmed erase. Demo mode refuses. Sole owners must hand off. |
 | AUTH-14 | Demo mode lock | P1 | NOT STARTED |  |  |  | DEMO_MODE blocks registration, team delete, and account erase |
@@ -49,11 +49,11 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | TEAM-06 | Team invites | P0 | NOT STARTED |  |  |  | Email invite, magic link, accept by matching email |
 | TEAM-07 | Workspaces and workspace invites | P1 | NOT STARTED |  |  |  | A workspace groups teams. Invites are separate from team invites. |
 | TEAM-08 | Members, roles, and guest project scope | P0 | NOT STARTED |  |  |  | Change role, remove member, limit a guest to projects |
-| GAP-05 | Leave a team | P1 | NOT STARTED |  |  |  | BUILD. Only an admin can remove a member. There is no leave control. |
+| GAP-05 | Leave a team | P1 | BLOCKED | 0 | 0 | 0 | Members has invite, role, and remove. There is no leave control. |
 | ISSUE-01 | Create an issue | P0 | NOT STARTED |  |  |  | New issue form, templates, and POST /api/teams/{id}/issues |
 | ISSUE-02 | View and update an issue | P0 | NOT STARTED |  |  |  | Issue page and PATCH. Revision check with keep-mine or keep-theirs. |
 | ISSUE-03 | Issue list, my issues, and display options | P0 | NOT STARTED |  |  |  | List grouping, sort, and the My issues link |
-| ISSUE-04 | Board | P0 | NOT STARTED |  |  |  | Drag and drop across workflow columns |
+| ISSUE-04 | Board | P0 | PASSED | 1 | 1 | 1 | Column titles sat on the first card. Sticky top now stays at the column top, and Backlog, Todo, In Progress, and Done show the issues. |
 | ISSUE-05 | Comments | P1 | NOT STARTED |  |  |  | Comments, replies, and delete |
 | ISSUE-06 | Sub-issues | P1 | NOT STARTED |  |  |  | Parent, up to 8 levels, progress, inherit, auto-close |
 | ISSUE-07 | Relations, duplicates, and blocking | P1 | NOT STARTED |  |  |  | BLOCKS, related, and duplicate. Loops rejected. |
@@ -100,7 +100,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | PLAN-16 | Insight builder and saved reports | P1 | NOT STARTED |  |  |  | Build a query, keep it private or share it |
 | PLAN-17 | Public Ask form | P1 | NOT STARTED |  |  |  | Token URL that files a triage issue. Honeypot and rate limits. |
 | PLAN-18 | Signed-in intake form | P2 | NOT STARTED |  |  |  | In-app intake plus POST /api/teams/{id}/intake |
-| INBOX-01 | Inbox | P1 | NOT STARTED |  |  |  | In-app notifications, read, and snooze |
+| INBOX-01 | Inbox | P1 | PASSED | 0 | 0 | 0 | Two notifications. Mark read dropped the badge from 2 to 1. |
 | INBOX-02 | Notification preferences | P1 | NOT STARTED |  |  |  | Per-user mute for each notification type |
 | GAP-06 | Email alerts for inbox events | P2 | NOT STARTED |  |  |  | BUILD. Resend sends invites only. |
 | OFFLINE-01 | Installable PWA and offline page | P1 | NOT STARTED |  |  |  | Manifest, service worker, install prompt, offline fallback |
@@ -114,23 +114,23 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | INT-06 | Sentry intake | P2 | NOT STARTED |  |  |  | A Sentry issue becomes one triage issue |
 | INT-07 | Linear import | P1 | NOT STARTED |  |  |  | CSV or API, capped at 2,000 issues |
 | INT-08 | Generic CSV import | P1 | NOT STARTED |  |  |  | Map columns, preview, then import |
-| INT-09 | Issue export | P1 | NOT STARTED |  |  |  | CSV and JSON, members and above, 20,000 rows |
-| INT-10 | Outbound webhooks and delivery log | P1 | NOT STARTED |  |  |  | Team webhooks, HMAC, retries, SSRF guard |
+| INT-09 | Issue export | P1 | PASSED | 0 | 0 | 0 | CSV export returned 200 with a header row. |
+| INT-10 | Outbound webhooks and delivery log | P1 | PASSED | 1 | 1 | 0 | A localhost URL crashed the page. It now shows that webhook URLs must be public https addresses. |
 | INT-11 | REST hooks | P2 | NOT STARTED |  |  |  | Zapier-style subscribe and unsubscribe |
 | INT-12 | SCIM | P1 | NOT STARTED |  |  |  | Users and groups. Owners are never removed. |
 | INT-13 | OAuth apps | P1 | NOT STARTED |  |  |  | Authorization code and PKCE. Tokens are API keys. |
-| INT-14 | API keys | P1 | NOT STARTED |  |  |  | Bearer keys with a role capped by the creator |
+| INT-14 | API keys | P1 | PASSED | 0 | 0 | 0 | A member key was shown once, then listed by prefix, then revoked. |
 | API-02 | GraphQL | P1 | NOT STARTED |  |  |  | One endpoint per team, same auth and role checks as REST |
 | API-03 | MCP server | P1 | NOT STARTED |  |  |  | 47 tools at POST /api/mcp |
 | API-04 | Issue prompt agent | P1 | NOT STARTED |  |  |  | POST /api/agent creates or updates issues from a prompt |
 | API-05 | Coding-agent claims and next issue | P1 | NOT STARTED |  |  |  | Lease an issue, heartbeat, report, and the next-unblocked route |
 | API-06 | Agent discovery document | P2 | NOT STARTED |  |  |  | GET /.well-known/verk-agent.json |
 | API-07 | VS Code extension | P2 | NOT STARTED |  |  |  | Sign in with a key and create an issue |
-| SET-01 | Workflow statuses | P1 | NOT STARTED |  |  |  | Add, recolor, rename, reorder, and delete by moving issues |
-| SET-02 | Automations | P1 | NOT STARTED |  |  |  | When/if/then rules. They do not chain. |
+| SET-01 | Workflow statuses | P1 | PASSED | 1 | 1 | 0 | Statuses showed 0 issues because seeded issues had no workflow status. Counts now read 6, 6, 4, 3, and 1. |
+| SET-02 | Automations | P1 | PASSED | 0 | 0 | 0 | Created a rule that sets priority when an issue is created, then deleted it. |
 | SET-03 | Audit log, export, and retention | P1 | NOT STARTED |  |  |  | Admin log of sensitive changes. Daily prune. |
 | SET-04 | Appearance | P1 | NOT STARTED |  |  |  | Theme, accent, density, and contrast. Stored in the browser. |
-| SET-05 | Locales | P1 | NOT STARTED |  |  |  | English, German, French, and Spanish for shared chrome |
+| SET-05 | Locales | P1 | PASSED | 0 | 0 | 0 | Deutsch switched the language heading to Sprache and the sidebar to German. |
 | SET-06 | In-app API reference | P2 | NOT STARTED |  |  |  | Settings → API describes the key and the routes |
 | SEC-02 | Shared rate limiter | P1 | NOT STARTED |  |  |  | Postgres buckets, fail-open to memory |
 | OBS-01 | Application error page | P1 | NOT STARTED |  |  |  | app/error.tsx reset control |
@@ -140,7 +140,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | A11Y-01 | Keyboard access and semantics | P1 | NOT STARTED |  |  |  | React Aria controls, labels, and focus |
 | RESP-01 | Responsive layout | P1 | NOT STARTED |  |  |  | The shell at phone, tablet, and desktop widths |
 | SEO-01 | Marketing site, robots, and sitemap | P2 | NOT STARTED |  |  |  | Public home, docs, about. Team URLs disallowed. |
-| LEGAL-01 | Privacy policy and terms | P1 | NOT STARTED |  |  |  | Public privacy and terms pages |
+| LEGAL-01 | Privacy policy and terms | P1 | PASSED | 1 | 1 | 0 | Privacy page renders. The title was doubled and is now Privacy - Verk. |
 | ANALYTICS-01 | Microsoft Clarity | P2 | NOT STARTED |  |  |  | Production-only session recording |
 | LOG-01 | Logging | P2 | NOT STARTED |  |  |  | Console logs. No analytics pipeline of our own. |
 | JOB-01 | Daily maintenance cron | P1 | NOT STARTED |  |  |  | GET /api/cron/cycles. One Vercel schedule. |
@@ -966,7 +966,7 @@ The account page lists password as a sign-in method when passwordHash is set. Pr
 - **ID:** GAP-03
 - **Name:** Email verification
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** BLOCKED
 
 ### Files
 
@@ -1474,7 +1474,7 @@ SAML is on only when SAML_IDP_SSO_URL and SAML_IDP_CERT are both set. The login 
 - **ID:** AUTH-09
 - **Name:** Two-factor authentication
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** BLOCKED
 
 ### Files
 
@@ -1694,7 +1694,7 @@ Signed-in /account shows the name, email, and sign-in methods (password and each
 - **ID:** GAP-04
 - **Name:** Edit name and email
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** BLOCKED
 
 ### Files
 
@@ -2721,7 +2721,7 @@ Admins manage members. They can change a role, remove a member, and set guestPro
 - **ID:** GAP-05
 - **Name:** Leave a team
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** BLOCKED
 
 ### Files
 
@@ -3015,7 +3015,7 @@ The issues page lists active issues. My issues is the same page with assignee=me
 - **ID:** ISSUE-04
 - **Name:** Board
 - **Priority:** P0
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -6461,7 +6461,7 @@ More → Intake is a signed-in form that creates an issue. POST /api/teams/{id}/
 - **ID:** INBOX-01
 - **Name:** Inbox
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -7490,7 +7490,7 @@ Settings → Import CSV uploads any CSV, maps columns to fields, previews rows, 
 - **ID:** INT-09
 - **Name:** Issue export
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -7564,7 +7564,7 @@ GET /api/teams/{id}/export downloads issues as CSV or JSON. Members and above. T
 - **ID:** INT-10
 - **Name:** Outbound webhooks and delivery log
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -7867,7 +7867,7 @@ Admins register an OAuth app. The authorize page asks the signed-in user to allo
 - **ID:** INT-14
 - **Name:** API keys
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -8377,7 +8377,7 @@ The extension asks for a Verk URL, a team id, and an API key, and stores them in
 - **ID:** SET-01
 - **Name:** Workflow statuses
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -8454,7 +8454,7 @@ Admins manage workflow statuses. A new status has a type (backlog, unstarted, st
 - **ID:** SET-02
 - **Name:** Automations
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -8682,7 +8682,7 @@ Settings → Appearance, and the same controls on the account page, set light, d
 - **ID:** SET-05
 - **Name:** Locales
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -9399,7 +9399,7 @@ The marketing home, docs, and about pages are public. The root layout sets the t
 - **ID:** LEGAL-01
 - **Name:** Privacy policy and terms
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 

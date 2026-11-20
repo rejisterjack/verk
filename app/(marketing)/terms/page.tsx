@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Terms — Verk",
+  title: "Terms",
   description: "Terms of use for self-hosted Verk.",
 };
 

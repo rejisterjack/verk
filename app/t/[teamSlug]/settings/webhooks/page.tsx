@@ -1,5 +1,8 @@
 import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
+import { ZodError } from "zod";
+
+import { AuthError } from "@/lib/errors";
 
 import { ViewToolbar } from "@/components/page-header";
 import { SubmitButton as Button } from "@/components/submit-button";
@@ -12,7 +15,7 @@ export default async function WebhooksPage({
   searchParams,
 }: {
   params: Promise<{ teamSlug: string }>;
-  searchParams: Promise<{ secret?: string; created?: string }>;
+  searchParams: Promise<{ secret?: string; created?: string; error?: string }>;
 }) {
   const { teamSlug } = await params;
   const query = await searchParams;
@@ -33,10 +36,25 @@ export default async function WebhooksPage({
 
   async function create(formData: FormData) {
     "use server";
-    const hook = await webhooksService.createWebhook(teamId, userId, {
-      url: String(formData.get("url") ?? ""),
-      events: ["issue.created", "issue.updated", "comment.created"],
-    });
+    let hook;
+
+    try {
+      hook = await webhooksService.createWebhook(teamId, userId, {
+        url: String(formData.get("url") ?? ""),
+        events: ["issue.created", "issue.updated", "comment.created"],
+      });
+    } catch (error) {
+      const message =
+        error instanceof AuthError
+          ? error.message
+          : error instanceof ZodError
+            ? "Enter a valid webhook URL."
+            : "Could not add that webhook.";
+
+      redirect(
+        `/t/${teamSlug}/settings/webhooks?error=${encodeURIComponent(message)}`,
+      );
+    }
 
     revalidatePath(`/t/${teamSlug}/settings/webhooks`);
     redirect(
@@ -50,6 +68,11 @@ export default async function WebhooksPage({
         description="POST JSON to your endpoint on issue and comment events"
         title="Webhooks"
       />
+      {query.error ? (
+        <p className="mb-4 rounded-xl border border-danger/40 bg-danger/10 p-3 text-sm text-danger">
+          {query.error}
+        </p>
+      ) : null}
       {query.secret ? (
         <div className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
           <p className="font-medium">Copy your signing secret now</p>
