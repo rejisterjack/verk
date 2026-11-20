@@ -17,7 +17,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | DATA-01 | Database schema and migrations | P0 | PASSED | 0 | 0 | 0 | Fresh Docker Postgres took all 43 migrations. Status up to date. Second and parallel deploys no-op. Unreachable host exits 1. Read-only role fails on a fresh database (permission denied). Empty and localhost URLs skip migrate. |
 | DATA-02 | Neon and Prisma runtime client | P0 | PASSED | 1 | 1 | 0 | Localhost uses the TCP driver. Neon hosts stay on the Neon adapter. Health 200, down 503, issues list shows seeded rows. |
 | DEVOPS-01 | Environment configuration | P0 | PASSED | 0 | 0 | 0 | Every process.env name is in .env.example or is a platform variable. Slack is 404 while unset. Cron is 401 without the bearer and 200 with it. |
-| DEVOPS-02 | Production build and Vercel deploy | P0 | NOT STARTED |  |  |  | vercel-build migrates, then next build. No Docker. |
+| DEVOPS-02 | Production build and Vercel deploy | P0 | PASSED | 0 | 0 | 0 | next build --webpack succeeded. sw.js, manifest, and icon exist. No Dockerfile. Localhost skips migrate. A Neon-shaped URL invokes migrate first. |
 | DEVOPS-03 | GitHub Actions CI | P1 | NOT STARTED |  |  |  | Lint, types, unit tests, and a production build. E2E needs a database secret. |
 | API-01 | Health check | P0 | NOT STARTED |  |  |  | GET /api/health returns 200 when the database answers, otherwise 503 |
 | SEC-01 | Security headers and content security policy | P0 | NOT STARTED |  |  |  | Response headers and the content security policy |
@@ -388,7 +388,7 @@ Four variables are required for a private deploy: DATABASE_URL, DIRECT_URL, AUTH
 - **ID:** DEVOPS-02
 - **Name:** Production build and Vercel deploy
 - **Priority:** P0
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -403,10 +403,10 @@ npm run build and the Vercel build command run scripts/vercel-build.mjs. That sc
 
 ### Acceptance criteria
 
-- [ ] vercel-build with a reachable direct URL applies migrations before the Next build.
-- [ ] vercel-build with localhost URLs skips migrate and still builds.
-- [ ] The production build emits the service worker and the PWA manifest checks that CI already runs.
-- [ ] No Docker image is required to deploy.
+- [x] vercel-build with a reachable direct URL applies migrations before the Next build.
+- [x] vercel-build with localhost URLs skips migrate and still builds.
+- [x] The production build emits the service worker and the PWA manifest checks that CI already runs.
+- [x] No Docker image is required to deploy.
 
 ### Test cases
 
@@ -450,11 +450,11 @@ npm run build and the Vercel build command run scripts/vercel-build.mjs. That sc
 
 ### Results
 
-- Bugs Found:
-- Bugs Fixed:
-- UI Issues Fixed:
-- Files Changed:
-- Notes:
+- Bugs Found: 0
+- Bugs Fixed: 0
+- UI Issues Fixed: 0
+- Files Changed: none
+- Notes: npx next build --webpack exited 0 and wrote public/sw.js, public/manifest.webmanifest, and public/icons/icon-192.png. No Dockerfile. scripts/vercel-build.mjs skips migrate for an empty URL and for localhost, then calls next build. A Neon-shaped DIRECT_URL invokes npx prisma migrate deploy before the build and stops if that command fails. The build script uses spawnSync with an argument array, not a shell string.
 
 ## DEVOPS-03 GitHub Actions CI
 
