@@ -22,7 +22,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | API-01 | Health check | P0 | PASSED | 0 | 0 | 0 | Live 200 healthy + 503 unhealthy (bad DB on :3002). Body has no secrets. demo=false. |
 | SEC-01 | Security headers and content security policy | P0 | PASSED | 0 | 0 | 0 | Six headers on /login and /api/health; no X-Powered-By. CSP matches next.config.mjs. |
 | AUTH-01 | Email and password registration | P0 | PASSED | 0 | 0 | 0 | Live register → /onboarding; bcrypt hash; duplicate + invalid errors. DEMO_MODE and AUTH_ALLOWED_GITHUB redirect /register → /login. emailVerified unset (GAP-03). |
-| AUTH-02 | Password login and session | P0 | NOT STARTED |  |  |  | Password form, then TOTP only after the password is right. JWT session. |
+| AUTH-02 | Password login and session | P0 | PASSED | 0 | 0 | 0 | demo@verk.dev → issues; CredentialsSignin no password in URL; evil callback → /onboarding; disabled user rejected. 2FA URL email query noted. |
 | GAP-01 | Password reset | P0 | NOT STARTED |  |  |  | BUILD. No forgot-password flow exists |
 | GAP-02 | Change password | P1 | NOT STARTED |  |  |  | BUILD. Account page shows the method but cannot change it |
 | GAP-03 | Email verification | P1 | NOT STARTED |  |  |  | BUILD. emailVerified is never set for password signup |
@@ -743,7 +743,7 @@ The register page posts a name, email, and password. registerAction rejects sign
 - **ID:** AUTH-02
 - **Name:** Password login and session
 - **Priority:** P0
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -760,11 +760,11 @@ Login accepts email and password. The password is checked with bcrypt. A wrong p
 
 ### Acceptance criteria
 
-- [ ] Right password and no 2FA creates a session and follows a same-site callback path.
-- [ ] Wrong, empty, or unknown email stays on login with CredentialsSignin and no password in the location.
-- [ ] An external callbackUrl is ignored.
-- [ ] A non-form body does not 500; it redirects as a failed login.
-- [ ] A disabled user cannot sign in.
+- [x] Right password and no 2FA creates a session and follows a same-site callback path.
+- [x] Wrong, empty, or unknown email stays on login with CredentialsSignin and no password in the location.
+- [x] An external callbackUrl is ignored.
+- [x] A non-form body does not 500; it redirects as a failed login.
+- [x] A disabled user cannot sign in.
 
 ### Test cases
 
@@ -808,11 +808,11 @@ Login accepts email and password. The password is checked with bcrypt. A wrong p
 
 ### Results
 
-- Bugs Found:
-- Bugs Fixed:
-- UI Issues Fixed:
-- Files Changed:
-- Notes:
+- Bugs Found: 0
+- Bugs Fixed: 0
+- UI Issues Fixed: 0
+- Files Changed: none
+- Notes: Browser `loginAction` with `demo@verk.dev` / `demo1234` landed on `/t/acme-engineering/issues` (default and with `callbackUrl=/t/acme-engineering/issues`). Wrong password via POST `/api/auth/password` → `303` `/login?error=CredentialsSignin` (no password in query); login page shows “Invalid email or password”. External `callbackUrl=https://evil.com` on successful POST → `/onboarding`, not evil. JSON body POST → `303` CredentialsSignin (no 500). Disabled `ship-auth01-1795194013@test.verk.dev` → CredentialsSignin. 2FA redirect with email in query not re-tested live (demo has no 2FA); left as known observation in Suspected bugs. Rate limit (31/min) not exercised.
 
 ## GAP-01 Password reset
 
