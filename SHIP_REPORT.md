@@ -91,7 +91,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | PLAN-07 | Roadmap | P1 | PASSED | 0 | 0 | 0 | Roadmap shows Launch Verk at 2 of 7, 29 percent, On track, with week nudge buttons. |
 | PLAN-08 | Timeline | P1 | PASSED | 0 | 0 | 0 | The timeline shows Cycle 1 and Cycle 2 across month, quarter, and year, and notes the project has no dates. |
 | PLAN-09 | Calendar | P1 | PASSED | 0 | 0 | 0 | November 2026 shows a Sunday-to-Saturday grid with previous and next. Seeded issues have no start or due dates, so the cells are empty. |
-| PLAN-10 | Releases and pipelines | P1 | NOT STARTED |  |  |  | Pipelines, stages, and issue release assignment |
+| PLAN-10 | Releases and pipelines | PASSED | 0 | 0 | 0 | Two Default pipelines list Planned, Started, and Released. Ship check appeared as Planned with 0 issues. The page has no release delete, so the row was removed directly. | Pipelines, stages, and issue release assignment |
 | PLAN-11 | Documents | P1 | NOT STARTED |  |  |  | Team docs, comments, revisions, and line merge |
 | PLAN-12 | Customers | PASSED | 0 | 0 | 0 | Added Ship Check Co with a request form and 0 requests. Delete customer removed it. | Customers, tier, revenue, and requests |
 | PLAN-13 | Customer demand | P1 | NOT STARTED |  |  |  | Rank open issues by customers or by revenue |
@@ -5799,7 +5799,7 @@ The calendar page places issues and other dated items on a month grid. Undated i
 - **ID:** PLAN-10
 - **Name:** Releases and pipelines
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
