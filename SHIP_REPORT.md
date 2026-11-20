@@ -77,11 +77,11 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | ISSUE-25 | Favorites | PASSED | 0 | 0 | 0 | Add to favorites put ACM-1 in the sidebar. Remove from favorites took it out. | Star issues, projects, cycles, and views. Reorder and folders. |
 | ISSUE-26 | Search | P1 | PASSED | 0 | 0 | 0 | Typing Neon in the menu listed ACM-1 Set up Neon database. |
 | ISSUE-27 | Live updates | P1 | NOT STARTED |  |  |  | Server-sent events with resume and guest scope |
-| ISSUE-28 | Triage | P1 | NOT STARTED |  |  |  | Backlog intake queue |
-| ISSUE-29 | Triage rules and suggestions | P1 | NOT STARTED |  |  |  | Rules plus AI or keyword suggestions |
+| ISSUE-28 | Triage | PASSED | 0 | 0 | 0 | Triage lists unassigned backlog issues. Snoozing ACM-14 hid it for an hour, then it returned. | Backlog intake queue |
+| ISSUE-29 | Triage rules and suggestions | PASSED | 0 | 0 | 0 | A title rule for shipcheck was added and removed. Suggest on ACM-8 offered Medium. | Rules plus AI or keyword suggestions |
 | ISSUE-30 | SLA targets | P2 | NOT STARTED |  |  |  | Per-priority hour targets and business hours |
 | ISSUE-31 | Git branch and pull request status | P2 | NOT STARTED |  |  |  | Branch name and open pull requests when GitHub is configured |
-| ISSUE-32 | Status-change rules | P1 | NOT STARTED |  |  |  | On triage: when an issue enters a status, set assignee, label, and the other actions the service stores |
+| ISSUE-32 | Status-change rules | PASSED | 1 | 1 | 0 | A backlog status rule assigned Alex Rivera. The row had no remove control, so one was added and used. | On triage: when an issue enters a status, set assignee, label, and the other actions the service stores |
 | PLAN-01 | Cycles | P1 | PASSED | 0 | 0 | 0 | Cycle 1 is active with 11 issues and Cycle 2 is upcoming. The create form, schedule, and start-next controls are on the page. |
 | PLAN-02 | Cycle analytics and capacity | P1 | PASSED | 0 | 0 | 0 | Cycle 1 shows 3/11 done, a burndown section, assignee split, and per-person capacity. Points are 0 because the seeded issues have no estimates. |
 | PLAN-03 | Projects and milestones | P1 | PASSED | 0 | 0 | 0 | Launch Verk shows 29 percent, 7 issues, the Public demo milestone, and a lead. |
@@ -4769,7 +4769,7 @@ The team shell subscribes to GET /api/teams/{id}/events. Events refresh issue vi
 - **ID:** ISSUE-28
 - **Name:** Triage
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -4841,7 +4841,7 @@ Triage lists issues that need a decision, including backlog items created by Ask
 - **ID:** ISSUE-29
 - **Name:** Triage rules and suggestions
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -5061,7 +5061,7 @@ The issue page can show a branch name and, when GITHUB_TOKEN and the team's gith
 - **ID:** ISSUE-32
 - **Name:** Status-change rules
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 

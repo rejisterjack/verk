@@ -72,6 +72,15 @@ export default async function TriagePage({
     redirect(`/t/${teamSlug}/triage`);
   }
 
+  async function removeStatusRule(formData: FormData) {
+    "use server";
+    await statusRules.deleteStatusRule(
+      team.id,
+      String(formData.get("ruleId") ?? ""),
+    );
+    redirect(`/t/${teamSlug}/triage`);
+  }
+
   return (
     <div className="flex min-h-full flex-col">
       <ViewToolbar
@@ -136,16 +145,27 @@ export default async function TriagePage({
           <h2 className="mt-6 text-sm font-semibold">When status changes</h2>
           <ul className="mt-2 space-y-1 text-[13px]">
             {statusRuleList.map((rule) => (
-              <li key={rule.id} className="text-muted">
-                {rule.fromStatus} →{" "}
-                {[
-                  rule.setAssignee
-                    ? (rule.setAssignee.name ?? rule.setAssignee.email)
-                    : null,
-                  rule.addLabel?.name,
-                ]
-                  .filter(Boolean)
-                  .join(", ")}
+              <li
+                key={rule.id}
+                className="flex items-center justify-between gap-3 text-muted"
+              >
+                <span>
+                  {rule.fromStatus} →{" "}
+                  {[
+                    rule.setAssignee
+                      ? (rule.setAssignee.name ?? rule.setAssignee.email)
+                      : null,
+                    rule.addLabel?.name,
+                  ]
+                    .filter(Boolean)
+                    .join(", ")}
+                </span>
+                <form action={removeStatusRule}>
+                  <input name="ruleId" type="hidden" value={rule.id} />
+                  <Button size="sm" type="submit" variant="ghost">
+                    Remove
+                  </Button>
+                </form>
               </li>
             ))}
           </ul>
