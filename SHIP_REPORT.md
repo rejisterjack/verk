@@ -18,13 +18,13 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | DATA-02 | Neon and Prisma runtime client | P0 | PASSED | 0 | 0 | 0 | prisma generate OK. Health SELECT 1 ~1.5s. Issues page live (27 rows). No client imports of lib/db. Missing DATABASE_URL throws. rateLimitShared fail-open unit tests pass. Parallel creates got distinct numbers 21/22. |
 | DEVOPS-01 | Environment configuration | P0 | PASSED | 1 | 1 | 0 | Health exposes 4 fields only. Slack/GitHub/cron/intake 404 when off. Added WEBHOOK_ALLOW_PRIVATE to .env.example. DEMO_MODE only when string true. README table matches example. |
 | DEVOPS-02 | Production build and Vercel deploy | P0 | PASSED | 0 | 0 | 0 | Empty DB URLs skip migrate; full next build --webpack OK; sw.js + manifest + icon present; no Dockerfile. |
-| DEVOPS-03 | GitHub Actions CI | P1 | NOT STARTED |  |  |  | Lint, types, unit tests, production build; Playwright only with a database secret |
+| DEVOPS-03 | GitHub Actions CI | P1 | PASSED | 0 | 0 | 0 | ci.yml reviewed; local lint (0 errors), tsc, vitest 646, next build; E2E gated on secret. |
 | API-01 | Health check | P0 | PASSED | 0 | 0 | 0 | Live 200 healthy + 503 unhealthy (bad DB on :3002). Body has no secrets. demo=false. |
 | SEC-01 | Security headers and content security policy | P0 | PASSED | 0 | 0 | 0 | Six headers on /login and /api/health; no X-Powered-By. CSP matches next.config.mjs. |
 | AUTH-01 | Email and password registration | P0 | PASSED | 0 | 0 | 0 | Live register → /onboarding; bcrypt hash; duplicate + invalid errors. DEMO_MODE and AUTH_ALLOWED_GITHUB redirect /register → /login. emailVerified unset (GAP-03). |
 | AUTH-02 | Password login and session | P0 | PASSED | 0 | 0 | 0 | demo@verk.dev → issues; CredentialsSignin no password in URL; evil callback → /onboarding; disabled user rejected. 2FA URL email query noted. |
 | GAP-01 | Password reset | P0 | BUILD | 0 | 0 | 0 | Verified absent: /forgot-password 404; no reset routes; SCIM changePassword false. |
-| GAP-02 | Change password | P1 | NOT STARTED |  |  |  | BUILD. Account page shows the method but cannot change it |
+| GAP-02 | Change password | P1 | BUILD | 0 | 0 | 0 | Account lists password method only; no change-password action or route; SCIM changePassword false. |
 | GAP-03 | Email verification | P1 | NOT STARTED |  |  |  | BUILD. emailVerified is never set for password signup |
 | AUTH-03 | Logout | P0 | NOT STARTED |  |  |  | Sign out ends the JWT and returns home |
 | AUTH-04 | Signed-out and non-member protection | P0 | NOT STARTED |  |  |  | Team, workspace, account, and onboarding require a session. Unknown teams 404. |
@@ -458,7 +458,7 @@ npm run build and the Vercel build command run scripts/vercel-build.mjs. That sc
 - **ID:** DEVOPS-03
 - **Name:** GitHub Actions CI
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -517,11 +517,11 @@ On push and pull request to main or master, CI checks out the repo, uses Node 22
 
 ### Results
 
-- Bugs Found:
-- Bugs Fixed:
-- UI Issues Fixed:
-- Files Changed:
-- Notes:
+- Bugs Found: 0
+- Bugs Fixed: 0
+- UI Issues Fixed: 0
+- Files Changed: none
+- Notes: Read `.github/workflows/ci.yml`: Node 22, npm ci, prisma generate, lint, tsc --noEmit, vitest, next build --webpack with localhost DB URLs, PWA artifact checks, conditional Playwright + migrate/seed when DATABASE_URL secret set, upload test-results on failure. Reproduced locally: `npx eslint .` (0 errors, warnings only), `npx tsc --noEmit`, `npm test -- --run` 646/646, production build already validated under DEVOPS-02.
 
 ## API-01 Health check
 
@@ -891,7 +891,7 @@ A person who forgets the password cannot recover it. VerificationToken exists on
 - **ID:** GAP-02
 - **Name:** Change password
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** BUILD
 
 ### Files
 
@@ -952,11 +952,11 @@ The account page lists password as a sign-in method when passwordHash is set. Pr
 
 ### Results
 
-- Bugs Found:
-- Bugs Fixed:
-- UI Issues Fixed:
-- Files Changed:
-- Notes:
+- Bugs Found: 0
+- Bugs Fixed: 0
+- UI Issues Fixed: 0
+- Files Changed: none
+- Notes: BUILD gap (feature not shipped). `app/account/page.tsx` shows password as sign-in method via `hasPassword` only. Grep: no `changePassword` action/route. `app/api/scim/ServiceProviderConfig` sets `changePassword.supported: false`. Erasure checks current password in `lib/actions/privacy.ts` but no path updates `passwordHash`.
 
 ## GAP-03 Email verification
 
