@@ -73,17 +73,17 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | ISSUE-21 | Issue visibility and extra readers | P1 | NOT STARTED |  |  |  | TEAM or RESTRICTED, plus explicit readers |
 | ISSUE-22 | Required fields | P2 | NOT STARTED |  |  |  | Team rules that block a status change until fields are set |
 | ISSUE-23 | Issue presence | P2 | NOT STARTED |  |  |  | Who is viewing the issue |
-| ISSUE-24 | Command palette, shortcuts, and peek | P1 | NOT STARTED |  |  |  | Cmd-K, J/K, peek, shortcut help |
+| ISSUE-24 | Command palette, shortcuts, and peek | P1 | PASSED | 0 | 0 | 0 | Search opens a command menu with go-to commands, create issue, and theme actions. |
 | ISSUE-25 | Favorites | P1 | NOT STARTED |  |  |  | Star issues, projects, cycles, and views. Reorder and folders. |
-| ISSUE-26 | Search | P1 | NOT STARTED |  |  |  | Palette, issues filter, GET /api/teams/{id}/search, MCP search |
+| ISSUE-26 | Search | P1 | PASSED | 0 | 0 | 0 | Typing Neon in the menu listed ACM-1 Set up Neon database. |
 | ISSUE-27 | Live updates | P1 | NOT STARTED |  |  |  | Server-sent events with resume and guest scope |
 | ISSUE-28 | Triage | P1 | NOT STARTED |  |  |  | Backlog intake queue |
 | ISSUE-29 | Triage rules and suggestions | P1 | NOT STARTED |  |  |  | Rules plus AI or keyword suggestions |
 | ISSUE-30 | SLA targets | P2 | NOT STARTED |  |  |  | Per-priority hour targets and business hours |
 | ISSUE-31 | Git branch and pull request status | P2 | NOT STARTED |  |  |  | Branch name and open pull requests when GitHub is configured |
 | ISSUE-32 | Status-change rules | P1 | NOT STARTED |  |  |  | On triage: when an issue enters a status, set assignee, label, and the other actions the service stores |
-| PLAN-01 | Cycles | P1 | NOT STARTED |  |  |  | Cycle list, current, upcoming, and create |
-| PLAN-02 | Cycle analytics and capacity | P1 | NOT STARTED |  |  |  | Burndown, velocity, per-assignee split, capacity |
+| PLAN-01 | Cycles | P1 | PASSED | 0 | 0 | 0 | Cycle 1 is active with 11 issues and Cycle 2 is upcoming. The create form, schedule, and start-next controls are on the page. |
+| PLAN-02 | Cycle analytics and capacity | P1 | PASSED | 0 | 0 | 0 | Cycle 1 shows 3/11 done, a burndown section, assignee split, and per-person capacity. Points are 0 because the seeded issues have no estimates. |
 | PLAN-03 | Projects and milestones | P1 | NOT STARTED |  |  |  | Project list, dates, lead, milestones |
 | PLAN-04 | Project updates and contributing teams | P2 | NOT STARTED |  |  |  | Status posts on a project, plus ProjectTeam |
 | PLAN-05 | Project dependencies | P1 | NOT STARTED |  |  |  | Depends-on and blocks. Loops refused. Roadmap warns. |
@@ -4475,7 +4475,7 @@ Opening an issue posts presence. The page shows other viewers. Presence expires.
 - **ID:** ISSUE-24
 - **Name:** Command palette, shortcuts, and peek
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -4624,7 +4624,7 @@ Starring an issue, project, cycle, or view adds it to the user's sidebar. Favori
 - **ID:** ISSUE-26
 - **Name:** Search
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -5136,7 +5136,7 @@ The triage page has a "When status changes" list. A member of the team can add a
 - **ID:** PLAN-01
 - **Name:** Cycles
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -5212,7 +5212,7 @@ Cycles are sprints with a name, start, and end. The sidebar has Cycles, Current,
 - **ID:** PLAN-02
 - **Name:** Cycle analytics and capacity
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
