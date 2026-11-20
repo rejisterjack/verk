@@ -26,7 +26,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | GAP-01 | Password reset | P0 | NOT STARTED |  |  |  | BUILD. No reset flow. A forgotten password cannot be recovered. |
 | GAP-02 | Change password | P1 | NOT STARTED |  |  |  | BUILD. Nothing writes a new password hash. |
 | GAP-03 | Email verification | P1 | NOT STARTED |  |  |  | BUILD. Password signup never sets emailVerified. |
-| AUTH-03 | Logout | P0 | NOT STARTED |  |  |  | Sign out ends the JWT and returns home |
+| AUTH-03 | Logout | P0 | PASSED | 0 | 0 | 0 | Sidebar and account sign-out both land on /. The next team URL redirects to login. The marketing page has no sign-out control. |
 | AUTH-04 | Signed-out and non-member protection | P0 | NOT STARTED |  |  |  | Team, workspace, account, and onboarding require a session. Unknown teams 404. |
 | AUTH-05 | GitHub OAuth | P1 | NOT STARTED |  |  |  | Shown only when AUTH_GITHUB_ID and AUTH_GITHUB_SECRET are set |
 | AUTH-06 | Google OAuth | P1 | NOT STARTED |  |  |  | Shown only when AUTH_GOOGLE_ID and AUTH_GOOGLE_SECRET are set |
@@ -1038,7 +1038,7 @@ User.emailVerified exists. SAML signup sets it (lib/services/saml-login.ts). Pas
 - **ID:** AUTH-03
 - **Name:** Logout
 - **Priority:** P0
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -1052,10 +1052,10 @@ logoutAction calls Auth.js signOut and redirects to /. The account page and the 
 
 ### Acceptance criteria
 
-- [ ] Sign out from the account page lands on /.
-- [ ] Sign out from the sidebar lands on /.
-- [ ] A following request to a team URL redirects to login.
-- [ ] The sign-out control is not shown on the logged-out marketing page.
+- [x] Sign out from the account page lands on /.
+- [x] Sign out from the sidebar lands on /.
+- [x] A following request to a team URL redirects to login.
+- [x] The sign-out control is not shown on the logged-out marketing page.
 
 ### Test cases
 
@@ -1099,11 +1099,11 @@ logoutAction calls Auth.js signOut and redirects to /. The account page and the 
 
 ### Results
 
-- Bugs Found:
-- Bugs Fixed:
-- UI Issues Fixed:
-- Files Changed:
-- Notes:
+- Bugs Found: 0
+- Bugs Fixed: 0
+- UI Issues Fixed: 0
+- Files Changed: none
+- Notes: Signed in as demo@verk.dev. Sidebar Sign out returned to /. The next request to /t/acme-engineering/issues redirected to /login. Signed in again and used Sign out on /account, which showed Working… and then landed on /. The marketing page shows Log in and Start free and no sign-out control.
 
 ## AUTH-04 Signed-out and non-member protection
 
