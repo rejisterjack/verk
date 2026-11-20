@@ -66,7 +66,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | ISSUE-14 | Issue activity | PASSED | 0 | 0 | 0 | Activity lists the comment and a description change on ACM-1. | Field history on the issue |
 | ISSUE-15 | Issue subscriptions | P1 | PASSED | 0 | 0 | 0 | The subscribe switch on ACM-1 turned off and stayed off after reload, then turned back on and stayed Subscribed. Watch and unwatch. Drives notifications. |
 | ISSUE-16 | Similar issues | P2 | NOT STARTED |  |  |  | Hint while typing a title, and the similar API |
-| ISSUE-17 | Advanced filters | P1 | NOT STARTED |  |  |  | Nested all/any groups over the filter fields, in the URL and the API |
+| ISSUE-17 | Advanced filters | P1 | PASSED | 1 | 1 | 0 | Choosing Done in the status filter left every issue on screen because the offline cache replaced the server list. The list now keeps the server result, so Done shows ACM-1, ACM-2, and ACM-13. A status AND priority query in the URL shows the same three. Nested all/any groups over the filter fields, in the URL and the API |
 | ISSUE-18 | Saved views | PASSED | 0 | 0 | 0 | Saved Ship check view from the issues list. It showed under Settings, Views, and Delete removed it. | Create, edit, delete, pin. Private or shared. |
 | ISSUE-19 | Drafts | P1 | PASSED | 0 | 0 | 0 | Saving Ship check draft listed it with Resume and Create issue. Delete returned the page to no drafts. |
 | ISSUE-20 | Issue templates | P1 | PASSED | 0 | 0 | 0 | Ship check template saved with title Ship check template issue and showed after reload. Delete returned the empty templates page. Settings templates prefill the new-issue form |
@@ -3965,7 +3965,7 @@ While the new-issue title is typed, the form requests similar issues in the team
 - **ID:** ISSUE-17
 - **Name:** Advanced filters
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 

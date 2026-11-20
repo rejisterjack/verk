@@ -488,7 +488,9 @@ export default async function IssuesPage({
             labelIds: groupLabelIds,
           }}
           groupBy={listGroup}
-          keepServerList={activeFilter != null}
+          keepServerList={
+            activeFilter != null || Boolean(query.workflowStatusId)
+          }
           initialCursor={listResult.nextCursor}
           initialIssues={listResult.issues.map((issue) => ({
             createdAt: issue.createdAt.toISOString(),
