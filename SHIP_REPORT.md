@@ -19,7 +19,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | DEVOPS-01 | Environment configuration | P0 | PASSED | 0 | 0 | 0 | Every process.env name is in .env.example or is a platform variable. Slack is 404 while unset. Cron is 401 without the bearer and 200 with it. |
 | DEVOPS-02 | Production build and Vercel deploy | P0 | PASSED | 0 | 0 | 0 | next build --webpack succeeded. sw.js, manifest, and icon exist. No Dockerfile. Localhost skips migrate. A Neon-shaped URL invokes migrate first. |
 | DEVOPS-03 | GitHub Actions CI | P1 | PASSED | 0 | 0 | 0 | Workflow runs lint, tsc, vitest, and next build. E2E only when DATABASE_URL is set. Local tsc, vitest 651, and the production build passed. |
-| API-01 | Health check | P0 | NOT STARTED |  |  |  | GET /api/health returns 200 when the database answers, otherwise 503 |
+| API-01 | Health check | P0 | PASSED | 0 | 0 | 0 | 200 when Postgres is up, 503 when it is stopped, then 200 again. Body is ok, status, demo, latencyMs. Query string is ignored. |
 | SEC-01 | Security headers and content security policy | P0 | NOT STARTED |  |  |  | Response headers and the content security policy |
 | AUTH-01 | Email and password registration | P0 | NOT STARTED |  |  |  | Password signup, then onboarding. Off on the demo and on a private host. |
 | AUTH-02 | Password login and session | P0 | NOT STARTED |  |  |  | Credentials login and a JWT session. The second factor is asked only after the password is right. |
@@ -531,7 +531,7 @@ On push and pull request to main or master, CI checks out the repo, uses Node 22
 - **ID:** API-01
 - **Name:** Health check
 - **Priority:** P0
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -543,10 +543,10 @@ GET /api/health runs SELECT 1. On success it returns 200 JSON with ok true, stat
 
 ### Acceptance criteria
 
-- [ ] 200 and healthy when Postgres answers.
-- [ ] 503 and unhealthy when Postgres does not.
-- [ ] The body does not include the connection string or AUTH_SECRET.
-- [ ] demo reflects DEMO_MODE.
+- [x] 200 and healthy when Postgres answers.
+- [x] 503 and unhealthy when Postgres does not.
+- [x] The body does not include the connection string or AUTH_SECRET.
+- [x] demo reflects DEMO_MODE.
 
 ### Test cases
 
@@ -590,11 +590,11 @@ GET /api/health runs SELECT 1. On success it returns 200 JSON with ok true, stat
 
 ### Results
 
-- Bugs Found:
-- Bugs Fixed:
-- UI Issues Fixed:
-- Files Changed:
-- Notes:
+- Bugs Found: 0
+- Bugs Fixed: 0
+- UI Issues Fixed: 0
+- Files Changed: none
+- Notes: GET /api/health returned 200 with ok, status healthy, demo false, and latencyMs while Postgres was up. Stopping Docker Postgres returned 503 unhealthy. Starting it returned 200 again. A query with SQL, a path, and an emoji was ignored. Two parallel requests both returned 200. No connection string or secret in the body. Logged out.
 
 ## SEC-01 Security headers and content security policy
 
