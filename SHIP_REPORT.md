@@ -103,7 +103,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | INBOX-01 | Inbox | P1 | PASSED | 0 | 0 | 0 | Two notifications. Mark read dropped the badge from 2 to 1. |
 | INBOX-02 | Notification preferences | P1 | NOT STARTED |  |  |  | Per-user mute for each notification type |
 | GAP-06 | Email alerts for inbox events | P2 | NOT STARTED |  |  |  | BUILD. Resend sends invites only. |
-| OFFLINE-01 | Installable PWA and offline page | P1 | NOT STARTED |  |  |  | Manifest, service worker, install prompt, offline fallback |
+| OFFLINE-01 | Installable PWA and offline page | P1 | PASSED | 0 | 0 | 0 | The offline page says you are offline and offers teams and retry. The manifest names Verk and starts at /t. The worker is turned off while the dev server is running. |
 | OFFLINE-02 | Offline outbox and sync | P1 | NOT STARTED |  |  |  | Issue CRUD, comments, labels, and drafts while offline |
 | OFFLINE-03 | Edit conflicts | P1 | NOT STARTED |  |  |  | Revision conflicts and the keep-mine dialog |
 | INT-01 | GitHub webhook and pull-request automation | P1 | NOT STARTED |  |  |  | HMAC webhook. Mention, open, and merge. |
@@ -139,7 +139,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | OBS-04 | Empty states | P1 | NOT STARTED |  |  |  | Shared empty state component |
 | A11Y-01 | Keyboard access and semantics | P1 | NOT STARTED |  |  |  | React Aria controls, labels, and focus |
 | RESP-01 | Responsive layout | P1 | NOT STARTED |  |  |  | The shell at phone, tablet, and desktop widths |
-| SEO-01 | Marketing site, robots, and sitemap | P2 | NOT STARTED |  |  |  | Public home, docs, about. Team URLs disallowed. |
+| SEO-01 | Marketing site, robots, and sitemap | P2 | PASSED | 0 | 0 | 0 | Home, docs, and about render. robots.txt allows those and disallows /t, /w, and /api. The sitemap lists the public pages only. |
 | LEGAL-01 | Privacy policy and terms | P1 | PASSED | 1 | 1 | 0 | Privacy page renders. The title was doubled and is now Privacy - Verk. |
 | ANALYTICS-01 | Microsoft Clarity | P2 | NOT STARTED |  |  |  | Production-only session recording |
 | LOG-01 | Logging | P2 | NOT STARTED |  |  |  | Console logs. No analytics pipeline of our own. |
@@ -6680,7 +6680,7 @@ lib/email.ts sends team invite mail and nothing else. Inbox events stay in the a
 - **ID:** OFFLINE-01
 - **Name:** Installable PWA and offline page
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -9323,7 +9323,7 @@ The team shell is a row with a sidebar and a scrolling main pane, using the dyna
 - **ID:** SEO-01
 - **Name:** Marketing site, robots, and sitemap
 - **Priority:** P2
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
