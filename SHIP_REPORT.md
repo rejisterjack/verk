@@ -28,10 +28,10 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | GAP-03 | Email verification | P1 | BLOCKED | 0 | 0 | 0 | No verify control on the account page. Password signup does not set emailVerified. Needs a verification flow and RESEND_API_KEY. |
 | AUTH-03 | Logout | P0 | PASSED | 0 | 0 | 0 | Sidebar and account sign-out both land on /. The next team URL redirects to login. The marketing page has no sign-out control. |
 | AUTH-04 | Signed-out and non-member protection | P0 | PASSED | 0 | 0 | 0 | Signed out, a team URL and the account page go to login and return to that path. A missing team is a 404 that does not name the team. |
-| AUTH-05 | GitHub OAuth | P1 | NOT STARTED |  |  |  | Shown only when AUTH_GITHUB_ID and AUTH_GITHUB_SECRET are set |
-| AUTH-06 | Google OAuth | P1 | NOT STARTED |  |  |  | Shown only when AUTH_GOOGLE_ID and AUTH_GOOGLE_SECRET are set |
-| AUTH-07 | OIDC single sign-on | P2 | NOT STARTED |  |  |  | Generic OIDC when issuer, client id, and secret are set |
-| AUTH-08 | SAML single sign-on | P1 | NOT STARTED |  |  |  | SAML 2.0 checked by Verk, then a 60-second ticket |
+| AUTH-05 | GitHub OAuth | P1 | BLOCKED | 0 | 0 | 0 | The login page has no GitHub button. Needs AUTH_GITHUB_ID and AUTH_GITHUB_SECRET. |
+| AUTH-06 | Google OAuth | P1 | BLOCKED | 0 | 0 | 0 | The login page has no Google button. Needs AUTH_GOOGLE_ID and AUTH_GOOGLE_SECRET. |
+| AUTH-07 | OIDC single sign-on | P2 | BLOCKED | 0 | 0 | 0 | The login page has no OIDC button. Needs AUTH_OIDC_ISSUER, AUTH_OIDC_CLIENT_ID, and AUTH_OIDC_CLIENT_SECRET. |
+| AUTH-08 | SAML single sign-on | P1 | BLOCKED | 0 | 0 | 0 | The login page has no SAML button. Needs SAML_IDP_SSO_URL and SAML_IDP_CERT. |
 | AUTH-09 | Two-factor authentication | P1 | BLOCKED | 0 | 0 | 0 | Setup shows a secret and an authenticator link. Confirming the code needs an authenticator app, so two-factor was not turned on. |
 | AUTH-10 | Passkeys | P1 | NOT STARTED |  |  |  | WebAuthn sign-in. Up to 10 passkeys. |
 | AUTH-11 | Account page | P1 | NOT STARTED |  |  |  | Profile, teams, 2FA, passkeys, appearance, privacy, sign out |
@@ -59,7 +59,7 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | ISSUE-07 | Relations, duplicates, and blocking | P1 | NOT STARTED |  |  |  | BLOCKS, related, and duplicate. Loops rejected. |
 | ISSUE-08 | Archive, restore, and purge | P1 | NOT STARTED |  |  |  | Archive hides an issue. The daily cron deletes it after 30 days. |
 | ISSUE-09 | Bulk edit | P1 | NOT STARTED |  |  |  | Up to 200 issues: status, priority, assignee, archive, restore, delete |
-| ISSUE-10 | Labels | P1 | NOT STARTED |  |  |  | Team labels and per-issue assignment |
+| ISSUE-10 | Labels | P1 | PASSED | 0 | 0 | 0 | bug, feature, and polish are listed. Adding shipcheck created it, and Delete removed it. |
 | ISSUE-11 | Comment reactions | P2 | PASSED | 0 | 0 | 0 | Thumbs-up on the comment showed 1, you reacted. |
 | ISSUE-12 | Attachments | P1 | NOT STARTED |  |  |  | Upload, thumbnails, type sniffing, 10 MB, 25 files |
 | ISSUE-13 | External issue links | P2 | NOT STARTED |  |  |  | URL links on an issue, separate from git automation |
@@ -1183,7 +1183,7 @@ auth.config authorized treats /t, /t/*, /w/*, /onboarding, and /account as prote
 - **ID:** AUTH-05
 - **Name:** GitHub OAuth
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** BLOCKED
 
 ### Files
 
@@ -1255,7 +1255,7 @@ If both GitHub env vars are set, a GitHub provider is registered and the login p
 - **ID:** AUTH-06
 - **Name:** Google OAuth
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** BLOCKED
 
 ### Files
 
@@ -1327,7 +1327,7 @@ Google is registered the same way as GitHub, only when both Google env vars are 
 - **ID:** AUTH-07
 - **Name:** OIDC single sign-on
 - **Priority:** P2
-- **Status:** NOT STARTED
+- **Status:** BLOCKED
 
 ### Files
 
@@ -1398,7 +1398,7 @@ If AUTH_OIDC_ISSUER, AUTH_OIDC_CLIENT_ID, and AUTH_OIDC_CLIENT_SECRET are all se
 - **ID:** AUTH-08
 - **Name:** SAML single sign-on
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** BLOCKED
 
 ### Files
 
@@ -3455,7 +3455,7 @@ Selecting rows (click, shift-click for a range, or X on the focused row) opens a
 - **ID:** ISSUE-10
 - **Name:** Labels
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
