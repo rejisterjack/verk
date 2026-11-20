@@ -10,7 +10,7 @@ There is no payment system. GitHub, GitLab, Slack, SAML, inbound email, Sentry, 
 
 ## Feature Table
 
-Every status is NOT STARTED. Result columns are empty until a later test pass. This table matches the Ship Readiness Report canvas.
+Every feature is PASSED or BLOCKED. This table matches the Ship Readiness Report canvas.
 
 | ID | Feature | Priority | Status | Bugs Found | Bugs Fixed | UI Issues Fixed | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -41,8 +41,8 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | AUTH-14 | Demo mode lock | P1 | BLOCKED | 0 | 0 | 0 | DEMO_MODE is false. A throwaway team deleted successfully, so the demo lock is off. Needs DEMO_MODE=true. DEMO_MODE blocks registration, team delete, and account erase |
 | AUTH-15 | Private host and GitHub allowlist | P1 | BLOCKED | 0 | 0 | 0 | AUTH_ALLOWED_GITHUB is unset, so the GitHub allowlist is not closing password sign-in. AUTH_ALLOWED_GITHUB closes password, SAML, Google, and OIDC |
 | AUTH-16 | Sign-in rate limit | P0 | BLOCKED | 0 | 0 | 0 | Proving 30 sign-in attempts would lock the only demo session. Needs a disposable account. 30 attempts per minute per IP, shared in Postgres |
-| TEAM-01 | Onboarding and team creation | P0 | NOT STARTED |  |  |  | First team after signup |
-| TEAM-02 | Team list and switcher | PASSED | 0 | 0 | 0 | Switcher lists Acme Engineering as current. /t opens that team's issues. | Sidebar switcher and /t |
+| TEAM-01 | Onboarding and team creation | P0 | BLOCKED | 0 | 0 | 0 | A signed-in member who opens /onboarding is sent to the issues list. Needs a new account with no team. First team after signup |
+| TEAM-02 | Team list and switcher | P0 | PASSED | 0 | 0 | 0 | Switcher lists Acme Engineering as current. /t opens that team's issues. Sidebar switcher and /t |
 | TEAM-03 | Membership gate and roles | P0 | BLOCKED | 0 | 0 | 0 | Members shows Owner and Member, with Owner, Admin, Member and Guest in the role list. Needs a non-member, a member session and a guest to prove the gates. OWNER, ADMIN, MEMBER, GUEST |
 | TEAM-04 | Team settings | P1 | PASSED | 0 | 0 | 0 | General settings show name, slug, Fibonacci estimates, a 2 week cycle, GitHub, GitLab, Slack, triage owner, SLA, and a slug-confirmed delete. A HIGH target of 8 hours stayed after reload, then was cleared. Name, slug, cycles, estimates, GitHub, GitLab, Slack, SLA, privacy, parent team |
 | TEAM-05 | Delete team | P1 | PASSED | 0 | 0 | 0 | A new team Ship check team was created, a wrong slug left it in place, and typing ship-check-team deleted it and returned to Acme Engineering. Acme was not deleted. Owner only. Blocked on the demo host |
@@ -55,47 +55,47 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | ISSUE-03 | Issue list, my issues, and display options | P0 | PASSED | 1 | 1 | 1 | The list groups by status when listGroup=status. My issues for the demo user correctly says nothing is assigned, instead of telling them to create the first issue. |
 | ISSUE-04 | Board | P0 | PASSED | 1 | 1 | 1 | Column titles sat on the first card. Sticky top now stays at the column top, and Backlog, Todo, In Progress, and Done show the issues. |
 | ISSUE-05 | Comments | P1 | PASSED | 0 | 0 | 0 | A comment posted, then Delete removed it. The page showed no comments. |
-| ISSUE-06 | Sub-issues | PASSED | 0 | 0 | 0 | Ship check child appeared as ACM-22 under ACM-1, with a parent link. Delete removed it. | Parent, up to 8 levels, progress, inherit, auto-close |
-| ISSUE-07 | Relations, duplicates, and blocking | PASSED | 0 | 0 | 0 | Related ACM-2 was added on ACM-1. Remove cleared it. | BLOCKS, related, and duplicate. Loops rejected. |
+| ISSUE-06 | Sub-issues | P1 | PASSED | 0 | 0 | 0 | Ship check child appeared as ACM-22 under ACM-1, with a parent link. Delete removed it. Parent, up to 8 levels, progress, inherit, auto-close |
+| ISSUE-07 | Relations, duplicates, and blocking | P1 | PASSED | 0 | 0 | 0 | Related ACM-2 was added on ACM-1. Remove cleared it. BLOCKS, related, and duplicate. Loops rejected. |
 | ISSUE-08 | Archive, restore, and purge | P1 | PASSED | 0 | 0 | 0 | Archiving ACM-16 hid it from the list and showed it on Archive. Restore put it back, and it is no longer archived. Archive hides an issue. The daily cron deletes it after 30 days. |
 | ISSUE-09 | Bulk edit | P1 | PASSED | 0 | 0 | 0 | Selecting ACM-16 opened a bar for status, priority, assignee, archive, and delete. Setting priority to Low updated that one issue, then it was set back to No priority. Up to 200 issues: status, priority, assignee, archive, restore, delete |
 | ISSUE-10 | Labels | P1 | PASSED | 0 | 0 | 0 | bug, feature, and polish are listed. Adding shipcheck created it, and Delete removed it. |
 | ISSUE-11 | Comment reactions | P2 | PASSED | 0 | 0 | 0 | Thumbs-up on the comment showed 1, you reacted. |
 | ISSUE-12 | Attachments | P1 | BLOCKED | 0 | 0 | 0 | ACM-1 shows Upload files, up to 10 MB. Uploads need BLOB_READ_WRITE_TOKEN, which is unset. Upload, thumbnails, type sniffing, 10 MB, 25 files |
-| ISSUE-13 | External issue links | PASSED | 0 | 0 | 0 | A link to example.com showed on ACM-1. Remove cleared it. | URL links on an issue, separate from git automation |
-| ISSUE-14 | Issue activity | PASSED | 0 | 0 | 0 | Activity lists the comment and a description change on ACM-1. | Field history on the issue |
+| ISSUE-13 | External issue links | P2 | PASSED | 0 | 0 | 0 | A link to example.com showed on ACM-1. Remove cleared it. URL links on an issue, separate from git automation |
+| ISSUE-14 | Issue activity | P1 | PASSED | 0 | 0 | 0 | Activity lists the comment and a description change on ACM-1. Field history on the issue |
 | ISSUE-15 | Issue subscriptions | P1 | PASSED | 0 | 0 | 0 | The subscribe switch on ACM-1 turned off and stayed off after reload, then turned back on and stayed Subscribed. Watch and unwatch. Drives notifications. |
 | ISSUE-16 | Similar issues | P2 | PASSED | 0 | 0 | 0 | Typing Set up Neon database in New issue listed Similar issues with a link to ACM-1. The dialog was closed without creating an issue. Hint while typing a title, and the similar API |
 | ISSUE-17 | Advanced filters | P1 | PASSED | 1 | 1 | 0 | Choosing Done in the status filter left every issue on screen because the offline cache replaced the server list. The list now keeps the server result, so Done shows ACM-1, ACM-2, and ACM-13. A status AND priority query in the URL shows the same three. Nested all/any groups over the filter fields, in the URL and the API |
-| ISSUE-18 | Saved views | PASSED | 0 | 0 | 0 | Saved Ship check view from the issues list. It showed under Settings, Views, and Delete removed it. | Create, edit, delete, pin. Private or shared. |
+| ISSUE-18 | Saved views | P1 | PASSED | 0 | 0 | 0 | Saved Ship check view from the issues list. It showed under Settings, Views, and Delete removed it. Create, edit, delete, pin. Private or shared. |
 | ISSUE-19 | Drafts | P1 | PASSED | 0 | 0 | 0 | Saving Ship check draft listed it with Resume and Create issue. Delete returned the page to no drafts. |
 | ISSUE-20 | Issue templates | P1 | PASSED | 0 | 0 | 0 | Ship check template saved with title Ship check template issue and showed after reload. Delete returned the empty templates page. Settings templates prefill the new-issue form |
 | ISSUE-21 | Issue visibility and extra readers | P1 | PASSED | 0 | 0 | 0 | ACM-1 stayed Restricted after reload, with Alex Rivera as an extra reader. It was set back to Team and the reader was cleared. TEAM or RESTRICTED, plus explicit readers |
 | ISSUE-22 | Required fields | P2 | PASSED | 0 | 0 | 0 | Requiring an assignee on Done blocked ACM-20, which is unassigned, with Required before this status: assignee. The status stayed Todo and the requirement was cleared. Team rules that block a status change until fields are set |
 | ISSUE-23 | Issue presence | P2 | BLOCKED | 0 | 0 | 0 | Also viewing hides the current user, so one signed-in browser shows nothing. Needs a second person on the same issue. Who is viewing the issue |
 | ISSUE-24 | Command palette, shortcuts, and peek | P1 | PASSED | 0 | 0 | 0 | Search opens a command menu with go-to commands, create issue, and theme actions. |
-| ISSUE-25 | Favorites | PASSED | 0 | 0 | 0 | Add to favorites put ACM-1 in the sidebar. Remove from favorites took it out. | Star issues, projects, cycles, and views. Reorder and folders. |
+| ISSUE-25 | Favorites | P1 | PASSED | 0 | 0 | 0 | Add to favorites put ACM-1 in the sidebar. Remove from favorites took it out. Star issues, projects, cycles, and views. Reorder and folders. |
 | ISSUE-26 | Search | P1 | PASSED | 0 | 0 | 0 | Typing Neon in the menu listed ACM-1 Set up Neon database. |
 | ISSUE-27 | Live updates | P1 | BLOCKED | 0 | 0 | 0 | This browser tab stays hidden, so the live stream stays closed. A new comment appeared only after a reload. Needs a visible tab. Server-sent events with resume and guest scope |
-| ISSUE-28 | Triage | PASSED | 0 | 0 | 0 | Triage lists unassigned backlog issues. Snoozing ACM-14 hid it for an hour, then it returned. | Backlog intake queue |
-| ISSUE-29 | Triage rules and suggestions | PASSED | 0 | 0 | 0 | A title rule for shipcheck was added and removed. Suggest on ACM-8 offered Medium. | Rules plus AI or keyword suggestions |
+| ISSUE-28 | Triage | P1 | PASSED | 0 | 0 | 0 | Triage lists unassigned backlog issues. Snoozing ACM-14 hid it for an hour, then it returned. Backlog intake queue |
+| ISSUE-29 | Triage rules and suggestions | P1 | PASSED | 0 | 0 | 0 | A title rule for shipcheck was added and removed. Suggest on ACM-8 offered Medium. Rules plus AI or keyword suggestions |
 | ISSUE-30 | SLA targets | P2 | PASSED | 0 | 0 | 0 | SLA uses UTC, weekdays 1-5, and hours 0-24. Setting HIGH to 8 hours stayed after reload, then the target was cleared. Per-priority hour targets and business hours |
 | ISSUE-31 | Git branch and pull request status | P2 | BLOCKED | 0 | 0 | 0 | The GitHub repository field is empty, so the branch line is not on the issue. Needs a repo and GITHUB_TOKEN. Branch name and open pull requests when GitHub is configured |
-| ISSUE-32 | Status-change rules | PASSED | 1 | 1 | 0 | A backlog status rule assigned Alex Rivera. The row had no remove control, so one was added and used. | On triage: when an issue enters a status, set assignee, label, and the other actions the service stores |
+| ISSUE-32 | Status-change rules | P1 | PASSED | 1 | 1 | 0 | A backlog status rule assigned Alex Rivera. The row had no remove control, so one was added and used. On triage: when an issue enters a status, set assignee, label, and the other actions the service stores |
 | PLAN-01 | Cycles | P1 | PASSED | 0 | 0 | 0 | Cycle 1 is active with 11 issues and Cycle 2 is upcoming. The create form, schedule, and start-next controls are on the page. |
 | PLAN-02 | Cycle analytics and capacity | P1 | PASSED | 0 | 0 | 0 | Cycle 1 shows 3/11 done, a burndown section, assignee split, and per-person capacity. Points are 0 because the seeded issues have no estimates. |
 | PLAN-03 | Projects and milestones | P1 | PASSED | 0 | 0 | 0 | Launch Verk shows 29 percent, 7 issues, the Public demo milestone, and a lead. |
 | PLAN-04 | Project updates and contributing teams | P2 | PASSED | 0 | 0 | 0 | Posting an update put Ship check update on the project timeline. The row was removed afterward. |
 | PLAN-05 | Project dependencies | P1 | PASSED | 0 | 0 | 0 | Ship check dep depended on Launch Verk, and Launch Verk listed it under Blocks. A reverse link was refused and the list stayed empty. The extra project was deleted, and Launch Verk is unchanged. Depends-on and blocks. Loops refused. Roadmap warns. |
-| PLAN-06 | Initiatives and key results | PASSED | 0 | 0 | 0 | Created Ship check initiative with health, a key-result form, and a document form. Delete returned the empty state. | Initiatives, health, parent, key results |
+| PLAN-06 | Initiatives and key results | P1 | PASSED | 0 | 0 | 0 | Created Ship check initiative with health, a key-result form, and a document form. Delete returned the empty state. Initiatives, health, parent, key results |
 | PLAN-07 | Roadmap | P1 | PASSED | 0 | 0 | 0 | Roadmap shows Launch Verk at 2 of 7, 29 percent, On track, with week nudge buttons. |
 | PLAN-08 | Timeline | P1 | PASSED | 0 | 0 | 0 | The timeline shows Cycle 1 and Cycle 2 across month, quarter, and year, and notes the project has no dates. |
 | PLAN-09 | Calendar | P1 | PASSED | 0 | 0 | 0 | November 2026 shows a Sunday-to-Saturday grid with previous and next. Seeded issues have no start or due dates, so the cells are empty. |
-| PLAN-10 | Releases and pipelines | PASSED | 0 | 0 | 0 | Two Default pipelines list Planned, Started, and Released. Ship check appeared as Planned with 0 issues. The page has no release delete, so the row was removed directly. | Pipelines, stages, and issue release assignment |
+| PLAN-10 | Releases and pipelines | P1 | PASSED | 0 | 0 | 0 | Two Default pipelines list Planned, Started, and Released. Ship check appeared as Planned with 0 issues. The page has no release delete, so the row was removed directly. Pipelines, stages, and issue release assignment |
 | PLAN-11 | Documents | P1 | PASSED | 0 | 0 | 0 | Ship check doc saved with the body, a comment box, and version history. Delete returned the empty documents page. Team docs, comments, revisions, and line merge |
-| PLAN-12 | Customers | PASSED | 0 | 0 | 0 | Added Ship Check Co with a request form and 0 requests. Delete customer removed it. | Customers, tier, revenue, and requests |
+| PLAN-12 | Customers | P1 | PASSED | 0 | 0 | 0 | Added Ship Check Co with a request form and 0 requests. Delete customer removed it. Customers, tier, revenue, and requests |
 | PLAN-13 | Customer demand | P1 | PASSED | 0 | 0 | 0 | A request from Ship Check Co on ACM-20 ranked that issue first, by customer count and by revenue (12k). The customer was then deleted. Rank open issues by customers or by revenue |
-| PLAN-14 | Dashboards | PASSED | 1 | 1 | 0 | Creating Ship check board saved it but the list stayed blank until reload. Create now refreshes, and Delete removes the board. | Personal dashboards and widgets |
+| PLAN-14 | Dashboards | P1 | PASSED | 1 | 1 | 0 | Creating Ship check board saved it but the list stayed blank until reload. Create now refreshes, and Delete removes the board. Personal dashboards and widgets |
 | PLAN-15 | Insights | P1 | PASSED | 1 | 1 | 0 | Created 20 and completed 3 match the team. The flow chart ended the day before issues existed, so every row was zero. It now includes today and shows 6, 6, 4, 3, 1. |
 | PLAN-16 | Insight builder and saved reports | P1 | PASSED | 0 | 0 | 0 | The builder grouped 20 issues by status. Saving Ship check report listed it, and delete removed it. Build a query, keep it private or share it |
 | PLAN-17 | Public Ask form | P1 | PASSED | 0 | 0 | 0 | Create a link showed a public /ask URL. Sending Ship check ask filed ACM-24, which was then deleted. Turn off made the same URL a 404. Token URL that files a triage issue. Honeypot and rate limits. |
@@ -104,47 +104,47 @@ Every status is NOT STARTED. Result columns are empty until a later test pass. T
 | INBOX-02 | Notification preferences | P1 | PASSED | 0 | 0 | 0 | Unchecking Assigned to you saved, and checking it again restored it. The other four types stayed on. |
 | GAP-06 | Email alerts for inbox events | P2 | BLOCKED | 0 | 0 | 0 | Inbox preferences are on the notifications page. Email is not configured, and RESEND_API_KEY is unset. BUILD. Resend sends invites only. |
 | OFFLINE-01 | Installable PWA and offline page | P1 | PASSED | 0 | 0 | 0 | The offline page says you are offline and offers teams and retry. The manifest names Verk and starts at /t. The worker is turned off while the dev server is running. |
-| OFFLINE-02 | Offline outbox and sync | P1 | NOT STARTED |  |  |  | Issue CRUD, comments, labels, and drafts while offline |
-| OFFLINE-03 | Edit conflicts | P1 | NOT STARTED |  |  |  | Revision conflicts and the keep-mine dialog |
+| OFFLINE-02 | Offline outbox and sync | P1 | BLOCKED | 0 | 0 | 0 | This dev server does not install a service worker, so the page has no offline controller. Needs a production build to edit while offline. Issue CRUD, comments, labels, and drafts while offline |
+| OFFLINE-03 | Edit conflicts | P1 | BLOCKED | 0 | 0 | 0 | The keep-mine dialog never appeared. The dev service worker is off, so two offline edits cannot meet. Needs a production build. Revision conflicts and the keep-mine dialog |
 | INT-01 | GitHub webhook and pull-request automation | P1 | BLOCKED | 0 | 0 | 0 | Team settings show the GitHub webhook URL and say to set GITHUB_WEBHOOK_SECRET and GITHUB_TOKEN. HMAC webhook. Mention, open, and merge. |
 | INT-02 | GitLab webhook | P1 | BLOCKED | 0 | 0 | 0 | Team settings show the GitLab webhook URL and say to set GITLAB_WEBHOOK_SECRET. Merge request events. Same mention rules as GitHub. |
 | INT-03 | Slack commands, mentions, and shortcuts | P1 | BLOCKED | 0 | 0 | 0 | Slack workspace and channel are empty. Commands need SLACK_SIGNING_SECRET, which is unset. Slash command, app mention, and the create-issue shortcut |
 | INT-04 | Slack unfurls and channel notifications | P1 | BLOCKED | 0 | 0 | 0 | The Slack incoming webhook field is empty, so link previews and channel posts cannot be sent. Link previews and one outbound post |
-| INT-05 | Email intake | P2 | NOT STARTED |  |  |  | Inbound mail becomes a triage issue |
-| INT-06 | Sentry intake | P2 | NOT STARTED |  |  |  | A Sentry issue becomes one triage issue |
+| INT-05 | Email intake | P2 | PASSED | 0 | 0 | 0 | An inbound message became ACM-25, Ship check mail, with the sender in the description. It was then deleted. Inbound mail becomes a triage issue |
+| INT-06 | Sentry intake | P2 | PASSED | 0 | 0 | 0 | A signed Sentry issue became ACM-26, Ship check sentry, with a Sentry link. It was then deleted. A Sentry issue becomes one triage issue |
 | INT-07 | Linear import | P1 | BLOCKED | 0 | 0 | 0 | Import from Linear shows the CSV upload and the API key field. Needs a Linear personal API key, and this browser cannot attach a CSV. CSV or API, capped at 2,000 issues |
 | INT-08 | Generic CSV import | P1 | BLOCKED | 0 | 0 | 0 | Import from CSV shows the file field and says mapping comes after the file. This browser cannot attach a CSV. Map columns, preview, then import |
 | INT-09 | Issue export | P1 | PASSED | 0 | 0 | 0 | CSV export returned 200 with a header row. |
 | INT-10 | Outbound webhooks and delivery log | P1 | PASSED | 1 | 1 | 0 | A localhost URL crashed the page. It now shows that webhook URLs must be public https addresses. |
 | INT-11 | REST hooks | P2 | PASSED | 0 | 0 | 0 | Subscribing a hook returned 201 and unsubscribing it returned 204. The hook is gone. Zapier-style subscribe and unsubscribe |
-| INT-12 | SCIM | P1 | NOT STARTED |  |  |  | Users and groups. Owners are never removed. |
+| INT-12 | SCIM | P1 | PASSED | 0 | 0 | 0 | SCIM listed demo@verk.dev and alex@verk.dev. Nobody was deprovisioned. Users and groups. Owners are never removed. |
 | INT-13 | OAuth apps | P1 | PASSED | 0 | 0 | 0 | Registering an app showed a client id. Allow on the consent screen returned a code, and the token endpoint answered 200 Bearer. The app was then deleted. Authorization code and PKCE. Tokens are API keys. |
 | INT-14 | API keys | P1 | PASSED | 0 | 0 | 0 | A member key was shown once, then listed by prefix, then revoked. |
-| API-02 | GraphQL | P1 | NOT STARTED |  |  |  | One endpoint per team, same auth and role checks as REST |
-| API-03 | MCP server | P1 | NOT STARTED |  |  |  | 47 tools at POST /api/mcp |
-| API-04 | Issue prompt agent | P1 | NOT STARTED |  |  |  | POST /api/agent creates or updates issues from a prompt |
-| API-05 | Coding-agent claims and next issue | P1 | NOT STARTED |  |  |  | Lease an issue, heartbeat, report, and the next-unblocked route |
+| API-02 | GraphQL | P1 | PASSED | 0 | 0 | 0 | The team GraphQL query returned the project Launch Verk. One endpoint per team, same auth and role checks as REST |
+| API-03 | MCP server | P1 | PASSED | 0 | 0 | 0 | A member key listed 47 MCP tools. The key was then revoked. 47 tools at POST /api/mcp |
+| API-04 | Issue prompt agent | P1 | BLOCKED | 0 | 0 | 0 | POST /api/agent answers 404 Agent is not configured. Needs AI_API_KEY. POST /api/agent creates or updates issues from a prompt |
+| API-05 | Coding-agent claims and next issue | P1 | PASSED | 0 | 0 | 0 | Claiming ACM-20 returned 201 and release returned 200 with the claim released. The next-issue route returned ACM-6. Lease an issue, heartbeat, report, and the next-unblocked route |
 | API-06 | Agent discovery document | P2 | PASSED | 0 | 0 | 0 | GET /.well-known/verk-agent.json describes bearer keys, OAuth, REST, GraphQL, and MCP. |
-| API-07 | VS Code extension | P2 | NOT STARTED |  |  |  | Sign in with a key and create an issue |
+| API-07 | VS Code extension | P2 | BLOCKED | 0 | 0 | 0 | The VS Code extension is not running in this browser. Needs VS Code signed in with a key. Sign in with a key and create an issue |
 | SET-01 | Workflow statuses | P1 | PASSED | 1 | 1 | 0 | Statuses showed 0 issues because seeded issues had no workflow status. Counts now read 6, 6, 4, 3, and 1. |
 | SET-02 | Automations | P1 | PASSED | 0 | 0 | 0 | Created a rule that sets priority when an issue is created, then deleted it. |
 | SET-03 | Audit log, export, and retention | P1 | PASSED | 1 | 1 | 0 | The log lists invites, keys, automations, and the CSV export. Creating a key stored the actor as Unknown when only an id was passed. New rows now show Demo User. |
 | SET-04 | Appearance | P1 | PASSED | 0 | 0 | 0 | Dark theme turns the account page to ink on a dark surface and stays readable. Light restores it. Language, accent, and density controls are on the same page. |
 | SET-05 | Locales | P1 | PASSED | 0 | 0 | 0 | Deutsch switched the language heading to Sprache and the sidebar to German. |
 | SET-06 | In-app API reference | P2 | PASSED | 0 | 0 | 0 | Settings API lists the REST groups, Bearer verk_ keys, POST /api/agent, and webhook events. No key secret is on the page. Settings → API describes the key and the routes |
-| SEC-02 | Shared rate limiter | P1 | NOT STARTED |  |  |  | Postgres buckets, fail-open to memory |
-| OBS-01 | Application error page | P1 | NOT STARTED |  |  |  | app/error.tsx reset control |
+| SEC-02 | Shared rate limiter | P1 | BLOCKED | 0 | 0 | 0 | Tripping the shared limiter would lock sign-in or flood triage. Needs a disposable target. Postgres buckets, fail-open to memory |
+| OBS-01 | Application error page | P1 | BLOCKED | 0 | 0 | 0 | No page threw, so the Something went wrong screen and its reset button were not shown. Needs a view that throws. app/error.tsx reset control |
 | OBS-02 | Not-found page | P1 | PASSED | 0 | 0 | 0 | An unknown address shows This page isn't here, with links to teams and home. Title is Page Not Found - Verk. |
-| OBS-03 | Loading states | P2 | NOT STARTED |  |  |  | Team segment loading UI |
-| OBS-04 | Empty states | P1 | NOT STARTED |  |  |  | Shared empty state component |
-| A11Y-01 | Keyboard access and semantics | P1 | NOT STARTED |  |  |  | React Aria controls, labels, and focus |
-| RESP-01 | Responsive layout | P1 | NOT STARTED |  |  |  | The shell at phone, tablet, and desktop widths |
+| OBS-03 | Loading states | P2 | BLOCKED | 0 | 0 | 0 | The Loading line never stayed on screen on this local server. Needs a slow response. Team segment loading UI |
+| OBS-04 | Empty states | P1 | PASSED | 0 | 0 | 0 | Drafts shows No drafts, and tells you to save one from New issue. Shared empty state component |
+| A11Y-01 | Keyboard access and semantics | P1 | PASSED | 0 | 0 | 0 | Issues, settings, and the new-issue dialog expose named controls, and Enter runs a focused button. React Aria controls, labels, and focus |
+| RESP-01 | Responsive layout | P1 | PASSED | 0 | 0 | 0 | The issues list fit without horizontal overflow at 390, 768, and 1440, and ACM-1 stayed on the page. The shell at phone, tablet, and desktop widths |
 | SEO-01 | Marketing site, robots, and sitemap | P2 | PASSED | 0 | 0 | 0 | Home, docs, and about render. robots.txt allows those and disallows /t, /w, and /api. The sitemap lists the public pages only. |
 | LEGAL-01 | Privacy policy and terms | P1 | PASSED | 1 | 1 | 0 | Privacy page renders. The title was doubled and is now Privacy - Verk. |
-| ANALYTICS-01 | Microsoft Clarity | P2 | NOT STARTED |  |  |  | Production-only session recording |
-| LOG-01 | Logging | P2 | NOT STARTED |  |  |  | Console logs. No analytics pipeline of our own. |
-| JOB-01 | Daily maintenance cron | P1 | NOT STARTED |  |  |  | GET /api/cron/cycles. One Vercel schedule. |
-| JOB-02 | Demo reset cron | P2 | NOT STARTED |  |  |  | GET /api/cron/demo-reset and POST /api/demo/reset |
+| ANALYTICS-01 | Microsoft Clarity | P2 | BLOCKED | 0 | 0 | 0 | This dev page loads no Clarity script. Needs a production deploy with NEXT_PUBLIC_CLARITY_PROJECT_ID. Production-only session recording |
+| LOG-01 | Logging | P2 | PASSED | 0 | 0 | 0 | The live pages load no analytics script of our own. Console logs. No analytics pipeline of our own. |
+| JOB-01 | Daily maintenance cron | P1 | PASSED | 0 | 0 | 0 | The daily cron returned no advanced cycles, purged nothing, and wrote one snapshot. Cycle 1 and Cycle 2 were unchanged. GET /api/cron/cycles. One Vercel schedule. |
+| JOB-02 | Demo reset cron | P2 | BLOCKED | 0 | 0 | 0 | Running the demo reset would replace this workspace. Needs a disposable database. GET /api/cron/demo-reset and POST /api/demo/reset |
 
 ## Gaps
 
@@ -2130,7 +2130,7 @@ register, login, passkey, and the password POST share rateLimitShared. Login and
 - **ID:** TEAM-01
 - **Name:** Onboarding and team creation
 - **Priority:** P0
-- **Status:** NOT STARTED
+- **Status:** BLOCKED
 
 ### Files
 
@@ -6758,7 +6758,7 @@ The root layout points at the web manifest and the apple touch icon. Production 
 - **ID:** OFFLINE-02
 - **Name:** Offline outbox and sync
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** BLOCKED
 
 ### Files
 
@@ -6833,7 +6833,7 @@ When the flag is not false, Dexie stores an outbox. Creating or editing an issue
 - **ID:** OFFLINE-03
 - **Name:** Edit conflicts
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** BLOCKED
 
 ### Files
 
@@ -7198,7 +7198,7 @@ When the Slack app has links:read and links:write, pasting a Verk issue URL unfu
 - **ID:** INT-05
 - **Name:** Email intake
 - **Priority:** P2
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -7270,7 +7270,7 @@ POST /api/teams/{id}/email with Authorization Bearer EMAIL_INTAKE_TOKEN turns a 
 - **ID:** INT-06
 - **Name:** Sentry intake
 - **Priority:** P2
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -7712,7 +7712,7 @@ POST /api/teams/{id}/hooks subscribes a URL and DELETE or a matching call unsubs
 - **ID:** INT-12
 - **Name:** SCIM
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -7942,7 +7942,7 @@ A member creates a key shown once (verk_…). The key's role is GUEST, MEMBER, o
 - **ID:** API-02
 - **Name:** GraphQL
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -8014,7 +8014,7 @@ POST /api/teams/{id}/graphql runs the schema in lib/graphql/schema.ts. Queries: 
 - **ID:** API-03
 - **Name:** MCP server
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -8086,7 +8086,7 @@ POST /api/mcp is the MCP server. It requires a bearer API key. Tools cover issue
 - **ID:** API-04
 - **Name:** Issue prompt agent
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** BLOCKED
 
 ### Files
 
@@ -8159,7 +8159,7 @@ POST /api/agent needs a bearer key and AI_API_KEY. The body is teamId and prompt
 - **ID:** API-05
 - **Name:** Coding-agent claims and next issue
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -8305,7 +8305,7 @@ The well-known JSON describes the agent endpoints so a coding agent can find nex
 - **ID:** API-07
 - **Name:** VS Code extension
 - **Priority:** P2
-- **Status:** NOT STARTED
+- **Status:** BLOCKED
 
 ### Files
 
@@ -8824,7 +8824,7 @@ The API page in the team explains how to create a key and call the API. It is do
 - **ID:** SEC-02
 - **Name:** Shared rate limiter
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** BLOCKED
 
 ### Files
 
@@ -8896,7 +8896,7 @@ rateLimitShared upserts a RateLimitBucket row so every serverless instance share
 - **ID:** OBS-01
 - **Name:** Application error page
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** BLOCKED
 
 ### Files
 
@@ -9037,7 +9037,7 @@ Unknown URLs and notFound() from a missing team or a non-member render This page
 - **ID:** OBS-03
 - **Name:** Loading states
 - **Priority:** P2
-- **Status:** NOT STARTED
+- **Status:** BLOCKED
 
 ### Files
 
@@ -9107,7 +9107,7 @@ The team segment has a loading.tsx so navigations between team pages show a plac
 - **ID:** OBS-04
 - **Name:** Empty states
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -9177,7 +9177,7 @@ Lists with no rows use the empty state component or an equivalent heading and ex
 - **ID:** A11Y-01
 - **Name:** Keyboard access and semantics
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -9250,7 +9250,7 @@ Interactive controls are buttons or links, or React Aria components. The team sw
 - **ID:** RESP-01
 - **Name:** Responsive layout
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -9470,7 +9470,7 @@ Privacy and terms are public pages with their own titles. The privacy page state
 - **ID:** ANALYTICS-01
 - **Name:** Microsoft Clarity
 - **Priority:** P2
-- **Status:** NOT STARTED
+- **Status:** BLOCKED
 
 ### Files
 
@@ -9542,7 +9542,7 @@ Clarity’s script is injected only when NEXT_PUBLIC_CLARITY_PROJECT_ID is set a
 - **ID:** LOG-01
 - **Name:** Logging
 - **Priority:** P2
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -9614,7 +9614,7 @@ Invite mail logs a console info line when Resend is unset or when send fails, an
 - **ID:** JOB-01
 - **Name:** Daily maintenance cron
 - **Priority:** P1
-- **Status:** NOT STARTED
+- **Status:** PASSED
 
 ### Files
 
@@ -9686,7 +9686,7 @@ Vercel calls GET /api/cron/cycles daily at 06:00 UTC. If CRON_SECRET is unset th
 - **ID:** JOB-02
 - **Name:** Demo reset cron
 - **Priority:** P2
-- **Status:** NOT STARTED
+- **Status:** BLOCKED
 
 ### Files
 
@@ -9756,7 +9756,7 @@ The demo cron is scheduled at 12:00 UTC. It uses CRON_SECRET the same way as the
 
 ## Assumptions
 
-- This document replaces any earlier status values in SHIP_REPORT.md. Those verdicts are not carried forward. Every item is NOT STARTED because this pass did not test, fix, or run the app.
+- The feature table is the live result. 97 features passed and 34 are blocked. None are left untested.
 - Optional integrations are features. They exist in the code and stay off until the matching environment variable is set. Off is a supported state, not a missing page.
 - A guest with an empty guestProjectIds list can see the whole team. That matches the membership comment in the schema. A non-empty list is the restriction.
 - Sessions are JWTs (`lib/auth.config.ts`). The Prisma Session model is present for the adapter. Credentials login does not depend on a Session row.
@@ -9765,13 +9765,13 @@ The demo cron is scheduled at 12:00 UTC. It uses CRON_SECRET the same way as the
 - INTAKE_TOKEN and the webhook secrets are application secrets. Possession of the secret is the authorization for the team id in the URL. That is recorded on PLAN-18 and the intake features.
 - Appearance is stored in the browser, not on the user. Two people who share a browser profile share a theme.
 - Long-form screens staying in English is intentional. The locale catalog covers shared chrome.
-- No route was exercised. Suspected bugs are from reading the cited lines only.
+- The statuses above come from using the running app. A blocked row names the missing key, account, or device.
 - Status-change rules on the triage page are ISSUE-32. They are not the triage intake rules in ISSUE-29. Named Ask forms share `/ask/{token}` with the single Ask link and stay inside PLAN-17.
 
 ## Risks
 
 - `allowDangerousEmailAccountLinking` is true for GitHub, Google, and OIDC (`lib/auth.ts:150`, `:160`, `:177`). A provider account that can claim an email can attach to an existing password user.
-- HSTS with preload is sent on every response, including local HTTP (`next.config.mjs:36-39`).
+- Production sends HSTS with preload. The dev server omits it so localhost HTTP is not cached as HTTPS-only.
 - The content security policy allows inline scripts (`next.config.mjs`).
 - The shared rate limiter fails open to per-process memory when Postgres errors (`lib/rate-limit.ts:71-72`), so a database blip on several instances multiplies the cap.
 - Sign-in trusts the first `x-forwarded-for` address (`app/api/auth/password/route.ts`).
@@ -9782,3 +9782,26 @@ The demo cron is scheduled at 12:00 UTC. It uses CRON_SECRET the same way as the
 - Demo mode is a shared writable database. The reset job must stay scoped to that data.
 - The VS Code extension stores the API key in editor settings (`extensions/vscode/extension.js`).
 - Two-factor setup puts the account email in the login query string (`app/api/auth/password/route.ts:54-55`).
+
+## Final Summary
+
+| Result | Count |
+| --- | --- |
+| Features | 131 |
+| Passed | 97 |
+| Blocked | 34 |
+| Not started | 0 |
+| Bugs found | 17 |
+| Bugs fixed | 17 |
+| UI issues fixed | 3 |
+| P0 blocked | 3 |
+
+## Still Blocked
+
+AUTH-16, TEAM-01, and TEAM-03 are P0. Sign-in rate limiting was not tripped because that would lock the only demo session. Onboarding needs a brand-new account. Role checks need a non-member, a member session, and a guest.
+
+The other blocked rows need a missing key or a second actor: GitHub, GitLab, Slack, Resend, SAML, OIDC, Google, passkeys, the model key, Clarity in production, a blob token, a second viewer, a visible tab for live updates, a Linear export, a CSV this browser cannot attach, a disposable database for the demo reset, and a production build for the service worker.
+
+## Decision
+
+NO-GO. Three P0 features are blocked, so the product is not ready to ship as a complete tracker for a new team. The signed-in demo workspace passed the issue, planning, and settings journeys that do not need an outside service.
