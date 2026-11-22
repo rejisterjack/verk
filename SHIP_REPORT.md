@@ -469,12 +469,12 @@ npm run build and the Vercel build command run scripts/vercel-build.mjs. That sc
 
 ### Expected behavior
 
-On push and pull request to main or master, CI checks out the repo, uses Node 22, runs npm ci, prisma generate, npm run lint, tsc --noEmit, npm test, and next build --webpack. The build uses a localhost database URL so migrate is not required. It then asserts public/manifest.webmanifest, public/sw.js, and public/icons/icon-192.png exist. Playwright runs only when the DATABASE_URL secret is non-empty, after migrate and seed. Without that secret the job still succeeds and writes an E2E-skipped warning to the step summary. There is no Docker Postgres service in the workflow.
+On a push to main, CI checks out the repo, uses Node 22, runs npm ci, prisma generate, npm run lint, tsc --noEmit, npm test, and next build --webpack. The build uses a localhost database URL so migrate is not required. It then asserts public/manifest.webmanifest, public/sw.js, and public/icons/icon-192.png exist. Playwright runs only when the DATABASE_URL secret is non-empty, after migrate and seed. Without that secret the job still succeeds and writes an E2E-skipped warning to the step summary. There is no Docker Postgres service in the workflow.
 
 ### Acceptance criteria
 
-- [x] A pull request with no database secret is green only after lint, types, unit tests, and the production build pass, and the summary says E2E was skipped.
-- [x] A pull request with DATABASE_URL, DIRECT_URL, and AUTH_SECRET runs migrate, seed, and Playwright.
+- [x] A push to main with no database secret is green only after lint, types, unit tests, and the production build pass, and the summary says E2E was skipped.
+- [x] A push to main with DATABASE_URL, DIRECT_URL, and AUTH_SECRET runs migrate, seed, and Playwright.
 - [x] Playwright failure uploads test-results.
 - [x] The workflow does not print secret values.
 
@@ -489,7 +489,7 @@ On push and pull request to main or master, CI checks out the repo, uses Node 22
 #### SQL injection, XSS, and path traversal
 - Confirm secrets are referenced as GitHub secrets and are not echoed. A malicious PR cannot set HAS_E2E_DB except through the repository secret.
 #### Logged out, expired session, wrong role, and another user's data
-- CI is not a product role. Fork pull requests must not receive the database secret (GitHub's default).
+- CI is not a product role. It runs only on a push to main.
 #### Double-submit and parallel requests
 - Two concurrent workflow runs on one shared Neon branch can reset the same demo team. The README says to use a throwaway branch. Treat a shared database as a bug in the project setup, not in the YAML.
 #### External service failing, timing out, and rate limiting

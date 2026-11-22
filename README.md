@@ -100,7 +100,7 @@ Seeded demo login: `demo@verk.dev` / `demo1234` · team slug `acme-engineering`
 6. Cron routes are `GET /api/cron/cycles` and `GET /api/cron/demo-reset`. Send `Authorization: Bearer $CRON_SECRET`. Without the secret they stay off (404).
 7. A private host is a normal deployment: sign-in is required and data stays in your database. `DEMO_MODE=true` is the public demo only. It resets on the demo cron and must not be set on a private host.
 8. Turn on Slack with `SLACK_SIGNING_SECRET` and `SLACK_BOT_TOKEN`, SCIM with `SCIM_TOKEN`, AI summaries and triage with `AI_API_KEY`, and git status with `GITHUB_WEBHOOK_SECRET` plus `GITLAB_WEBHOOK_SECRET`. Missing `AI_API_KEY` is a supported setup: summaries fall back to a keyword extract.
-9. Microsoft Clarity records sessions only when `NEXT_PUBLIC_CLARITY_PROJECT_ID` is set on the production environment. Leave it empty for preview deploys and for a private self-host. The value is read at build time, so a new production deployment is required after setting it.
+9. Microsoft Clarity records sessions only when `NEXT_PUBLIC_CLARITY_PROJECT_ID` is set on the production environment. Leave it empty for a private self-host. The value is read at build time, so a new production deployment is required after setting it. There is no preview deployment.
 
 ## Environment variables
 
@@ -130,7 +130,7 @@ Copy [`.env.example`](.env.example). Core + integrations for full product surfac
 
 Every variable the code reads is listed in [`.env.example`](.env.example).
 
-The Vercel build script (`scripts/vercel-build.mjs`) runs `prisma migrate deploy` before `next build`. It skips the migration when `DIRECT_URL` and `DATABASE_URL` are both empty or point at localhost, so preview builds without a database still succeed. `postinstall` only runs `prisma generate`.
+The Vercel build script (`scripts/vercel-build.mjs`) runs `prisma migrate deploy` before `next build`. It skips the migration when `DIRECT_URL` and `DATABASE_URL` are both empty or point at localhost, so a build without a database still succeeds. Vercel builds only when the git ref is `main`, and that build is production. `postinstall` only runs `prisma generate`.
 
 GitHub sign-in uses `AUTH_GITHUB_ID` and `AUTH_GITHUB_SECRET`. Create a GitHub OAuth App whose callback is `{AUTH_URL}/api/auth/callback/github`. On a private host, set `AUTH_ALLOWED_GITHUB` to a comma-separated list of GitHub usernames or numeric account ids; an empty value leaves sign-up open. A pull request that mentions the team key (`ACM-123` for slug `acme-engineering`) is stored as one GitHub link on that issue (`GITHUB_WEBHOOK_SECRET`, webhook URL `{AUTH_URL}/api/github/webhook`). When the issue status changes and `GITHUB_TOKEN` is set, Verk posts a comment on that pull request that links back to the issue. Verk does not merge pull requests. Outbound webhooks are configured in Settings → Webhooks.
 
@@ -191,9 +191,9 @@ On seeded `acme-engineering` after migrate + seed:
 7. Settings → Import page loads  
 8. Attachments: without Blob token shows config error; with token uploads  
 
-## CI / Playwright
+## CI/CD
 
-GitHub Actions lint, typecheck, unit tests, and a production build always run. The **Migrate, seed + Playwright** step runs only when repository secret `DATABASE_URL` is set (plus `DIRECT_URL` / `AUTH_SECRET`). Use a throwaway Neon branch: the seed resets the `acme-engineering` demo team. Without those secrets the job still passes, but it prints an "E2E skipped" warning and step summary, so a green check is never mistaken for a tested UI. There is no Docker Postgres in CI.
+Workflows run only on a push to `main`. A pull request, any other branch, a tag push, a schedule, and a manual run do not start CI or CD. The only deploy target is production. Vercel builds only when the git ref is `main`. Lint, typecheck, unit tests, and a production build run on that push. The **Migrate, seed + Playwright** step runs only when repository secret `DATABASE_URL` is set (plus `DIRECT_URL` / `AUTH_SECRET`). Use a throwaway Neon branch: the seed resets the `acme-engineering` demo team. Without those secrets the job still passes, but it prints an "E2E skipped" warning and step summary, so a green check is never mistaken for a tested UI. There is no Docker Postgres in CI.
 
 ## SCIM
 
